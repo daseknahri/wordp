@@ -6,57 +6,73 @@ get_header();
 
 $featured_posts = get_posts([
     'post_type'      => 'post',
-    'posts_per_page' => 1,
+    'posts_per_page' => 6,
     'post_status'    => 'publish',
 ]);
 
 $hero_post = $featured_posts ? $featured_posts[0] : null;
 $hero_id   = $hero_post ? $hero_post->ID : 0;
+$hero_image = ($hero_post && has_post_thumbnail($hero_post))
+    ? get_the_post_thumbnail_url($hero_post, 'full')
+    : '';
+$lead_post = $featured_posts[1] ?? null;
+$lead_id   = $lead_post ? $lead_post->ID : 0;
+$secondary_posts = array_slice($featured_posts, $lead_post ? 2 : 1, 4);
+$about_page = get_page_by_path('about');
 
 $pillar_queries = [
-    ['label' => __('Recipes', 'kuchnia-twist'), 'slug' => 'recipes'],
-    ['label' => __('Food Facts', 'kuchnia-twist'), 'slug' => 'food-facts'],
-    ['label' => __('Food Stories', 'kuchnia-twist'), 'slug' => 'food-stories'],
+    [
+        'label' => __('Recipes', 'kuchnia-twist'),
+        'slug' => 'recipes',
+        'description' => __('Cookable, comforting, and practical pieces designed to earn repeat visits instead of one-click traffic.', 'kuchnia-twist'),
+    ],
+    [
+        'label' => __('Food Facts', 'kuchnia-twist'),
+        'slug' => 'food-facts',
+        'description' => __('Clear explanations that make ingredients, techniques, and kitchen myths easier to understand.', 'kuchnia-twist'),
+    ],
+    [
+        'label' => __('Food Stories', 'kuchnia-twist'),
+        'slug' => 'food-stories',
+        'description' => __('Narrative food writing that gives the site texture, memory, and a stronger editorial identity.', 'kuchnia-twist'),
+    ],
 ];
 ?>
-<section class="hero">
-    <div class="hero__copy">
-        <span class="eyebrow"><?php esc_html_e('Editorial food journal', 'kuchnia-twist'); ?></span>
-        <h1><?php esc_html_e('A food blog that feels rich, useful, and worth returning to.', 'kuchnia-twist'); ?></h1>
-        <p><?php esc_html_e('Kuchnia Twist blends practical recipes, kitchen knowledge, and story-led food writing into one calm reading experience.', 'kuchnia-twist'); ?></p>
-        <div class="hero__actions">
-            <?php $recipes_category = get_category_by_slug('recipes'); ?>
-            <?php if ($recipes_category instanceof WP_Term) : ?>
-                <a class="button button--primary" href="<?php echo esc_url(get_category_link($recipes_category)); ?>"><?php esc_html_e('Browse Recipes', 'kuchnia-twist'); ?></a>
-            <?php endif; ?>
-            <?php if ($hero_post) : ?>
-                <a class="button button--ghost" href="<?php echo esc_url(get_permalink($hero_post)); ?>"><?php esc_html_e('Read the latest feature', 'kuchnia-twist'); ?></a>
-            <?php endif; ?>
-        </div>
-    </div>
-    <?php if ($hero_post) : ?>
-        <article class="hero__feature">
-            <?php if (has_post_thumbnail($hero_post)) : ?>
-                <a href="<?php echo esc_url(get_permalink($hero_post)); ?>" class="hero__feature-media">
-                    <?php echo get_the_post_thumbnail($hero_post, 'kuchnia-twist-hero'); ?>
-                </a>
-            <?php endif; ?>
-            <div class="hero__feature-body">
-                <?php $hero_category = kuchnia_twist_primary_category($hero_id); ?>
-                <?php if ($hero_category instanceof WP_Term) : ?>
-                    <span class="eyebrow"><?php echo esc_html($hero_category->name); ?></span>
+<section class="hero hero--poster"<?php if ($hero_image) : ?> style="--hero-image:url('<?php echo esc_url($hero_image); ?>')"<?php endif; ?>>
+    <div class="hero__veil"></div>
+    <div class="hero__inner">
+        <div class="hero__copy">
+            <span class="eyebrow"><?php esc_html_e('Editorial food journal', 'kuchnia-twist'); ?></span>
+            <h1><?php bloginfo('name'); ?></h1>
+            <p class="hero__lede"><?php esc_html_e('Recipes, food facts, and story-led kitchen writing shaped to feel generous, memorable, and worth trusting.', 'kuchnia-twist'); ?></p>
+            <div class="hero__actions">
+                <?php $recipes_category = get_category_by_slug('recipes'); ?>
+                <?php if ($recipes_category instanceof WP_Term) : ?>
+                    <a class="button button--primary" href="<?php echo esc_url(get_category_link($recipes_category)); ?>"><?php esc_html_e('Start With Recipes', 'kuchnia-twist'); ?></a>
                 <?php endif; ?>
+                <?php if ($about_page instanceof WP_Post) : ?>
+                    <a class="button button--ghost" href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('Read The Editorial Note', 'kuchnia-twist'); ?></a>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php if ($hero_post) : ?>
+            <article class="hero__feature-meta">
+                <span class="eyebrow"><?php esc_html_e('Latest feature', 'kuchnia-twist'); ?></span>
                 <h2><a href="<?php echo esc_url(get_permalink($hero_post)); ?>"><?php echo esc_html(get_the_title($hero_post)); ?></a></h2>
                 <p><?php echo esc_html(get_the_excerpt($hero_post)); ?></p>
-            </div>
-        </article>
-    <?php endif; ?>
+                <div class="hero__meta-row">
+                    <span><?php echo esc_html(get_the_date('', $hero_post)); ?></span>
+                    <span><?php echo esc_html(kuchnia_twist_estimated_read_time($hero_id)); ?> min read</span>
+                </div>
+            </article>
+        <?php endif; ?>
+    </div>
 </section>
 
-<section class="section">
+<section class="section section--pillars">
     <div class="section__heading">
         <span class="eyebrow"><?php esc_html_e('Three pillars', 'kuchnia-twist'); ?></span>
-        <h2><?php esc_html_e('Every post fits one clear promise.', 'kuchnia-twist'); ?></h2>
+        <h2><?php esc_html_e('One publication, three clear reasons to return.', 'kuchnia-twist'); ?></h2>
     </div>
     <div class="pillar-grid">
         <?php foreach ($pillar_queries as $pillar) : ?>
@@ -70,8 +86,9 @@ $pillar_queries = [
             ]) : [];
             $post_id = $posts ? $posts[0]->ID : 0;
             ?>
-            <article class="pillar-card">
+            <article class="pillar-column">
                 <span class="eyebrow"><?php echo esc_html($pillar['label']); ?></span>
+                <p class="pillar-column__summary"><?php echo esc_html($pillar['description']); ?></p>
                 <?php if ($post_id) : ?>
                     <h3><a href="<?php echo esc_url(get_permalink($post_id)); ?>"><?php echo esc_html(get_the_title($post_id)); ?></a></h3>
                     <p><?php echo esc_html(get_the_excerpt($post_id)); ?></p>
@@ -87,39 +104,78 @@ $pillar_queries = [
     </div>
 </section>
 
-<section class="section section--muted">
+<section class="section section--journal">
     <div class="section__heading">
         <span class="eyebrow"><?php esc_html_e('Fresh from the journal', 'kuchnia-twist'); ?></span>
-        <h2><?php esc_html_e('Recent posts with room to breathe.', 'kuchnia-twist'); ?></h2>
+        <h2><?php esc_html_e('A quieter layout for the pieces carrying the site forward.', 'kuchnia-twist'); ?></h2>
     </div>
-    <div class="story-grid">
-        <?php
-        $recent_posts = get_posts([
-            'post_type'      => 'post',
-            'post_status'    => 'publish',
-            'posts_per_page' => 6,
-            'post__not_in'   => $hero_id ? [$hero_id] : [],
-        ]);
-        ?>
-        <?php if ($recent_posts) : ?>
-            <?php foreach ($recent_posts as $recent_post) : ?>
-                <?php kuchnia_twist_render_post_card($recent_post->ID); ?>
-            <?php endforeach; ?>
-        <?php else : ?>
-            <p class="empty-state"><?php esc_html_e('Start publishing to populate the homepage with your editorial lineup.', 'kuchnia-twist'); ?></p>
+    <div class="journal-grid">
+        <?php if ($lead_post) : ?>
+            <article class="journal-lead">
+                <a class="journal-lead__media" href="<?php echo esc_url(get_permalink($lead_post)); ?>">
+                    <?php if (has_post_thumbnail($lead_post)) : ?>
+                        <?php echo get_the_post_thumbnail($lead_post, 'kuchnia-twist-hero'); ?>
+                    <?php else : ?>
+                        <span class="story-card__placeholder"><?php esc_html_e('A fresh feature is waiting here', 'kuchnia-twist'); ?></span>
+                    <?php endif; ?>
+                </a>
+                <div class="journal-lead__body">
+                    <?php $lead_category = kuchnia_twist_primary_category($lead_id); ?>
+                    <?php if ($lead_category instanceof WP_Term) : ?>
+                        <span class="eyebrow"><?php echo esc_html($lead_category->name); ?></span>
+                    <?php endif; ?>
+                    <h3><a href="<?php echo esc_url(get_permalink($lead_post)); ?>"><?php echo esc_html(get_the_title($lead_post)); ?></a></h3>
+                    <p><?php echo esc_html(get_the_excerpt($lead_post)); ?></p>
+                    <div class="hero__meta-row">
+                        <span><?php echo esc_html(get_the_date('', $lead_post)); ?></span>
+                        <span><?php echo esc_html(kuchnia_twist_estimated_read_time($lead_id)); ?> min read</span>
+                    </div>
+                </div>
+            </article>
         <?php endif; ?>
+
+        <div class="journal-stack">
+            <?php if ($secondary_posts) : ?>
+                <?php foreach ($secondary_posts as $secondary_post) : ?>
+                    <?php $secondary_category = kuchnia_twist_primary_category($secondary_post->ID); ?>
+                    <article class="journal-item">
+                        <div>
+                            <?php if ($secondary_category instanceof WP_Term) : ?>
+                                <span class="eyebrow"><?php echo esc_html($secondary_category->name); ?></span>
+                            <?php endif; ?>
+                            <h3><a href="<?php echo esc_url(get_permalink($secondary_post)); ?>"><?php echo esc_html(get_the_title($secondary_post)); ?></a></h3>
+                            <p><?php echo esc_html(get_the_excerpt($secondary_post)); ?></p>
+                        </div>
+                        <div class="journal-item__meta">
+                            <span><?php echo esc_html(get_the_date('', $secondary_post)); ?></span>
+                            <span><?php echo esc_html(kuchnia_twist_estimated_read_time($secondary_post->ID)); ?> min read</span>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+            <?php elseif (!$lead_post) : ?>
+                <p class="empty-state"><?php esc_html_e('Start publishing to populate the homepage with your editorial lineup.', 'kuchnia-twist'); ?></p>
+            <?php endif; ?>
+        </div>
     </div>
 </section>
 
-<section class="section section--split">
-    <div>
+<section class="cta-band">
+    <div class="cta-band__copy">
         <span class="eyebrow"><?php esc_html_e('Built for trust', 'kuchnia-twist'); ?></span>
-        <h2><?php esc_html_e('A calmer layout makes your content, policies, and editorial identity easier to trust.', 'kuchnia-twist'); ?></h2>
+        <h2><?php esc_html_e('A cleaner editorial shape makes the blog easier to trust before it asks anything from the reader.', 'kuchnia-twist'); ?></h2>
+        <p><?php esc_html_e("Keep the publishing flow simple, then keep refining the site's voice, policies, and strongest articles. That sequence gives the blog a steadier path to approval and better returning traffic.", 'kuchnia-twist'); ?></p>
+        <div class="hero__actions">
+            <a class="button button--primary" href="<?php echo esc_url(home_url('/')); ?>"><?php esc_html_e('View All Articles', 'kuchnia-twist'); ?></a>
+            <?php if ($about_page instanceof WP_Post) : ?>
+                <a class="button button--ghost" href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('About Kuchnia Twist', 'kuchnia-twist'); ?></a>
+            <?php endif; ?>
+        </div>
     </div>
-    <div class="check-list">
-        <p><?php esc_html_e('Clear categories for recipes, food facts, and food stories.', 'kuchnia-twist'); ?></p>
-        <p><?php esc_html_e('Dedicated trust pages for about, privacy, cookies, contact, and editorial policy.', 'kuchnia-twist'); ?></p>
-        <p><?php esc_html_e('A reading experience designed to feel premium before ads ever arrive.', 'kuchnia-twist'); ?></p>
+    <div class="cta-band__panel">
+        <p class="site-footer__eyebrow"><?php esc_html_e('Trust pages', 'kuchnia-twist'); ?></p>
+        <div class="cta-band__links">
+            <?php kuchnia_twist_policy_links(); ?>
+        </div>
     </div>
 </section>
 <?php

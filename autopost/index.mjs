@@ -757,7 +757,7 @@ function trimText(value, maxLength) {
     return text;
   }
 
-  return `${text.slice(0, maxLength - 1).trim()}…`;
+  return `${text.slice(0, maxLength - 3).trim()}...`;
 }
 
 function normalizeSlug(value) {
