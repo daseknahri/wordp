@@ -684,6 +684,99 @@ select {
   border-top: 1px solid var(--line);
 }
 
+.page-shell--trust {
+  max-width: var(--content);
+}
+
+.page-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(260px, 0.72fr);
+  gap: 28px;
+  align-items: start;
+  margin-bottom: 34px;
+}
+
+.page-hero__lede {
+  max-width: 40rem;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 1.12rem;
+}
+
+.page-highlights {
+  display: grid;
+  gap: 12px;
+  padding: 24px 26px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 253, 249, 0.92) 0%, rgba(245, 237, 228, 0.78) 100%);
+  box-shadow: var(--shadow);
+}
+
+.page-highlights p {
+  margin: 0;
+  color: var(--ink);
+}
+
+.page-highlights p + p {
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.page-prose {
+  margin-bottom: 34px;
+}
+
+.page-sections {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  margin-bottom: 34px;
+}
+
+.page-section-card {
+  padding: 24px 24px 22px;
+  border: 1px solid var(--line);
+  background: rgba(255, 253, 249, 0.88);
+  box-shadow: var(--shadow);
+}
+
+.page-section-card h2 {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 2.7vw, 2.4rem);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+}
+
+.page-section-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.page-section-card__list {
+  margin: 16px 0 0;
+  padding-left: 1.2em;
+  color: var(--ink);
+}
+
+.page-section-card__list li + li {
+  margin-top: 8px;
+}
+
+.page-callout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.74fr);
+  gap: 28px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+
+.page-callout__links {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
 .site-footer {
   padding-top: 8px;
   padding-bottom: 44px;
@@ -804,9 +897,12 @@ select {
   .hero__inner,
   .journal-grid,
   .cta-band,
+  .page-hero,
+  .page-callout,
   .site-footer__grid,
   .story-grid,
   .pillar-grid,
+  .page-sections,
   .recipe-panel__grid {
     grid-template-columns: 1fr;
   }
@@ -875,6 +971,7 @@ select {
     padding-left: 16px;
   }
 
+  .page-highlights,
   .cta-band__panel,
   .recipe-panel {
     padding: 22px;

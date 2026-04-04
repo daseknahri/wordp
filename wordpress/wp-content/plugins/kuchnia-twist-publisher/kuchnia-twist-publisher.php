@@ -787,23 +787,23 @@ final class Kuchnia_Twist_Publisher
         $pages = [
             'about' => [
                 'title'   => __('About', 'kuchnia-twist'),
-                'content' => "<p>Kuchnia Twist is a food journal built around recipes, food facts, and story-led kitchen writing. Edit this page to tell your own story before applying for AdSense.</p>",
+                'content' => "<p>Kuchnia Twist is a food journal built around three pillars: recipes, food facts, and story-led kitchen writing. Use this page to explain your point of view, your editorial standards, and why this publication exists.</p><p>Before monetization, replace this starter copy with your real story, cooking perspective, and the kind of value readers should expect from the site.</p>",
             ],
             'contact' => [
                 'title'   => __('Contact', 'kuchnia-twist'),
-                'content' => '<p>Use this page to add your contact details, business email, and editorial contact information.</p>',
+                'content' => '<p>Use this page to add your editorial email, business contact details, and any notes about response times. Readers should be able to understand when and why to contact the publication.</p><p>This is also the right place to explain how brands, collaborators, or readers can send corrections and partnership enquiries.</p>',
             ],
             'privacy-policy' => [
                 'title'   => __('Privacy Policy', 'kuchnia-twist'),
-                'content' => '<p>Replace this placeholder with your real privacy policy before production monetization.</p>',
+                'content' => '<p>This starter page should be replaced with a privacy policy that matches your real analytics, consent, advertising, and contact workflows. Before production monetization, make sure the page reflects the actual tools used on the site.</p>',
             ],
             'cookie-policy' => [
                 'title'   => __('Cookie Policy', 'kuchnia-twist'),
-                'content' => '<p>Replace this placeholder with your actual cookie policy and consent information.</p>',
+                'content' => '<p>Use this page to explain what cookies or similar technologies may be used on the site, why they appear, and how readers can manage consent preferences.</p>',
             ],
             'editorial-policy' => [
                 'title'   => __('Editorial Policy', 'kuchnia-twist'),
-                'content' => '<p>Explain how recipes are tested, how food facts are sourced, and how stories are edited.</p>',
+                'content' => '<p>Use this page to describe how recipes are developed, how food facts are handled, and how corrections are reviewed. A clear editorial policy helps the site feel more trustworthy to readers and advertising platforms alike.</p>',
             ],
         ];
 
