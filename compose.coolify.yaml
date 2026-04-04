@@ -33,16 +33,6 @@ services:
       WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
       WORDPRESS_TABLE_PREFIX: ${WORDPRESS_TABLE_PREFIX}
       WORDPRESS_DEBUG: ${WORDPRESS_DEBUG}
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "php -r \"$$headers = @get_headers('http://localhost/'); exit($$headers === false ? 1 : 0);\"",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
     volumes:
       - wordpress_data:/var/www/html
 
