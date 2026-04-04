@@ -375,6 +375,12 @@ function kuchnia_twist_publication_initials()
     return $initials !== '' ? $initials : 'KT';
 }
 
+function kuchnia_twist_public_contact_email()
+{
+    $email = sanitize_email((string) get_option('admin_email'));
+    return is_email($email) ? $email : '';
+}
+
 function kuchnia_twist_render_posts_pagination()
 {
     the_posts_pagination([

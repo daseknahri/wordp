@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">404 artwork</title>
+  <desc id="desc">Editorial illustration for a missing page with cookbook, spoon, and pantry note.</desc>
+  <rect width="1200" height="900" fill="#f6ede3"/>
+  <rect x="142" y="160" width="916" height="580" rx="42" fill="#fff9f2"/>
+  <rect x="204" y="242" width="340" height="400" rx="28" fill="#efdaca"/>
+  <rect x="586" y="214" width="340" height="18" rx="9" fill="#1f140d"/>
+  <rect x="586" y="274" width="292" height="10" rx="5" fill="#c89b7b"/>
+  <rect x="586" y="312" width="250" height="10" rx="5" fill="#c89b7b"/>
+  <rect x="586" y="350" width="228" height="10" rx="5" fill="#c89b7b"/>
+  <text x="232" y="450" font-family="Georgia, 'Times New Roman', serif" font-size="154" font-weight="700" fill="#b1552e">404</text>
+  <path d="M720 520c48-74 126-122 226-136-10 98-58 168-152 216-70-18-100-45-74-80z" fill="#d7966a"/>
+  <path d="M334 250c40 26 66 60 78 102-44 28-88 48-132 58-12-70 2-128 54-160z" fill="#efb530"/>
+  <text x="180" y="822" font-family="Georgia, 'Times New Roman', serif" font-size="50" font-weight="700" fill="#1f140d">Find your way back to the journal</text>
+</svg>

@@ -4,6 +4,7 @@ defined('ABSPATH') || exit;
 ?>
     </main>
     <footer class="site-footer">
+        <?php $public_email = kuchnia_twist_public_contact_email(); ?>
         <div class="site-footer__grid">
             <div>
                 <div class="site-footer__brand">
@@ -19,6 +20,18 @@ defined('ABSPATH') || exit;
                 <?php kuchnia_twist_pillar_links(); ?>
                 <p class="site-footer__eyebrow site-footer__eyebrow--sub"><?php esc_html_e('Trust pages', 'kuchnia-twist'); ?></p>
                 <?php kuchnia_twist_policy_links(); ?>
+            </div>
+        </div>
+        <div class="site-footer__notice">
+            <div>
+                <p class="site-footer__eyebrow"><?php esc_html_e('Publication note', 'kuchnia-twist'); ?></p>
+                <p><?php esc_html_e('This is an independent editorial food site built around original recipes, practical explainers, and story-led kitchen writing.', 'kuchnia-twist'); ?></p>
+            </div>
+            <div class="site-footer__notice-meta">
+                <span><?php esc_html_e('Clear policies and contact details are always kept visible.', 'kuchnia-twist'); ?></span>
+                <?php if ($public_email) : ?>
+                    <a href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
+                <?php endif; ?>
             </div>
         </div>
         <div class="site-footer__bottom">

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Search artwork</title>
+  <desc id="desc">Editorial illustration for search results with magnifier, recipe notes, and kitchen objects.</desc>
+  <rect width="1200" height="900" fill="#f6ece2"/>
+  <rect x="118" y="160" width="964" height="584" rx="40" fill="#fff9f2"/>
+  <rect x="198" y="238" width="436" height="18" rx="9" fill="#1f140d"/>
+  <rect x="198" y="294" width="364" height="10" rx="5" fill="#c69a79"/>
+  <rect x="198" y="332" width="392" height="10" rx="5" fill="#c69a79"/>
+  <rect x="198" y="370" width="286" height="10" rx="5" fill="#c69a79"/>
+  <circle cx="842" cy="392" r="142" fill="none" stroke="#b1552e" stroke-width="22"/>
+  <path d="M934 484l118 118" stroke="#7b341d" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="842" cy="392" r="78" fill="#efd8c3"/>
+  <path d="M298 566c72-36 156-48 252-32" fill="none" stroke="#d9b294" stroke-width="14" stroke-linecap="round"/>
+  <path d="M298 614c82-28 170-34 262-20" fill="none" stroke="#d9b294" stroke-width="14" stroke-linecap="round"/>
+  <text x="182" y="820" font-family="Georgia, 'Times New Roman', serif" font-size="50" font-weight="700" fill="#1f140d">Search the kitchen journal</text>
+</svg>

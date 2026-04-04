@@ -26,7 +26,17 @@ get_header();
             <?php kuchnia_twist_render_post_card(get_the_ID()); ?>
         <?php endwhile; ?>
     <?php else : ?>
-        <p class="empty-state"><?php esc_html_e('No matching articles yet. Try a broader ingredient, technique, or story topic.', 'kuchnia-twist'); ?></p>
+        <div class="search-rescue">
+            <div class="search-rescue__copy">
+                <p class="empty-state"><?php esc_html_e('No matching articles yet. Try a broader ingredient, technique, or story topic.', 'kuchnia-twist'); ?></p>
+                <div class="rescue-links">
+                    <?php kuchnia_twist_pillar_links(); ?>
+                </div>
+            </div>
+            <div class="search-rescue__art">
+                <img src="<?php echo esc_url(kuchnia_twist_asset_url('assets/media-search.svg')); ?>" alt="">
+            </div>
+        </div>
     <?php endif; ?>
 </section>
 <?php kuchnia_twist_render_posts_pagination(); ?>

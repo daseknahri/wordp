@@ -20,6 +20,25 @@ $lead_post = $featured_posts[1] ?? null;
 $lead_id   = $lead_post ? $lead_post->ID : 0;
 $secondary_posts = array_slice($featured_posts, $lead_post ? 2 : 1, 4);
 $about_page = get_page_by_path('about');
+$contact_page = get_page_by_path('contact');
+$editorial_policy = get_page_by_path('editorial-policy');
+$promises = [
+    [
+        'eyebrow' => __('Clear editorial shape', 'kuchnia-twist'),
+        'title'   => __('Every article belongs to a real pillar so the archive feels curated, not cluttered.', 'kuchnia-twist'),
+        'body'    => __('Recipes, food facts, and food stories each have a distinct job. That makes the homepage easier to understand and the publication easier to trust.', 'kuchnia-twist'),
+    ],
+    [
+        'eyebrow' => __('Useful before promotional', 'kuchnia-twist'),
+        'title'   => __('The writing is meant to help or delight first, before it ever tries to convert.', 'kuchnia-twist'),
+        'body'    => __('That tone matters. Readers stay longer when the site feels like a publication with standards instead of a funnel disguised as a blog.', 'kuchnia-twist'),
+    ],
+    [
+        'eyebrow' => __('Visible trust signals', 'kuchnia-twist'),
+        'title'   => __('Policy pages, contact details, and editorial standards are surfaced as part of the experience.', 'kuchnia-twist'),
+        'body'    => __('They are easy to find from the homepage, footer, and article pages so the publication reads as responsible and contactable.', 'kuchnia-twist'),
+    ],
+];
 
 $pillar_queries = [
     [
@@ -170,6 +189,42 @@ $pillar_queries = [
                 <p class="empty-state"><?php esc_html_e('Start publishing to populate the homepage with your editorial lineup.', 'kuchnia-twist'); ?></p>
             <?php endif; ?>
         </div>
+    </div>
+</section>
+
+<section class="section section--standards">
+    <div class="section__heading">
+        <span class="eyebrow"><?php esc_html_e('Publication standards', 'kuchnia-twist'); ?></span>
+        <h2><?php esc_html_e('The site should feel editorially calm, easy to verify, and built for long-term trust.', 'kuchnia-twist'); ?></h2>
+        <p><?php esc_html_e('Good design helps, but what really strengthens a young publication is clearer structure, visible standards, and reader-first articles that do not feel disposable.', 'kuchnia-twist'); ?></p>
+    </div>
+    <div class="standards-layout">
+        <div class="standards-list">
+            <?php foreach ($promises as $promise) : ?>
+                <article class="standard-item">
+                    <span class="eyebrow"><?php echo esc_html($promise['eyebrow']); ?></span>
+                    <h3><?php echo esc_html($promise['title']); ?></h3>
+                    <p><?php echo esc_html($promise['body']); ?></p>
+                </article>
+            <?php endforeach; ?>
+        </div>
+        <aside class="standards-panel">
+            <img class="standards-panel__art" src="<?php echo esc_url(kuchnia_twist_fallback_media_url('trust')); ?>" alt="">
+            <span class="site-footer__eyebrow"><?php esc_html_e('Reader note', 'kuchnia-twist'); ?></span>
+            <h3><?php esc_html_e('Kuchnia Twist is being built as an independent food journal, not a thin-content project.', 'kuchnia-twist'); ?></h3>
+            <p><?php esc_html_e('That means keeping pages connected, using a consistent tone, and making it clear who is behind the publication and how readers can contact it.', 'kuchnia-twist'); ?></p>
+            <div class="cta-band__links">
+                <?php if ($about_page instanceof WP_Post) : ?>
+                    <a href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('Meet the publication', 'kuchnia-twist'); ?></a>
+                <?php endif; ?>
+                <?php if ($contact_page instanceof WP_Post) : ?>
+                    <a href="<?php echo esc_url(get_permalink($contact_page)); ?>"><?php esc_html_e('Open the contact page', 'kuchnia-twist'); ?></a>
+                <?php endif; ?>
+                <?php if ($editorial_policy instanceof WP_Post) : ?>
+                    <a href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Review editorial standards', 'kuchnia-twist'); ?></a>
+                <?php endif; ?>
+            </div>
+        </aside>
     </div>
 </section>
 
