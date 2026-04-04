@@ -784,31 +784,12 @@ final class Kuchnia_Twist_Publisher
 
     private function ensure_core_pages(): void
     {
-        $pages = [
-            'about' => [
-                'title'   => __('About', 'kuchnia-twist'),
-                'content' => "<p>Kuchnia Twist is a food journal built around three pillars: recipes, food facts, and story-led kitchen writing. Use this page to explain your point of view, your editorial standards, and why this publication exists.</p><p>Before monetization, replace this starter copy with your real story, cooking perspective, and the kind of value readers should expect from the site.</p>",
-            ],
-            'contact' => [
-                'title'   => __('Contact', 'kuchnia-twist'),
-                'content' => '<p>Use this page to add your editorial email, business contact details, and any notes about response times. Readers should be able to understand when and why to contact the publication.</p><p>This is also the right place to explain how brands, collaborators, or readers can send corrections and partnership enquiries.</p>',
-            ],
-            'privacy-policy' => [
-                'title'   => __('Privacy Policy', 'kuchnia-twist'),
-                'content' => '<p>This starter page should be replaced with a privacy policy that matches your real analytics, consent, advertising, and contact workflows. Before production monetization, make sure the page reflects the actual tools used on the site.</p>',
-            ],
-            'cookie-policy' => [
-                'title'   => __('Cookie Policy', 'kuchnia-twist'),
-                'content' => '<p>Use this page to explain what cookies or similar technologies may be used on the site, why they appear, and how readers can manage consent preferences.</p>',
-            ],
-            'editorial-policy' => [
-                'title'   => __('Editorial Policy', 'kuchnia-twist'),
-                'content' => '<p>Use this page to describe how recipes are developed, how food facts are handled, and how corrections are reviewed. A clear editorial policy helps the site feel more trustworthy to readers and advertising platforms alike.</p>',
-            ],
-        ];
+        $pages = $this->core_pages();
 
         foreach ($pages as $slug => $page) {
-            if (!get_page_by_path($slug)) {
+            $existing_page = get_page_by_path($slug, OBJECT, 'page');
+
+            if (!$existing_page instanceof WP_Post) {
                 wp_insert_post([
                     'post_type'    => 'page',
                     'post_status'  => 'publish',
@@ -816,8 +797,139 @@ final class Kuchnia_Twist_Publisher
                     'post_name'    => $slug,
                     'post_content' => $page['content'],
                 ]);
+                continue;
+            }
+
+            if ($this->should_refresh_core_page($existing_page)) {
+                wp_update_post([
+                    'ID'           => $existing_page->ID,
+                    'post_title'   => $page['title'],
+                    'post_content' => $page['content'],
+                ]);
             }
         }
+    }
+
+    private function core_pages(): array
+    {
+        return [
+            'about' => [
+                'title'   => __('About', 'kuchnia-twist'),
+                'content' => <<<'HTML'
+<p>Kuchnia Twist is an English-language food journal built around three editorial pillars: practical recipes, useful food facts, and story-led kitchen writing. The goal is to create a site that feels calm, readable, and genuinely worth returning to rather than a blog built only for one-click traffic.</p>
+<h2>What the publication is here to do</h2>
+<p>The site is meant to help readers cook with more confidence, understand ingredients more clearly, and enjoy food writing that carries a little more personality than a standard recipe archive. Each post should feel useful on its own, but together the archive should read like one coherent publication.</p>
+<ul>
+<li><strong>Recipes</strong> focus on clarity, comfort, and real kitchen usefulness.</li>
+<li><strong>Food Facts</strong> explain techniques, ingredients, and common points of confusion without filler.</li>
+<li><strong>Food Stories</strong> add memory, narrative, and editorial depth so the site does not feel mechanical.</li>
+</ul>
+<h2>Why the site is structured this way</h2>
+<p>Kuchnia Twist is designed to earn trust slowly. That means cleaner layouts, readable articles, visible trust pages, and a publishing flow that values consistency over noise. The long-term aim is not only traffic, but a food site that feels stable enough to grow into a real editorial brand.</p>
+<h2>What should be updated next</h2>
+<p>This page should eventually include your own story, your cooking point of view, and the reasons you chose to build this publication. Replacing the starter version with your real editorial voice will make the site stronger for readers, partnerships, and future monetization review.</p>
+HTML,
+            ],
+            'contact' => [
+                'title'   => __('Contact', 'kuchnia-twist'),
+                'content' => <<<'HTML'
+<p>If you need to reach Kuchnia Twist for a recipe question, correction request, editorial note, or relevant partnership enquiry, this is the right place to do it. The goal of this page is simple: make contact feel clear, legitimate, and easy to understand.</p>
+<h2>When to get in touch</h2>
+<ul>
+<li>Recipe clarification or kitchen troubleshooting.</li>
+<li>Corrections, factual updates, or sourcing questions.</li>
+<li>Brand, partnership, or media enquiries that are genuinely relevant to the publication.</li>
+</ul>
+<h2>Public contact details</h2>
+<p><strong>Editorial email:</strong> add your preferred public email address here before launch.</p>
+<p><strong>Business or partnership email:</strong> add it here if you want a separate contact line.</p>
+<h2>Response expectations</h2>
+<p>If you add a public inbox, it helps to set a simple expectation such as replying within a few business days. That one line makes the publication feel more deliberate and professional.</p>
+<p>If a reader reports an error or unclear instruction in a recipe, that message should be treated as an editorial improvement opportunity rather than a support burden.</p>
+HTML,
+            ],
+            'privacy-policy' => [
+                'title'   => __('Privacy Policy', 'kuchnia-twist'),
+                'content' => <<<'HTML'
+<p>This privacy page explains, in plain language, what information Kuchnia Twist may collect, how that information may be used, and what should be reviewed before adding more tracking, advertising, or marketing tools. It is a practical policy draft and should be reviewed against the exact tools running on the live site.</p>
+<h2>Information the site may collect</h2>
+<p>Like most websites, Kuchnia Twist may collect limited technical information automatically through server logs, security systems, and standard web requests. This can include an IP address, browser type, device information, referring pages, and timestamps connected to site visits.</p>
+<p>If you contact the site directly by email, any information you provide in that message may be used to respond to your request, handle corrections, or manage a legitimate business enquiry.</p>
+<h2>How information may be used</h2>
+<ul>
+<li>To keep the site working, secure, and available.</li>
+<li>To understand technical performance and reader interest.</li>
+<li>To respond to editorial, business, or support-related messages.</li>
+<li>To review and improve published content over time.</li>
+</ul>
+<h2>Third-party tools and services</h2>
+<p>Kuchnia Twist runs on WordPress infrastructure and may rely on standard hosting, security, and operational tools to keep the publication online. If analytics, advertising, newsletter, consent, affiliate, or embedded social tools are added later, this page should be updated so the policy reflects the actual site configuration.</p>
+<h2>Your choices</h2>
+<p>If you want to ask a question about privacy, request an update, or flag inaccurate information, use the contact details published on the contact page. If the site later introduces analytics or advertising systems, this page and the cookie policy should be reviewed together.</p>
+HTML,
+            ],
+            'cookie-policy' => [
+                'title'   => __('Cookie Policy', 'kuchnia-twist'),
+                'content' => <<<'HTML'
+<p>This page explains how cookies or similar technologies may be used on Kuchnia Twist. The exact list depends on the tools active on the live site, so this policy should be reviewed again if analytics, advertising, newsletter, or consent tools are added.</p>
+<h2>What cookies are</h2>
+<p>Cookies are small text files that a website can place on a visitor's device. They are commonly used to help sites function properly, remember settings, improve performance, or measure how visitors use a site.</p>
+<h2>How cookies may be used here</h2>
+<ul>
+<li><strong>Essential cookies:</strong> to support normal site and WordPress functionality.</li>
+<li><strong>Preference cookies:</strong> to remember settings where relevant.</li>
+<li><strong>Measurement or advertising cookies:</strong> only if analytics or ad tools are later enabled and disclosed.</li>
+</ul>
+<h2>Embedded or third-party content</h2>
+<p>If the site later uses embedded social posts, videos, or third-party widgets, those services may set their own cookies. If that happens, the privacy and cookie pages should both be updated so readers can understand what changed.</p>
+<h2>Managing cookies</h2>
+<p>Visitors can usually manage or clear cookies through their browser settings. If a consent banner or preference tool is added later, this page should explain how to use it and what choices it controls.</p>
+HTML,
+            ],
+            'editorial-policy' => [
+                'title'   => __('Editorial Policy', 'kuchnia-twist'),
+                'content' => <<<'HTML'
+<p>Kuchnia Twist aims to publish food content that is readable, useful, and honest about what it is. This editorial policy explains the standards the site is trying to uphold across recipes, fact-led articles, and story-driven pieces.</p>
+<h2>Recipes</h2>
+<p>Recipe content should aim for clarity, practical usefulness, and a structure that helps a home cook follow the method without guesswork. If a recipe needs improvement over time, the clearer version should replace the weaker one.</p>
+<h2>Food facts</h2>
+<p>Fact-led pieces should explain ingredients, techniques, and common kitchen questions without pretending to be scientific authority. The site should avoid invented claims, shallow rewrites, and false precision used only to sound convincing.</p>
+<h2>Stories and opinion</h2>
+<p>Story-led food writing can include memory, reflection, and point of view, but it should still be clear where narrative voice ends and factual explanation begins. Personal writing should deepen the publication rather than blur it.</p>
+<h2>Corrections and updates</h2>
+<p>If a recipe instruction is unclear or a factual statement needs revision, the site should correct it promptly. Reader feedback that improves clarity should be taken seriously, especially when it helps make a published article more accurate or more useful.</p>
+<h2>Commercial transparency</h2>
+<p>If sponsored content, advertising relationships, affiliate links, or other commercial arrangements are added later, they should be disclosed clearly. Editorial trust is easier to build when commercial activity is visible rather than hidden inside normal content.</p>
+HTML,
+            ],
+        ];
+    }
+
+    private function should_refresh_core_page(WP_Post $page): bool
+    {
+        $text = strtolower(trim(preg_replace('/\s+/', ' ', wp_strip_all_tags($page->post_content))));
+
+        if ($text === '') {
+            return true;
+        }
+
+        $starter_markers = [
+            'replace this placeholder',
+            'replace this starter copy',
+            'use this page to add your editorial email',
+            'use this page to explain what cookies',
+            'use this page to describe how recipes are developed',
+            'this starter page should be replaced',
+            'kuchnia twist is a food journal built around three pillars',
+        ];
+
+        foreach ($starter_markers as $marker) {
+            if (strpos($text, $marker) !== false) {
+                return true;
+            }
+        }
+
+        return str_word_count($text) < 45;
     }
 
     private function ensure_category(string $content_type): int
