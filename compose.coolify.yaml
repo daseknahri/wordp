@@ -37,7 +37,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "php -r \"exit(@file_get_contents('http://localhost/wp-login.php') === false ? 1 : 0);\"",
+          "php -r \"$$headers = @get_headers('http://localhost/'); exit($$headers === false ? 1 : 0);\"",
         ]
       interval: 30s
       timeout: 10s
