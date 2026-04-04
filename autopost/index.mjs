@@ -48,10 +48,7 @@ async function main() {
   }
 
   if (!hasRequiredConfig()) {
-    log("missing required environment values; worker will retry later");
-    if (config.runOnce) {
-      process.exit(1);
-    }
+    log("missing required environment values; worker will stay idle");
     await idleLoop();
     return;
   }
@@ -64,7 +61,9 @@ async function main() {
     }
 
     if (config.runOnce) {
-      break;
+      log("AUTOPOST_RUN_ONCE finished; worker will stay idle until the next deploy");
+      await idleLoop();
+      return;
     }
 
     log(`sleeping for ${config.intervalHours} hour(s)`);
@@ -238,9 +237,6 @@ function stateFilePath() {
 async function idleLoop() {
   do {
     await sleep(config.intervalHours * HOUR_MS);
-    if (config.runOnce) {
-      break;
-    }
   } while (true);
 }
 
