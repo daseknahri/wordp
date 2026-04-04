@@ -28,7 +28,7 @@ add_action('wp_enqueue_scripts', function () {
 
     wp_enqueue_style(
         'kuchnia-twist-fonts',
-        'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap',
+        'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap',
         [],
         null
     );
@@ -146,9 +146,280 @@ function kuchnia_twist_publication_settings()
         'editor_public_email'   => '',
         'editor_business_email' => '',
         'editor_photo_id'       => 0,
+        'social_instagram_url'  => '',
+        'social_facebook_url'   => '',
+        'social_pinterest_url'  => '',
+        'social_tiktok_url'     => '',
+        'social_follow_label'   => __('Follow Kuchnia Twist', 'kuchnia-twist'),
     ];
 
     return wp_parse_args(get_option('kuchnia_twist_settings', []), $defaults);
+}
+
+function kuchnia_twist_category_url_by_slug($slug)
+{
+    $term = get_category_by_slug($slug);
+    return $term instanceof WP_Term ? (string) get_category_link($term) : '';
+}
+
+function kuchnia_twist_primary_nav_items()
+{
+    $items = [
+        ['label' => __('Home', 'kuchnia-twist'), 'url' => home_url('/')],
+        ['label' => __('Recipes', 'kuchnia-twist'), 'url' => kuchnia_twist_category_url_by_slug('recipes')],
+        ['label' => __('Food Facts', 'kuchnia-twist'), 'url' => kuchnia_twist_category_url_by_slug('food-facts')],
+        ['label' => __('Food Stories', 'kuchnia-twist'), 'url' => kuchnia_twist_category_url_by_slug('food-stories')],
+    ];
+
+    $about = get_page_by_path('about');
+    if ($about instanceof WP_Post) {
+        $items[] = ['label' => __('About', 'kuchnia-twist'), 'url' => get_permalink($about)];
+    }
+
+    return array_values(array_filter($items, static function ($item) {
+        return !empty($item['url']) && !is_wp_error($item['url']);
+    }));
+}
+
+function kuchnia_twist_trust_nav_items()
+{
+    $items = [];
+    $slugs = [
+        'about'            => __('About', 'kuchnia-twist'),
+        'contact'          => __('Contact', 'kuchnia-twist'),
+        'privacy-policy'   => __('Privacy', 'kuchnia-twist'),
+        'cookie-policy'    => __('Cookies', 'kuchnia-twist'),
+        'editorial-policy' => __('Editorial Policy', 'kuchnia-twist'),
+    ];
+
+    foreach ($slugs as $slug => $label) {
+        $page = get_page_by_path($slug);
+        if ($page instanceof WP_Post) {
+            $items[] = [
+                'label' => $label,
+                'url'   => get_permalink($page),
+            ];
+        }
+    }
+
+    return $items;
+}
+
+function kuchnia_twist_pillar_nav_items()
+{
+    $items = [];
+    $pillars = [
+        'recipes'      => __('Recipes', 'kuchnia-twist'),
+        'food-facts'   => __('Food Facts', 'kuchnia-twist'),
+        'food-stories' => __('Food Stories', 'kuchnia-twist'),
+    ];
+
+    foreach ($pillars as $slug => $label) {
+        $url = kuchnia_twist_category_url_by_slug($slug);
+        if ($url !== '') {
+            $items[] = [
+                'label' => $label,
+                'url'   => $url,
+                'slug'  => $slug,
+            ];
+        }
+    }
+
+    return $items;
+}
+
+function kuchnia_twist_is_nav_item_current($url)
+{
+    $url = untrailingslashit((string) $url);
+    if ($url === '') {
+        return false;
+    }
+
+    if (is_front_page() || is_home()) {
+        return $url === untrailingslashit(home_url('/'));
+    }
+
+    if (is_page()) {
+        return $url === untrailingslashit(get_permalink());
+    }
+
+    if (is_category()) {
+        return $url === untrailingslashit(get_category_link(get_queried_object_id()));
+    }
+
+    if (is_single()) {
+        $category = kuchnia_twist_primary_category(get_the_ID());
+        if ($category instanceof WP_Term) {
+            return $url === untrailingslashit(get_category_link($category));
+        }
+    }
+
+    return false;
+}
+
+function kuchnia_twist_social_follow_label()
+{
+    $settings = kuchnia_twist_publication_settings();
+    $label = trim((string) ($settings['social_follow_label'] ?? ''));
+
+    return $label !== '' ? $label : __('Follow Kuchnia Twist', 'kuchnia-twist');
+}
+
+function kuchnia_twist_social_profiles()
+{
+    $settings = kuchnia_twist_publication_settings();
+    $profiles = [
+        'instagram' => [
+            'label' => __('Instagram', 'kuchnia-twist'),
+            'url'   => trim((string) ($settings['social_instagram_url'] ?? '')),
+        ],
+        'facebook' => [
+            'label' => __('Facebook', 'kuchnia-twist'),
+            'url'   => trim((string) ($settings['social_facebook_url'] ?? '')),
+        ],
+        'pinterest' => [
+            'label' => __('Pinterest', 'kuchnia-twist'),
+            'url'   => trim((string) ($settings['social_pinterest_url'] ?? '')),
+        ],
+        'tiktok' => [
+            'label' => __('TikTok', 'kuchnia-twist'),
+            'url'   => trim((string) ($settings['social_tiktok_url'] ?? '')),
+        ],
+    ];
+
+    $result = [];
+    foreach ($profiles as $slug => $profile) {
+        $url = esc_url_raw($profile['url']);
+        if ($url === '') {
+            continue;
+        }
+
+        $result[] = [
+            'slug'  => $slug,
+            'label' => $profile['label'],
+            'url'   => $url,
+        ];
+    }
+
+    return $result;
+}
+
+function kuchnia_twist_has_social_profiles()
+{
+    return !empty(kuchnia_twist_social_profiles());
+}
+
+function kuchnia_twist_social_icon_svg($slug)
+{
+    $icons = [
+        'instagram' => '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.25" y="3.25" width="17.5" height="17.5" rx="5"></rect><circle cx="12" cy="12" r="4.2"></circle><circle cx="17.3" cy="6.8" r="1.2" fill="currentColor" stroke="none"></circle></svg>',
+        'facebook'  => '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M13.4 20v-6.5h2.2l.4-2.7h-2.6V9.1c0-.8.3-1.5 1.6-1.5h1.2V5.3c-.2 0-.9-.1-1.9-.1-2.4 0-3.9 1.5-3.9 4.2v1.5H8v2.7h2.4V20z"></path></svg>',
+        'pinterest' => '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12.5 4C8.3 4 6 6.7 6 9.6c0 2.2 1.2 3.4 1.9 3.4.3 0 .5-.9.5-1.2 0-.3-.8-.9-.8-2.1 0-2.5 1.9-4.3 4.3-4.3 2.1 0 3.7 1.2 3.7 3.4 0 2.5-1.1 5.9-3.4 5.9-1.2 0-2.2-.9-2-2.2.3-1.5.9-3 1-4.5 0-.7-.4-1.3-1.1-1.3-1 0-1.8 1.1-1.8 2.5 0 .9.3 1.5.3 1.5L7.2 18c-.2 1 .1 2 .1 2 .1 0 1.2-1.5 1.4-2.4l.4-1.5c.4.8 1.5 1.5 2.7 1.5 3.6 0 6-3.3 6-7.7C17.8 6.3 15.5 4 12.5 4z"></path></svg>',
+        'tiktok'    => '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M14.7 4.5c.6 1.6 1.7 2.7 3.3 3.2v2.5c-1.1 0-2.3-.3-3.3-.9v5.3c0 3-2 5.1-5.1 5.1S4.5 17.5 4.5 14.7s2.2-5 5-5c.3 0 .7 0 1 .1V12c-.3-.1-.6-.2-1-.2-1.5 0-2.6 1.1-2.6 2.7s1.1 2.7 2.6 2.7 2.7-1 2.7-2.9V4.5z"></path></svg>',
+        'email'     => '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16v11H4z"></path><path d="M4.8 7.2 12 13l7.2-5.8"></path></svg>',
+        'copy'      => '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M6.5 15.5H6A2 2 0 0 1 4 13.5V6a2 2 0 0 1 2-2h7.5a2 2 0 0 1 2 2v.5"></path></svg>',
+    ];
+
+    return $icons[$slug] ?? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle></svg>';
+}
+
+function kuchnia_twist_render_social_links($class = '', $show_labels = false)
+{
+    $profiles = kuchnia_twist_social_profiles();
+    if (!$profiles) {
+        return;
+    }
+
+    $class_attr = trim('social-links ' . $class);
+    echo '<div class="' . esc_attr($class_attr) . '" aria-label="' . esc_attr(kuchnia_twist_social_follow_label()) . '">';
+    foreach ($profiles as $profile) {
+        echo '<a class="social-links__item social-links__item--' . esc_attr($profile['slug']) . '" href="' . esc_url($profile['url']) . '" target="_blank" rel="noreferrer">';
+        echo '<span class="social-links__icon">' . kuchnia_twist_social_icon_svg($profile['slug']) . '</span>';
+        if ($show_labels) {
+            echo '<span class="social-links__label">' . esc_html($profile['label']) . '</span>';
+        } else {
+            echo '<span class="screen-reader-text">' . esc_html($profile['label']) . '</span>';
+        }
+        echo '</a>';
+    }
+    echo '</div>';
+}
+
+function kuchnia_twist_get_posts_by_category_slug($slug, $limit = 4, array $exclude = [])
+{
+    $term = get_category_by_slug($slug);
+    if (!$term instanceof WP_Term) {
+        return [];
+    }
+
+    return get_posts([
+        'post_type'      => 'post',
+        'post_status'    => 'publish',
+        'posts_per_page' => $limit,
+        'post__not_in'   => array_values(array_filter(array_map('intval', $exclude))),
+        'cat'            => $term->term_id,
+    ]);
+}
+
+function kuchnia_twist_share_links($post_id = 0)
+{
+    $post_id = $post_id ?: get_the_ID();
+    $url     = get_permalink($post_id);
+    $title   = get_the_title($post_id);
+    $media   = get_the_post_thumbnail_url($post_id, 'full');
+
+    if (!$url || !$title) {
+        return [];
+    }
+
+    return [
+        [
+            'slug'  => 'facebook',
+            'label' => __('Share on Facebook', 'kuchnia-twist'),
+            'url'   => 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode($url),
+        ],
+        [
+            'slug'  => 'pinterest',
+            'label' => __('Save to Pinterest', 'kuchnia-twist'),
+            'url'   => 'https://www.pinterest.com/pin/create/button/?url=' . rawurlencode($url) . '&description=' . rawurlencode($title) . ($media ? '&media=' . rawurlencode($media) : ''),
+        ],
+        [
+            'slug'  => 'email',
+            'label' => __('Email this article', 'kuchnia-twist'),
+            'url'   => 'mailto:?subject=' . rawurlencode($title) . '&body=' . rawurlencode($url),
+        ],
+        [
+            'slug'  => 'copy',
+            'label' => __('Copy article link', 'kuchnia-twist'),
+            'url'   => $url,
+        ],
+    ];
+}
+
+function kuchnia_twist_render_share_links($post_id = 0, $class = '')
+{
+    $links = kuchnia_twist_share_links($post_id);
+    if (!$links) {
+        return;
+    }
+
+    $class_attr = trim('share-links ' . $class);
+    echo '<div class="' . esc_attr($class_attr) . '">';
+    foreach ($links as $link) {
+        if ($link['slug'] === 'copy') {
+            echo '<button type="button" class="share-links__item share-links__item--copy" data-copy-link="' . esc_attr($link['url']) . '">';
+            echo '<span class="share-links__icon">' . kuchnia_twist_social_icon_svg('copy') . '</span>';
+            echo '<span class="share-links__label">' . esc_html__('Copy link', 'kuchnia-twist') . '</span>';
+            echo '</button>';
+            continue;
+        }
+
+        echo '<a class="share-links__item share-links__item--' . esc_attr($link['slug']) . '" href="' . esc_url($link['url']) . '" target="_blank" rel="noreferrer">';
+        echo '<span class="share-links__icon">' . kuchnia_twist_social_icon_svg($link['slug']) . '</span>';
+        echo '<span class="share-links__label">' . esc_html($link['label']) . '</span>';
+        echo '</a>';
+    }
+    echo '</div>';
 }
 
 function kuchnia_twist_default_editor_user()
@@ -305,24 +576,7 @@ function kuchnia_twist_render_media_placeholder($context = 'journal', $label = '
 
 function kuchnia_twist_render_nav_links()
 {
-    $category_link = static function ($slug) {
-        $term = get_category_by_slug($slug);
-        return $term instanceof WP_Term ? get_category_link($term) : '';
-    };
-
-    $items = [
-        ['label' => __('Home', 'kuchnia-twist'), 'url' => home_url('/')],
-        ['label' => __('Recipes', 'kuchnia-twist'), 'url' => $category_link('recipes')],
-        ['label' => __('Food Facts', 'kuchnia-twist'), 'url' => $category_link('food-facts')],
-        ['label' => __('Food Stories', 'kuchnia-twist'), 'url' => $category_link('food-stories')],
-    ];
-
-    $about = get_page_by_path('about');
-    if ($about) {
-        $items[] = ['label' => get_the_title($about), 'url' => get_permalink($about)];
-    }
-
-    foreach ($items as $item) {
+    foreach (kuchnia_twist_primary_nav_items() as $item) {
         if (!empty($item['url']) && !is_wp_error($item['url'])) {
             printf('<a href="%s">%s</a>', esc_url($item['url']), esc_html($item['label']));
         }
@@ -331,34 +585,18 @@ function kuchnia_twist_render_nav_links()
 
 function kuchnia_twist_policy_links()
 {
-    $slugs = [
-        'about'            => __('About', 'kuchnia-twist'),
-        'contact'          => __('Contact', 'kuchnia-twist'),
-        'privacy-policy'   => __('Privacy', 'kuchnia-twist'),
-        'cookie-policy'    => __('Cookies', 'kuchnia-twist'),
-        'editorial-policy' => __('Editorial Policy', 'kuchnia-twist'),
-    ];
-
-    foreach ($slugs as $slug => $label) {
-        $page = get_page_by_path($slug);
-        if ($page instanceof WP_Post) {
-            printf('<a href="%s">%s</a>', esc_url(get_permalink($page)), esc_html($label));
+    foreach (kuchnia_twist_trust_nav_items() as $item) {
+        if (!empty($item['url']) && !is_wp_error($item['url'])) {
+            printf('<a href="%s">%s</a>', esc_url($item['url']), esc_html($item['label']));
         }
     }
 }
 
 function kuchnia_twist_pillar_links()
 {
-    $pillars = [
-        'recipes' => __('Recipes', 'kuchnia-twist'),
-        'food-facts' => __('Food Facts', 'kuchnia-twist'),
-        'food-stories' => __('Food Stories', 'kuchnia-twist'),
-    ];
-
-    foreach ($pillars as $slug => $label) {
-        $term = get_category_by_slug($slug);
-        if ($term instanceof WP_Term) {
-            printf('<a href="%s">%s</a>', esc_url(get_category_link($term)), esc_html($label));
+    foreach (kuchnia_twist_pillar_nav_items() as $item) {
+        if (!empty($item['url']) && !is_wp_error($item['url'])) {
+            printf('<a href="%s">%s</a>', esc_url($item['url']), esc_html($item['label']));
         }
     }
 }
@@ -376,21 +614,21 @@ function kuchnia_twist_render_post_card($post_id)
     $category = kuchnia_twist_primary_category($post_id);
     $placeholder_context = kuchnia_twist_media_context_for_post($post_id);
     ?>
-    <article class="story-card">
-        <a class="story-card__media" href="<?php echo esc_url(get_permalink($post_id)); ?>">
+    <article class="feed-card">
+        <a class="feed-card__media" href="<?php echo esc_url(get_permalink($post_id)); ?>">
             <?php if (has_post_thumbnail($post_id)) : ?>
                 <?php echo get_the_post_thumbnail($post_id, 'kuchnia-twist-card'); ?>
             <?php else : ?>
                 <?php kuchnia_twist_render_media_placeholder($placeholder_context, __('Fresh from the kitchen journal', 'kuchnia-twist')); ?>
             <?php endif; ?>
         </a>
-        <div class="story-card__body">
+        <div class="feed-card__body">
             <?php if ($category instanceof WP_Term) : ?>
                 <span class="eyebrow"><?php echo esc_html($category->name); ?></span>
             <?php endif; ?>
             <h3><a href="<?php echo esc_url(get_permalink($post_id)); ?>"><?php echo esc_html(get_the_title($post_id)); ?></a></h3>
             <p><?php echo esc_html(get_the_excerpt($post_id)); ?></p>
-            <div class="story-card__meta">
+            <div class="feed-card__meta">
                 <span><?php echo esc_html(get_the_date('', $post_id)); ?></span>
                 <span><?php echo esc_html(kuchnia_twist_estimated_read_time($post_id)); ?> min read</span>
             </div>

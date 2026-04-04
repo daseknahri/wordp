@@ -311,6 +311,15 @@ final class Kuchnia_Twist_Publisher
                 </section>
 
                 <section class="kt-card">
+                    <h2><?php esc_html_e('Social Growth Links', 'kuchnia-twist'); ?></h2>
+                    <label><span><?php esc_html_e('Follow Label', 'kuchnia-twist'); ?></span><input type="text" name="social_follow_label" value="<?php echo esc_attr($settings['social_follow_label']); ?>"></label>
+                    <label><span><?php esc_html_e('Instagram URL', 'kuchnia-twist'); ?></span><input type="url" name="social_instagram_url" value="<?php echo esc_attr($settings['social_instagram_url']); ?>" placeholder="https://instagram.com/yourprofile"></label>
+                    <label><span><?php esc_html_e('Facebook URL', 'kuchnia-twist'); ?></span><input type="url" name="social_facebook_url" value="<?php echo esc_attr($settings['social_facebook_url']); ?>" placeholder="https://facebook.com/yourpage"></label>
+                    <label><span><?php esc_html_e('Pinterest URL', 'kuchnia-twist'); ?></span><input type="url" name="social_pinterest_url" value="<?php echo esc_attr($settings['social_pinterest_url']); ?>" placeholder="https://pinterest.com/yourprofile"></label>
+                    <label><span><?php esc_html_e('TikTok URL', 'kuchnia-twist'); ?></span><input type="url" name="social_tiktok_url" value="<?php echo esc_attr($settings['social_tiktok_url']); ?>" placeholder="https://tiktok.com/@yourprofile"></label>
+                </section>
+
+                <section class="kt-card">
                     <h2><?php esc_html_e('OpenAI Settings', 'kuchnia-twist'); ?></h2>
                     <label><span><?php esc_html_e('Text Model', 'kuchnia-twist'); ?></span><input type="text" name="openai_model" value="<?php echo esc_attr($settings['openai_model']); ?>"></label>
                     <label><span><?php esc_html_e('Image Model', 'kuchnia-twist'); ?></span><input type="text" name="openai_image_model" value="<?php echo esc_attr($settings['openai_image_model']); ?>"></label>
@@ -469,6 +478,11 @@ final class Kuchnia_Twist_Publisher
             'editor_public_email'        => sanitize_email((string) wp_unslash($_POST['editor_public_email'] ?? '')),
             'editor_business_email'      => sanitize_email((string) wp_unslash($_POST['editor_business_email'] ?? '')),
             'editor_photo_id'            => absint($_POST['editor_photo_id'] ?? 0),
+            'social_instagram_url'       => esc_url_raw(trim((string) wp_unslash($_POST['social_instagram_url'] ?? ''))),
+            'social_facebook_url'        => esc_url_raw(trim((string) wp_unslash($_POST['social_facebook_url'] ?? ''))),
+            'social_pinterest_url'       => esc_url_raw(trim((string) wp_unslash($_POST['social_pinterest_url'] ?? ''))),
+            'social_tiktok_url'          => esc_url_raw(trim((string) wp_unslash($_POST['social_tiktok_url'] ?? ''))),
+            'social_follow_label'        => sanitize_text_field(wp_unslash($_POST['social_follow_label'] ?? '')),
             'openai_model'               => sanitize_text_field(wp_unslash($_POST['openai_model'] ?? '')),
             'openai_image_model'         => sanitize_text_field(wp_unslash($_POST['openai_image_model'] ?? '')),
             'openai_api_key'             => trim((string) wp_unslash($_POST['openai_api_key'] ?? '')),
@@ -1475,6 +1489,11 @@ final class Kuchnia_Twist_Publisher
             'editor_public_email'        => '',
             'editor_business_email'      => '',
             'editor_photo_id'            => 0,
+            'social_instagram_url'       => '',
+            'social_facebook_url'        => '',
+            'social_pinterest_url'       => '',
+            'social_tiktok_url'          => '',
+            'social_follow_label'        => 'Follow Kuchnia Twist',
             'openai_model'               => 'gpt-5-mini',
             'openai_image_model'         => 'gpt-image-1.5',
             'openai_api_key'             => '',

@@ -1,6 +1,13 @@
 <?php
 
 defined('ABSPATH') || exit;
+
+$primary_nav   = kuchnia_twist_primary_nav_items();
+$pillar_nav    = kuchnia_twist_pillar_nav_items();
+$trust_nav     = kuchnia_twist_trust_nav_items();
+$public_email  = kuchnia_twist_public_contact_email();
+$follow_label  = kuchnia_twist_social_follow_label();
+$has_social    = kuchnia_twist_has_social_profiles();
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
@@ -13,56 +20,137 @@ defined('ABSPATH') || exit;
 <a class="skip-link" href="#content"><?php esc_html_e('Skip to content', 'kuchnia-twist'); ?></a>
 <div class="site-shell">
     <header class="site-header">
-        <div class="site-header__inner">
-            <div class="site-branding">
-                <a class="site-branding__symbol" href="<?php echo esc_url(home_url('/')); ?>" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
-                    <img src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')); ?>" alt="">
-                </a>
-                <div class="site-branding__copy">
-                    <span class="site-branding__kicker"><?php esc_html_e('Editorial food journal', 'kuchnia-twist'); ?></span>
-                    <div class="site-branding__lockup">
+        <div class="site-header__bar">
+            <div class="masthead">
+                <a class="masthead__brand" href="<?php echo esc_url(home_url('/')); ?>" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
+                    <span class="masthead__symbol">
+                        <img src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')); ?>" alt="">
+                    </span>
+                    <span class="masthead__wordmark">
                         <?php if (function_exists('the_custom_logo') && has_custom_logo()) : ?>
-                            <div class="site-branding__logo"><?php the_custom_logo(); ?></div>
+                            <span class="masthead__logo"><?php the_custom_logo(); ?></span>
                         <?php else : ?>
-                            <a class="site-branding__mark" href="<?php echo esc_url(home_url('/')); ?>">
-                                <img class="site-branding__wordmark-image" src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-wordmark.svg')); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
-                            </a>
+                            <img class="masthead__wordmark-image" src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-wordmark.svg')); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
                         <?php endif; ?>
-                    </div>
-                    <p class="site-branding__tag"><?php echo esc_html(get_bloginfo('description')); ?></p>
+                    </span>
+                </a>
+
+                <nav class="masthead__nav" aria-label="<?php esc_attr_e('Primary Navigation', 'kuchnia-twist'); ?>">
+                    <?php foreach ($primary_nav as $item) : ?>
+                        <?php $is_active = kuchnia_twist_is_nav_item_current($item['url']); ?>
+                        <a href="<?php echo esc_url($item['url']); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>><?php echo esc_html($item['label']); ?></a>
+                    <?php endforeach; ?>
+                </nav>
+
+                <div class="masthead__actions">
+                    <?php if ($has_social) : ?>
+                        <div class="masthead__social" aria-label="<?php echo esc_attr($follow_label); ?>">
+                            <?php kuchnia_twist_render_social_links('social-links--header'); ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <button
+                        class="masthead__iconbutton"
+                        type="button"
+                        aria-expanded="false"
+                        aria-controls="site-search-sheet"
+                        data-search-toggle
+                    >
+                        <span class="masthead__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16 21 21"></path></svg>
+                        </span>
+                        <span class="screen-reader-text"><?php esc_html_e('Open search', 'kuchnia-twist'); ?></span>
+                    </button>
+
+                    <button
+                        class="masthead__iconbutton masthead__iconbutton--menu"
+                        type="button"
+                        aria-expanded="false"
+                        aria-controls="site-menu-sheet"
+                        data-menu-toggle
+                    >
+                        <span class="masthead__icon masthead__icon--menu" aria-hidden="true">
+                            <span></span><span></span><span></span>
+                        </span>
+                        <span class="screen-reader-text"><?php esc_html_e('Open menu', 'kuchnia-twist'); ?></span>
+                    </button>
                 </div>
             </div>
-            <button
-                class="site-nav-toggle"
-                type="button"
-                aria-expanded="false"
-                aria-controls="site-header-panel"
-            >
-                <span class="site-nav-toggle__label"><?php esc_html_e('Menu', 'kuchnia-twist'); ?></span>
-                <span class="site-nav-toggle__icon" aria-hidden="true"></span>
-            </button>
-            <div class="site-header__panel" id="site-header-panel">
-                <div class="site-header__tools">
-                    <nav class="site-nav" aria-label="<?php esc_attr_e('Primary Navigation', 'kuchnia-twist'); ?>">
-                        <?php if (has_nav_menu('primary')) : ?>
-                            <?php wp_nav_menu([
-                                'theme_location' => 'primary',
-                                'container'      => false,
-                                'menu_class'     => 'site-nav__menu',
-                                'fallback_cb'    => false,
-                            ]); ?>
-                        <?php else : ?>
-                            <div class="site-nav__fallback">
-                                <?php kuchnia_twist_render_nav_links(); ?>
+        </div>
+
+        <div class="site-header__panel">
+            <div class="site-search-sheet" id="site-search-sheet" hidden data-search-panel>
+                <div class="site-search-sheet__inner">
+                    <div class="site-search-sheet__intro">
+                        <span class="eyebrow"><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></span>
+                        <h2><?php esc_html_e('Recipes, food facts, and stories stay one search away.', 'kuchnia-twist'); ?></h2>
+                    </div>
+                    <?php get_search_form(); ?>
+                </div>
+            </div>
+
+            <div class="menu-sheet" id="site-menu-sheet" hidden data-menu-panel>
+                <div class="menu-sheet__inner">
+                    <div class="menu-sheet__top">
+                        <div>
+                            <span class="eyebrow"><?php esc_html_e('Browse the journal', 'kuchnia-twist'); ?></span>
+                            <h2><?php esc_html_e('A mobile-first guide to the site.', 'kuchnia-twist'); ?></h2>
+                        </div>
+                        <button class="menu-sheet__close" type="button" data-menu-close>
+                            <span class="screen-reader-text"><?php esc_html_e('Close menu', 'kuchnia-twist'); ?></span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18"></path><path d="M18 6 6 18"></path></svg>
+                        </button>
+                    </div>
+
+                    <div class="menu-sheet__grid">
+                        <section class="menu-sheet__section">
+                            <span class="eyebrow"><?php esc_html_e('Primary', 'kuchnia-twist'); ?></span>
+                            <div class="menu-sheet__links">
+                                <?php foreach ($primary_nav as $item) : ?>
+                                    <?php $is_active = kuchnia_twist_is_nav_item_current($item['url']); ?>
+                                    <a href="<?php echo esc_url($item['url']); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>><?php echo esc_html($item['label']); ?></a>
+                                <?php endforeach; ?>
                             </div>
+                        </section>
+
+                        <section class="menu-sheet__section">
+                            <span class="eyebrow"><?php esc_html_e('Pillars', 'kuchnia-twist'); ?></span>
+                            <div class="chip-links">
+                                <?php foreach ($pillar_nav as $item) : ?>
+                                    <?php $is_active = kuchnia_twist_is_nav_item_current($item['url']); ?>
+                                    <a class="chip-link<?php echo $is_active ? ' is-active' : ''; ?>" href="<?php echo esc_url($item['url']); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>><?php echo esc_html($item['label']); ?></a>
+                                <?php endforeach; ?>
+                            </div>
+                        </section>
+
+                        <?php if ($trust_nav) : ?>
+                            <section class="menu-sheet__section">
+                                <span class="eyebrow"><?php esc_html_e('Publication', 'kuchnia-twist'); ?></span>
+                                <div class="menu-sheet__links menu-sheet__links--compact">
+                                    <?php foreach ($trust_nav as $item) : ?>
+                                        <?php $is_active = kuchnia_twist_is_nav_item_current($item['url']); ?>
+                                        <a href="<?php echo esc_url($item['url']); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>><?php echo esc_html($item['label']); ?></a>
+                                    <?php endforeach; ?>
+                                </div>
+                            </section>
                         <?php endif; ?>
-                    </nav>
-                    <div class="site-header__search">
-                        <?php get_search_form(); ?>
+
+                        <?php if ($public_email || $has_social) : ?>
+                            <section class="menu-sheet__section">
+                                <span class="eyebrow"><?php echo esc_html($follow_label); ?></span>
+                                <?php if ($has_social) : ?>
+                                    <?php kuchnia_twist_render_social_links('social-links--menu', true); ?>
+                                <?php endif; ?>
+                                <?php if ($public_email) : ?>
+                                    <a class="menu-sheet__email" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
+                                <?php endif; ?>
+                            </section>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
         </div>
+
         <div class="site-progress" aria-hidden="true">
             <span class="site-progress__bar"></span>
         </div>
