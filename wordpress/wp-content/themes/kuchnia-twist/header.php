@@ -63,5 +63,8 @@ defined('ABSPATH') || exit;
                 </div>
             </div>
         </div>
+        <div class="site-progress" aria-hidden="true">
+            <span class="site-progress__bar"></span>
+        </div>
     </header>
     <main id="content" class="site-main">

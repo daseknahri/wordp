@@ -37,4 +37,80 @@ document.addEventListener("DOMContentLoaded", () => {
       closeMenu();
     }
   });
+
+  const progressBar = document.querySelector(".site-progress__bar");
+  const article = document.querySelector(".single-story");
+  const tocLinks = Array.from(document.querySelectorAll(".story-toc__link"));
+
+  if (!progressBar || !article) {
+    return;
+  }
+
+  const headings = tocLinks
+    .map((link) => {
+      const id = link.getAttribute("href")?.replace("#", "");
+      if (!id) {
+        return null;
+      }
+
+      const heading = document.getElementById(id);
+      if (!heading) {
+        return null;
+      }
+
+      return { link, heading };
+    })
+    .filter(Boolean);
+
+  let ticking = false;
+
+  const updateReadingState = () => {
+    ticking = false;
+
+    const articleTop = article.offsetTop;
+    const articleHeight = article.offsetHeight;
+    const viewportHeight = window.innerHeight;
+    const scrollTop = window.scrollY || window.pageYOffset;
+    const articleEnd = Math.max(articleTop, articleTop + articleHeight - viewportHeight);
+    const rawProgress = (scrollTop - articleTop) / Math.max(1, articleEnd - articleTop);
+    const progress = Math.max(0, Math.min(1, rawProgress));
+
+    progressBar.style.transform = `scaleX(${progress})`;
+
+    if (!headings.length) {
+      return;
+    }
+
+    const offset = scrollTop + 180;
+    let active = headings[0];
+
+    headings.forEach((item) => {
+      if (item.heading.offsetTop <= offset) {
+        active = item;
+      }
+    });
+
+    headings.forEach((item) => {
+      const isActive = item === active;
+      item.link.classList.toggle("is-active", isActive);
+      if (isActive) {
+        item.link.setAttribute("aria-current", "true");
+      } else {
+        item.link.removeAttribute("aria-current");
+      }
+    });
+  };
+
+  const requestUpdate = () => {
+    if (ticking) {
+      return;
+    }
+
+    ticking = true;
+    window.requestAnimationFrame(updateReadingState);
+  };
+
+  window.addEventListener("scroll", requestUpdate, { passive: true });
+  window.addEventListener("resize", requestUpdate);
+  requestUpdate();
 });

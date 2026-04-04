@@ -65,6 +65,12 @@ while (have_posts()) :
                     <?php endforeach; ?>
                 </section>
 
+                <?php if (!empty($recipe_data)) : ?>
+                    <div class="story-actions">
+                        <a class="button button--ghost" href="#recipe-card"><?php esc_html_e('Jump to recipe', 'kuchnia-twist'); ?></a>
+                    </div>
+                <?php endif; ?>
+
                 <?php if (has_post_thumbnail()) : ?>
                     <figure class="single-story__media">
                         <?php the_post_thumbnail('kuchnia-twist-hero'); ?>
@@ -76,7 +82,7 @@ while (have_posts()) :
                 </div>
 
                 <?php if (!empty($recipe_data)) : ?>
-                    <section class="recipe-panel">
+                    <section class="recipe-panel" id="recipe-card">
                         <div class="recipe-panel__stats">
                             <?php if (!empty($recipe_data['prep_time'])) : ?><span><?php echo esc_html($recipe_data['prep_time']); ?></span><?php endif; ?>
                             <?php if (!empty($recipe_data['cook_time'])) : ?><span><?php echo esc_html($recipe_data['cook_time']); ?></span><?php endif; ?>
