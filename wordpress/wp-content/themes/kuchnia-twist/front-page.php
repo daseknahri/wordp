@@ -22,7 +22,6 @@ $public_email      = kuchnia_twist_public_contact_email();
 $follow_label      = kuchnia_twist_social_follow_label();
 $has_social        = kuchnia_twist_has_social_profiles();
 $editor_profile    = kuchnia_twist_editor_profile();
-$reader_paths      = kuchnia_twist_reader_paths();
 $hero_image        = $hero_post && has_post_thumbnail($hero_post) ? get_the_post_thumbnail_url($hero_post, 'full') : kuchnia_twist_context_media_url('hero');
 $hero_category     = $hero_post ? kuchnia_twist_primary_category($hero_post->ID) : null;
 $recipe_lead       = $recipes_posts[0] ?? null;
@@ -39,9 +38,7 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
     </div>
     <div class="home-hero__content">
         <div class="home-hero__copy">
-            <span class="eyebrow"><?php esc_html_e('Featured today', 'kuchnia-twist'); ?></span>
             <h1><?php bloginfo('name'); ?></h1>
-            <p class="home-hero__lede"><?php esc_html_e('A modern editorial food journal built for mobile scanning, real kitchen usefulness, and a better reading rhythm across recipes, food facts, and stories.', 'kuchnia-twist'); ?></p>
         </div>
 
         <?php if ($hero_post) : ?>
@@ -73,11 +70,6 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
 </section>
 
 <section class="discovery-rail section" data-reveal>
-    <div class="section-heading">
-        <span class="eyebrow"><?php esc_html_e('Start here', 'kuchnia-twist'); ?></span>
-        <h2><?php esc_html_e('Search fast, jump into a pillar, or enter through the reading path that matches your mood.', 'kuchnia-twist'); ?></h2>
-    </div>
-
     <div class="discovery-rail__grid">
         <div class="discovery-rail__search">
             <?php get_search_form(); ?>
@@ -87,23 +79,13 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
                 <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
             <?php endforeach; ?>
         </div>
-        <div class="start-links">
-            <?php foreach ($reader_paths as $path) : ?>
-                <a class="start-link" href="<?php echo esc_url($path['url']); ?>">
-                    <span class="eyebrow"><?php echo esc_html($path['eyebrow']); ?></span>
-                    <strong><?php echo esc_html($path['title']); ?></strong>
-                    <span><?php echo esc_html($path['count_label']); ?></span>
-                </a>
-            <?php endforeach; ?>
-        </div>
     </div>
 </section>
 
 <section class="editorial-module section" data-reveal>
     <div class="section-heading section-heading--split">
         <div>
-            <span class="eyebrow"><?php esc_html_e('Latest recipes', 'kuchnia-twist'); ?></span>
-            <h2><?php esc_html_e('Practical food worth cooking again.', 'kuchnia-twist'); ?></h2>
+            <h2><?php esc_html_e('Recipes', 'kuchnia-twist'); ?></h2>
         </div>
         <?php if ($recipes_url !== '') : ?>
             <a class="text-link" href="<?php echo esc_url($recipes_url); ?>"><?php esc_html_e('See all recipes', 'kuchnia-twist'); ?></a>
@@ -156,8 +138,7 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
 <section class="editorial-module section" data-reveal>
     <div class="section-heading section-heading--split">
         <div>
-            <span class="eyebrow"><?php esc_html_e('Food facts', 'kuchnia-twist'); ?></span>
-            <h2><?php esc_html_e('Shorter answers to the kitchen questions that shape everyday cooking.', 'kuchnia-twist'); ?></h2>
+            <h2><?php esc_html_e('Food Facts', 'kuchnia-twist'); ?></h2>
         </div>
         <?php $facts_url = kuchnia_twist_category_url_by_slug('food-facts'); ?>
         <?php if ($facts_url !== '') : ?>
@@ -189,8 +170,7 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
 <section class="editorial-module section" data-reveal>
     <div class="section-heading section-heading--split">
         <div>
-            <span class="eyebrow"><?php esc_html_e('Food stories', 'kuchnia-twist'); ?></span>
-            <h2><?php esc_html_e('The slower editorial pieces that give the archive a point of view.', 'kuchnia-twist'); ?></h2>
+            <h2><?php esc_html_e('Food Stories', 'kuchnia-twist'); ?></h2>
         </div>
         <?php $stories_url = kuchnia_twist_category_url_by_slug('food-stories'); ?>
         <?php if ($stories_url !== '') : ?>
@@ -232,11 +212,7 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
 
 <?php if ($has_social || $public_email) : ?>
     <section class="follow-panel section" id="follow-journal" data-reveal>
-        <div class="follow-panel__copy">
-            <span class="eyebrow"><?php echo esc_html($follow_label); ?></span>
-            <h2><?php esc_html_e('Stay close to the publication between articles.', 'kuchnia-twist'); ?></h2>
-            <p><?php esc_html_e('The redesign keeps the site mobile-first, but the growth layer still feels editorial: follow the journal, save recipes, and return through the channels you already use.', 'kuchnia-twist'); ?></p>
-        </div>
+        <div class="follow-panel__copy"><h2><?php echo esc_html($follow_label); ?></h2></div>
         <div class="follow-panel__actions">
             <?php if ($has_social) : ?>
                 <?php kuchnia_twist_render_social_links('social-links--panel', true); ?>
@@ -258,9 +234,7 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
             <?php endif; ?>
         </div>
         <div>
-            <span class="eyebrow"><?php esc_html_e('From the editorial desk', 'kuchnia-twist'); ?></span>
             <h2><?php echo esc_html($editor_profile['name']); ?></h2>
-            <p><?php echo esc_html($editor_profile['bio']); ?></p>
         </div>
     </div>
 

@@ -17,7 +17,6 @@ while (have_posts()) :
     $contact_page       = get_page_by_path('contact');
     $editorial_policy   = get_page_by_path('editorial-policy');
     $public_email       = kuchnia_twist_public_contact_email();
-    $story_practice     = kuchnia_twist_story_practice($post_id);
     $story_links        = kuchnia_twist_adjacent_story_links($post_id);
     $has_social         = kuchnia_twist_has_social_profiles();
     ?>
@@ -110,9 +109,7 @@ while (have_posts()) :
 
                 <section class="article-support">
                     <div class="article-support__editor">
-                        <span class="eyebrow"><?php esc_html_e('From the editorial desk', 'kuchnia-twist'); ?></span>
                         <h2><?php echo esc_html($editor_profile['name']); ?></h2>
-                        <p><?php echo esc_html($editor_profile['bio']); ?></p>
                     </div>
                     <div class="article-support__links">
                         <?php if ($about_page instanceof WP_Post) : ?>
@@ -155,16 +152,6 @@ while (have_posts()) :
                 <?php endif; ?>
 
                 <section class="article-rail">
-                    <span class="eyebrow"><?php echo esc_html($story_practice['eyebrow']); ?></span>
-                    <h2><?php echo esc_html($story_practice['title']); ?></h2>
-                    <ul class="story-practice__list">
-                        <?php foreach ($story_practice['items'] as $item) : ?>
-                            <li><?php echo esc_html($item); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </section>
-
-                <section class="article-rail">
                     <span class="eyebrow"><?php esc_html_e('Share or follow', 'kuchnia-twist'); ?></span>
                     <?php kuchnia_twist_render_share_links($post_id, 'share-links--rail'); ?>
                     <?php if ($has_social) : ?>
@@ -180,8 +167,7 @@ while (have_posts()) :
         <section class="related-section section">
             <div class="section-heading section-heading--split">
                 <div>
-                    <span class="eyebrow"><?php esc_html_e('Keep reading', 'kuchnia-twist'); ?></span>
-                    <h2><?php esc_html_e('More from the same editorial thread.', 'kuchnia-twist'); ?></h2>
+                    <h2><?php esc_html_e('Related', 'kuchnia-twist'); ?></h2>
                 </div>
             </div>
             <div class="story-grid">
@@ -203,7 +189,6 @@ while (have_posts()) :
 
         <?php if ($story_links) : ?>
             <section class="story-nav">
-                <span class="eyebrow"><?php esc_html_e('Continue through the journal', 'kuchnia-twist'); ?></span>
                 <div class="story-nav__grid">
                     <?php foreach ($story_links as $story_link) : ?>
                         <a class="story-nav__item" href="<?php echo esc_url($story_link['url']); ?>">

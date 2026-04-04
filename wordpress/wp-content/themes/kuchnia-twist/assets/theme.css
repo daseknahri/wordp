@@ -151,30 +151,30 @@ summary:focus-visible {
 }
 
 .site-header__bar {
-  padding-block: 14px;
+  padding-block: 8px;
 }
 
 .masthead {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .masthead__brand {
   display: inline-flex;
   align-items: center;
   min-width: 0;
-  gap: 12px;
+  gap: 10px;
 }
 
 .masthead__symbol,
 .site-footer__symbol {
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 16px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   background: linear-gradient(160deg, rgba(184, 101, 60, 0.2), rgba(184, 101, 60, 0.04));
   border: 1px solid rgba(38, 23, 15, 0.1);
   box-shadow: var(--shadow-sm);
@@ -194,13 +194,13 @@ summary:focus-visible {
 
 .masthead__logo .custom-logo-link {
   display: inline-flex;
-  max-width: 220px;
+  max-width: 170px;
 }
 
 .masthead__logo img,
 .masthead__wordmark-image {
   display: block;
-  width: min(220px, 44vw);
+  width: min(170px, 40vw);
   height: auto;
 }
 
@@ -212,7 +212,7 @@ summary:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 6px;
 }
 
 .masthead__social {
@@ -224,8 +224,8 @@ summary:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: 1px solid rgba(38, 23, 15, 0.1);
   border-radius: 999px;
@@ -247,8 +247,8 @@ summary:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .masthead__icon svg,
@@ -265,8 +265,8 @@ summary:focus-visible {
 
 .masthead__icon--menu {
   position: relative;
-  width: 18px;
-  height: 14px;
+  width: 16px;
+  height: 12px;
 }
 
 .masthead__icon--menu span {
@@ -284,15 +284,15 @@ summary:focus-visible {
 }
 
 .masthead__icon--menu span:nth-child(2) {
-  top: 6px;
+  top: 5px;
 }
 
 .masthead__icon--menu span:nth-child(3) {
-  top: 12px;
+  top: 10px;
 }
 
 .site-header.is-menu-open .masthead__icon--menu span:nth-child(1) {
-  transform: translateY(6px) rotate(45deg);
+  transform: translateY(5px) rotate(45deg);
 }
 
 .site-header.is-menu-open .masthead__icon--menu span:nth-child(2) {
@@ -300,7 +300,7 @@ summary:focus-visible {
 }
 
 .site-header.is-menu-open .masthead__icon--menu span:nth-child(3) {
-  transform: translateY(-6px) rotate(-45deg);
+  transform: translateY(-5px) rotate(-45deg);
 }
 
 .site-header__panel {
@@ -308,15 +308,15 @@ summary:focus-visible {
 }
 
 .site-search-sheet {
-  padding: 0 0 18px;
+  padding: 0 0 10px;
 }
 
 .site-search-sheet__inner {
   display: grid;
-  gap: 14px;
-  padding: 18px 20px 22px;
+  gap: 10px;
+  padding: 12px 14px;
   border: 1px solid rgba(38, 23, 15, 0.1);
-  border-radius: 24px;
+  border-radius: 18px;
   background: rgba(255, 253, 249, 0.96);
   box-shadow: var(--shadow-md);
 }
@@ -334,7 +334,7 @@ summary:focus-visible {
   right: 0;
   bottom: 0;
   width: min(100vw, 420px);
-  padding: 18px;
+  padding: 12px;
   background: rgba(38, 23, 15, 0.2);
   backdrop-filter: blur(4px);
 }
@@ -349,40 +349,43 @@ summary:focus-visible {
   height: 100%;
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 18px;
-  border-radius: 28px;
+  padding: 16px;
+  border-radius: 22px;
   background: linear-gradient(180deg, #fffaf4 0%, #f5ede5 100%);
   box-shadow: var(--shadow-lg);
 }
 
 .menu-sheet__top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 12px;
 }
 
 .menu-sheet__top h2 {
-  margin: 6px 0 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.7rem, 7vw, 2.6rem);
-  line-height: 0.96;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .menu-sheet__grid {
   display: grid;
-  gap: 22px;
-  margin-top: 28px;
+  gap: 18px;
+  margin-top: 18px;
 }
 
 .menu-sheet__section {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .menu-sheet__links {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .menu-sheet__links--compact {
@@ -392,7 +395,7 @@ summary:focus-visible {
 .menu-sheet__links a,
 .menu-sheet__email {
   color: var(--muted-strong);
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 .menu-sheet__links a:hover,
@@ -428,7 +431,7 @@ summary:focus-visible {
 .section,
 .article-shell,
 .trust-shell {
-  margin-top: 56px;
+  margin-top: 44px;
 }
 
 .eyebrow {
@@ -453,7 +456,7 @@ summary:focus-visible {
 .section-heading {
   display: grid;
   gap: 10px;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 
 .section-heading--split {
@@ -551,7 +554,7 @@ summary:focus-visible {
 }
 
 .chip-links--wide {
-  margin-top: 14px;
+  margin-top: 0;
 }
 
 .chip-link {
@@ -642,7 +645,7 @@ summary:focus-visible {
 .home-hero {
   position: relative;
   display: grid;
-  min-height: min(88svh, 940px);
+  min-height: min(76svh, 760px);
   margin-top: 0;
   overflow: hidden;
 }
@@ -662,7 +665,7 @@ summary:focus-visible {
 
 .home-hero__media img {
   width: 100%;
-  height: min(88svh, 940px);
+  height: min(76svh, 760px);
   object-fit: cover;
 }
 
@@ -671,11 +674,11 @@ summary:focus-visible {
   z-index: 1;
   display: grid;
   align-content: end;
-  gap: 22px;
+  gap: 16px;
   grid-area: 1 / 1;
   width: min(calc(100% - 32px), var(--wide));
   margin-inline: auto;
-  padding: 116px 0 34px;
+  padding: 84px 0 24px;
   color: #fff9f2;
 }
 
@@ -690,10 +693,10 @@ summary:focus-visible {
 .home-hero__feature {
   display: grid;
   gap: 10px;
-  max-width: 36rem;
-  padding: 18px;
+  max-width: 32rem;
+  padding: 14px;
   border: 1px solid rgba(255, 249, 242, 0.12);
-  border-radius: 28px;
+  border-radius: 22px;
   background: linear-gradient(180deg, rgba(33, 20, 13, 0.22), rgba(33, 20, 13, 0.42));
   backdrop-filter: blur(10px);
   box-shadow: 0 22px 54px rgba(18, 11, 7, 0.22);
@@ -737,13 +740,13 @@ summary:focus-visible {
 
 .discovery-rail {
   display: grid;
-  gap: 18px;
+  gap: 10px;
 }
 
 .discovery-rail__grid,
 .start-links {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .start-link {
@@ -1000,7 +1003,7 @@ summary:focus-visible {
 .article-rail,
 .trust-shell__card,
 .trust-shell__note {
-  padding: 18px;
+  padding: 16px;
   border: 1px solid rgba(38, 23, 15, 0.08);
   border-radius: 24px;
   background: rgba(255, 252, 247, 0.88);
@@ -1527,7 +1530,7 @@ summary:focus-visible {
 }
 
 .site-footer {
-  padding: 72px 0 32px;
+  padding: 52px 0 24px;
   background: linear-gradient(180deg, rgba(249, 241, 231, 0.4), rgba(244, 233, 222, 0.9));
   border-top: 1px solid rgba(38, 23, 15, 0.06);
 }
@@ -1539,18 +1542,18 @@ summary:focus-visible {
 
 .site-footer__lead {
   display: grid;
-  gap: 16px;
-  padding: 22px;
+  gap: 12px;
+  padding: 16px;
   border: 1px solid rgba(38, 23, 15, 0.08);
-  border-radius: 28px;
+  border-radius: 20px;
   background: rgba(255, 252, 247, 0.82);
   box-shadow: var(--shadow-sm);
 }
 
 .site-footer__brand {
   display: grid;
-  gap: 14px;
-  align-items: start;
+  gap: 10px;
+  align-items: center;
 }
 
 .site-footer__grid {
@@ -1747,19 +1750,19 @@ summary:focus-visible {
 
   .masthead {
     grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 28px;
+    gap: 20px;
   }
 
   .masthead__nav {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 22px;
+    gap: 18px;
   }
 
   .masthead__nav a {
     color: var(--muted);
-    font-size: 0.94rem;
+    font-size: 0.88rem;
     font-weight: 700;
   }
 
@@ -1777,8 +1780,8 @@ summary:focus-visible {
   }
 
   .social-links--header .social-links__item {
-    width: 40px;
-    min-height: 40px;
+    width: 34px;
+    min-height: 34px;
     padding: 0;
     justify-content: center;
   }
@@ -1788,18 +1791,18 @@ summary:focus-visible {
   }
 
   .home-hero {
-    min-height: min(92svh, 980px);
+    min-height: min(82svh, 860px);
   }
 
   .home-hero__media img {
-    height: min(92svh, 980px);
+    height: min(82svh, 860px);
   }
 
   .home-hero__content {
     grid-template-columns: minmax(0, 1fr) minmax(320px, 460px);
     align-content: center;
-    gap: 36px;
-    padding-top: 132px;
+    gap: 28px;
+    padding-top: 108px;
   }
 
   .discovery-rail__grid {

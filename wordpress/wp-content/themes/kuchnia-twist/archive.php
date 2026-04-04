@@ -16,7 +16,6 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
         <?php kuchnia_twist_render_breadcrumbs(); ?>
         <span class="eyebrow"><?php echo esc_html($context['eyebrow'] ?? __('Archive', 'kuchnia-twist')); ?></span>
         <h1><?php echo esc_html($context['title'] ?? get_bloginfo('name')); ?></h1>
-        <p><?php echo esc_html($context['description'] ?? ''); ?></p>
         <div class="archive-shell__tools">
             <?php get_search_form(); ?>
             <div class="chip-links">

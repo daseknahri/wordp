@@ -81,10 +81,6 @@ $has_social    = kuchnia_twist_has_social_profiles();
         <div class="site-header__panel">
             <div class="site-search-sheet" id="site-search-sheet" hidden data-search-panel>
                 <div class="site-search-sheet__inner">
-                    <div class="site-search-sheet__intro">
-                        <span class="eyebrow"><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></span>
-                        <h2><?php esc_html_e('Recipes, food facts, and stories stay one search away.', 'kuchnia-twist'); ?></h2>
-                    </div>
                     <?php get_search_form(); ?>
                 </div>
             </div>
@@ -92,10 +88,7 @@ $has_social    = kuchnia_twist_has_social_profiles();
             <div class="menu-sheet" id="site-menu-sheet" hidden data-menu-panel>
                 <div class="menu-sheet__inner">
                     <div class="menu-sheet__top">
-                        <div>
-                            <span class="eyebrow"><?php esc_html_e('Browse the journal', 'kuchnia-twist'); ?></span>
-                            <h2><?php esc_html_e('A mobile-first guide to the site.', 'kuchnia-twist'); ?></h2>
-                        </div>
+                        <h2><?php esc_html_e('Menu', 'kuchnia-twist'); ?></h2>
                         <button class="menu-sheet__close" type="button" data-menu-close>
                             <span class="screen-reader-text"><?php esc_html_e('Close menu', 'kuchnia-twist'); ?></span>
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18"></path><path d="M18 6 6 18"></path></svg>
@@ -104,7 +97,6 @@ $has_social    = kuchnia_twist_has_social_profiles();
 
                     <div class="menu-sheet__grid">
                         <section class="menu-sheet__section">
-                            <span class="eyebrow"><?php esc_html_e('Primary', 'kuchnia-twist'); ?></span>
                             <div class="menu-sheet__links">
                                 <?php foreach ($primary_nav as $item) : ?>
                                     <?php $is_active = kuchnia_twist_is_nav_item_current($item['url']); ?>
@@ -114,7 +106,6 @@ $has_social    = kuchnia_twist_has_social_profiles();
                         </section>
 
                         <section class="menu-sheet__section">
-                            <span class="eyebrow"><?php esc_html_e('Pillars', 'kuchnia-twist'); ?></span>
                             <div class="chip-links">
                                 <?php foreach ($pillar_nav as $item) : ?>
                                     <?php $is_active = kuchnia_twist_is_nav_item_current($item['url']); ?>
@@ -125,7 +116,6 @@ $has_social    = kuchnia_twist_has_social_profiles();
 
                         <?php if ($trust_nav) : ?>
                             <section class="menu-sheet__section">
-                                <span class="eyebrow"><?php esc_html_e('Publication', 'kuchnia-twist'); ?></span>
                                 <div class="menu-sheet__links menu-sheet__links--compact">
                                     <?php foreach ($trust_nav as $item) : ?>
                                         <?php $is_active = kuchnia_twist_is_nav_item_current($item['url']); ?>
@@ -137,7 +127,6 @@ $has_social    = kuchnia_twist_has_social_profiles();
 
                         <?php if ($public_email || $has_social) : ?>
                             <section class="menu-sheet__section">
-                                <span class="eyebrow"><?php echo esc_html($follow_label); ?></span>
                                 <?php if ($has_social) : ?>
                                     <?php kuchnia_twist_render_social_links('social-links--menu', true); ?>
                                 <?php endif; ?>

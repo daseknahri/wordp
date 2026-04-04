@@ -841,7 +841,7 @@ function kuchnia_twist_archive_context()
         $query_text = trim((string) get_search_query());
         $match_count = $wp_query instanceof WP_Query ? (int) $wp_query->found_posts : 0;
         $context['eyebrow'] = __('Search results', 'kuchnia-twist');
-        $context['title'] = __('Search the journal', 'kuchnia-twist');
+        $context['title'] = __('Search', 'kuchnia-twist');
         $context['description'] = $query_text !== ''
             ? sprintf(
                 _n('Showing %1$s result for "%2$s".', 'Showing %1$s results for "%2$s".', max(1, $match_count), 'kuchnia-twist'),

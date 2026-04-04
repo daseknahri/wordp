@@ -18,23 +18,14 @@ $has_social     = kuchnia_twist_has_social_profiles();
                         <img src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')); ?>" alt="">
                     </span>
                     <div>
-                        <span class="eyebrow"><?php esc_html_e('Independent editorial food journal', 'kuchnia-twist'); ?></span>
-                        <h2><?php esc_html_e('Built for fast scanning on mobile and deeper reading when dinner is decided.', 'kuchnia-twist'); ?></h2>
+                        <h2><?php bloginfo('name'); ?></h2>
                     </div>
                 </div>
-                <p class="site-footer__summary">
-                    <?php
-                    printf(
-                        esc_html__('%1$s edits Kuchnia Twist as a home-cooking publication shaped around recipes, food facts, and slower kitchen stories that stay useful before they try to convert.', 'kuchnia-twist'),
-                        esc_html($editor_profile['name'])
-                    );
-                    ?>
-                </p>
             </div>
 
             <div class="site-footer__grid">
                 <details class="site-footer__section" open>
-                    <summary><?php esc_html_e('Browse the journal', 'kuchnia-twist'); ?></summary>
+                    <summary><?php esc_html_e('Browse', 'kuchnia-twist'); ?></summary>
                     <div class="site-footer__links">
                         <?php foreach ($pillar_nav as $item) : ?>
                             <a href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
@@ -68,7 +59,6 @@ $has_social     = kuchnia_twist_has_social_profiles();
 
             <div class="site-footer__bottom">
                 <span><?php echo esc_html(date_i18n('Y')); ?> <?php bloginfo('name'); ?></span>
-                <span><?php esc_html_e('Premium editorial shell, mobile-first reading rhythm.', 'kuchnia-twist'); ?></span>
             </div>
         </div>
     </footer>
