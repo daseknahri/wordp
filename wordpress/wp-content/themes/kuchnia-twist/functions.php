@@ -570,6 +570,54 @@ function kuchnia_twist_adjacent_story_links($post_id = 0)
     return $links;
 }
 
+function kuchnia_twist_reader_paths()
+{
+    $make_path = static function ($slug, $eyebrow, $title, $description) {
+        $term = get_category_by_slug($slug);
+        $count = 0;
+        $url = home_url('/');
+
+        if ($term instanceof WP_Term) {
+            $count = (int) $term->count;
+            $url = get_category_link($term);
+        }
+
+        return [
+            'eyebrow'     => $eyebrow,
+            'title'       => $title,
+            'description' => $description,
+            'count'       => $count,
+            'count_label' => sprintf(
+                _n('%s article in this pillar', '%s articles in this pillar', max(1, $count), 'kuchnia-twist'),
+                number_format_i18n($count)
+            ),
+            'url'         => $url,
+            'art'         => kuchnia_twist_fallback_media_url($slug),
+        ];
+    };
+
+    return [
+        $make_path(
+            'recipes',
+            __('Cook tonight', 'kuchnia-twist'),
+            __('Start with the recipes that are meant to be useful on an ordinary day, not only on a perfect one.', 'kuchnia-twist'),
+            __('This path is for practical readers who want something clear, calm, and easy to save for later.', 'kuchnia-twist')
+        ),
+        $make_path(
+            'food-facts',
+            __('Learn something useful', 'kuchnia-twist'),
+            __('Open the explainers and ingredient pieces when you want clarity without textbook dryness.', 'kuchnia-twist'),
+            __('This path works best for readers who like kitchen context, technique notes, and answers to small food questions.', 'kuchnia-twist')
+        ),
+        $make_path(
+            'food-stories',
+            __('Stay for the atmosphere', 'kuchnia-twist'),
+            __('Read the slower story-led pieces when you want the publication to feel more human than transactional.', 'kuchnia-twist'),
+            __('This path adds memory, narrative, and tone so the site feels like a journal instead of just an archive.', 'kuchnia-twist')
+        ),
+    ];
+}
+
 function kuchnia_twist_render_posts_pagination()
 {
     the_posts_pagination([

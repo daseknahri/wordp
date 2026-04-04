@@ -19,6 +19,20 @@ while (have_posts()) :
     $story_practice      = kuchnia_twist_story_practice(get_the_ID());
     $story_links         = kuchnia_twist_adjacent_story_links(get_the_ID());
     $public_email        = kuchnia_twist_public_contact_email();
+    $story_snapshot      = [
+        [
+            'label' => __('Pillar', 'kuchnia-twist'),
+            'value' => $category instanceof WP_Term ? $category->name : __('Journal', 'kuchnia-twist'),
+        ],
+        [
+            'label' => __('Read time', 'kuchnia-twist'),
+            'value' => sprintf(__('%s min', 'kuchnia-twist'), kuchnia_twist_estimated_read_time()),
+        ],
+        [
+            'label' => __('Updated', 'kuchnia-twist'),
+            'value' => $is_updated ? get_the_modified_date() : __('Original edition', 'kuchnia-twist'),
+        ],
+    ];
     $author_summary      = $author_description !== ''
         ? $author_description
         : __('This piece was prepared for Kuchnia Twist with the same house standards used across the journal: clear structure, practical value, and a strong editorial point of view around recipes, food facts, and kitchen stories.', 'kuchnia-twist');
@@ -42,6 +56,15 @@ while (have_posts()) :
 
         <div class="single-story__layout">
             <div class="single-story__main">
+                <section class="story-snapshot">
+                    <?php foreach ($story_snapshot as $item) : ?>
+                        <div class="story-snapshot__item">
+                            <span class="story-snapshot__label"><?php echo esc_html($item['label']); ?></span>
+                            <strong><?php echo esc_html($item['value']); ?></strong>
+                        </div>
+                    <?php endforeach; ?>
+                </section>
+
                 <?php if (has_post_thumbnail()) : ?>
                     <figure class="single-story__media">
                         <?php the_post_thumbnail('kuchnia-twist-hero'); ?>

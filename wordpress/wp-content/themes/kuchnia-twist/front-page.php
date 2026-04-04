@@ -23,6 +23,7 @@ $about_page = get_page_by_path('about');
 $contact_page = get_page_by_path('contact');
 $editorial_policy = get_page_by_path('editorial-policy');
 $journal_metrics = kuchnia_twist_publication_metrics();
+$reader_paths = kuchnia_twist_reader_paths();
 $promises = [
     [
         'eyebrow' => __('Clear editorial shape', 'kuchnia-twist'),
@@ -128,6 +129,30 @@ $pillar_queries = [
         <?php if ($editorial_policy instanceof WP_Post) : ?>
             <a class="text-link" href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Review editorial standards', 'kuchnia-twist'); ?></a>
         <?php endif; ?>
+    </div>
+</section>
+
+<section class="section section--paths">
+    <div class="section__heading">
+        <span class="eyebrow"><?php esc_html_e('Start here', 'kuchnia-twist'); ?></span>
+        <h2><?php esc_html_e('Three simple reading paths make the journal easier to enter for the first time.', 'kuchnia-twist'); ?></h2>
+        <p><?php esc_html_e('Different readers arrive with different intent. These entry points keep the site feeling guided instead of dumping everyone into one endless feed.', 'kuchnia-twist'); ?></p>
+    </div>
+    <div class="path-grid">
+        <?php foreach ($reader_paths as $path) : ?>
+            <article class="path-card">
+                <img class="path-card__art" src="<?php echo esc_url($path['art']); ?>" alt="">
+                <div class="path-card__body">
+                    <span class="eyebrow"><?php echo esc_html($path['eyebrow']); ?></span>
+                    <h3><?php echo esc_html($path['title']); ?></h3>
+                    <p><?php echo esc_html($path['description']); ?></p>
+                    <div class="path-card__meta">
+                        <span><?php echo esc_html($path['count_label']); ?></span>
+                    </div>
+                    <a class="text-link" href="<?php echo esc_url($path['url']); ?>"><?php esc_html_e('Open this reading path', 'kuchnia-twist'); ?></a>
+                </div>
+            </article>
+        <?php endforeach; ?>
     </div>
 </section>
 
