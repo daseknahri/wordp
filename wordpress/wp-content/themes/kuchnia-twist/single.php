@@ -17,6 +17,8 @@ while (have_posts()) :
     $contact_page        = get_page_by_path('contact');
     $editorial_policy    = get_page_by_path('editorial-policy');
     $story_practice      = kuchnia_twist_story_practice(get_the_ID());
+    $story_links         = kuchnia_twist_adjacent_story_links(get_the_ID());
+    $public_email        = kuchnia_twist_public_contact_email();
     $author_summary      = $author_description !== ''
         ? $author_description
         : __('This piece was prepared for Kuchnia Twist with the same house standards used across the journal: clear structure, practical value, and a strong editorial point of view around recipes, food facts, and kitchen stories.', 'kuchnia-twist');
@@ -118,6 +120,23 @@ while (have_posts()) :
                         </div>
                     </div>
                 </section>
+
+                <section class="corrections-note">
+                    <span class="eyebrow"><?php esc_html_e('Corrections and contact', 'kuchnia-twist'); ?></span>
+                    <h2><?php esc_html_e('If something in this piece needs attention, the publication should be easy to reach.', 'kuchnia-twist'); ?></h2>
+                    <p><?php esc_html_e('Questions, corrections, or clarification requests are part of responsible publishing. Kuchnia Twist keeps contact and editorial standards close to each article so trust does not depend on digging through the site.', 'kuchnia-twist'); ?></p>
+                    <div class="article-note__links">
+                        <?php if ($contact_page instanceof WP_Post) : ?>
+                            <a class="text-link" href="<?php echo esc_url(get_permalink($contact_page)); ?>"><?php esc_html_e('Open the contact page', 'kuchnia-twist'); ?></a>
+                        <?php endif; ?>
+                        <?php if ($editorial_policy instanceof WP_Post) : ?>
+                            <a class="text-link" href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Read correction standards', 'kuchnia-twist'); ?></a>
+                        <?php endif; ?>
+                        <?php if ($public_email) : ?>
+                            <a class="text-link" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
+                        <?php endif; ?>
+                    </div>
+                </section>
             </div>
 
             <aside class="single-story__rail">
@@ -194,6 +213,20 @@ while (have_posts()) :
                 <?php endif; ?>
             </div>
         </section>
+
+        <?php if ($story_links) : ?>
+            <section class="story-nav">
+                <span class="eyebrow"><?php esc_html_e('Continue through the journal', 'kuchnia-twist'); ?></span>
+                <div class="story-nav__grid">
+                    <?php foreach ($story_links as $story_link) : ?>
+                        <a class="story-nav__item" href="<?php echo esc_url($story_link['url']); ?>">
+                            <span class="story-nav__direction"><?php echo esc_html($story_link['direction']); ?></span>
+                            <strong><?php echo esc_html($story_link['title']); ?></strong>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+        <?php endif; ?>
     </article>
 <?php endwhile; ?>
 

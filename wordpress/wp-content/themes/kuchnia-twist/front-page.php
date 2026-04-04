@@ -22,6 +22,7 @@ $secondary_posts = array_slice($featured_posts, $lead_post ? 2 : 1, 4);
 $about_page = get_page_by_path('about');
 $contact_page = get_page_by_path('contact');
 $editorial_policy = get_page_by_path('editorial-policy');
+$journal_metrics = kuchnia_twist_publication_metrics();
 $promises = [
     [
         'eyebrow' => __('Clear editorial shape', 'kuchnia-twist'),
@@ -99,6 +100,34 @@ $pillar_queries = [
                 </div>
             <?php endif; ?>
         </article>
+    </div>
+</section>
+
+<section class="section section--signals">
+    <div class="section__heading">
+        <span class="eyebrow"><?php esc_html_e('Journal signals', 'kuchnia-twist'); ?></span>
+        <h2><?php esc_html_e('Small details that help the publication feel active, contactable, and responsibly maintained.', 'kuchnia-twist'); ?></h2>
+        <p><?php esc_html_e('These are not vanity metrics. They are the visible cues that tell readers and reviewers the site has structure, accountability, and a clear editorial rhythm.', 'kuchnia-twist'); ?></p>
+    </div>
+    <div class="signal-grid">
+        <?php foreach ($journal_metrics as $metric) : ?>
+            <article class="signal-card">
+                <span class="eyebrow"><?php echo esc_html($metric['label']); ?></span>
+                <h3><?php echo esc_html($metric['value']); ?></h3>
+                <p><?php echo esc_html($metric['detail']); ?></p>
+            </article>
+        <?php endforeach; ?>
+    </div>
+    <div class="signal-links">
+        <?php if ($about_page instanceof WP_Post) : ?>
+            <a class="text-link" href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('Read the publication story', 'kuchnia-twist'); ?></a>
+        <?php endif; ?>
+        <?php if ($contact_page instanceof WP_Post) : ?>
+            <a class="text-link" href="<?php echo esc_url(get_permalink($contact_page)); ?>"><?php esc_html_e('Open contact details', 'kuchnia-twist'); ?></a>
+        <?php endif; ?>
+        <?php if ($editorial_policy instanceof WP_Post) : ?>
+            <a class="text-link" href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Review editorial standards', 'kuchnia-twist'); ?></a>
+        <?php endif; ?>
     </div>
 </section>
 

@@ -488,6 +488,88 @@ function kuchnia_twist_story_practice($post_id = 0)
     return $practice;
 }
 
+function kuchnia_twist_publication_metrics()
+{
+    $published_posts = wp_count_posts('post');
+    $published_count = $published_posts instanceof stdClass ? (int) ($published_posts->publish ?? 0) : 0;
+
+    $trust_slugs = ['about', 'contact', 'privacy-policy', 'cookie-policy', 'editorial-policy'];
+    $trust_count = 0;
+
+    foreach ($trust_slugs as $slug) {
+        if (get_page_by_path($slug) instanceof WP_Post) {
+            $trust_count++;
+        }
+    }
+
+    $latest_post = get_posts([
+        'post_type'      => 'post',
+        'post_status'    => 'publish',
+        'posts_per_page' => 1,
+        'orderby'        => 'date',
+        'order'          => 'DESC',
+    ]);
+
+    return [
+        [
+            'label' => __('Published articles', 'kuchnia-twist'),
+            'value' => (string) $published_count,
+            'detail'=> $published_count > 0
+                ? __('The archive grows through recipes, food facts, and story-led pieces.', 'kuchnia-twist')
+                : __('The first strong article will set the tone for the archive.', 'kuchnia-twist'),
+        ],
+        [
+            'label' => __('Editorial pillars', 'kuchnia-twist'),
+            'value' => '3',
+            'detail'=> __('Recipes, food facts, and food stories keep the publication structured.', 'kuchnia-twist'),
+        ],
+        [
+            'label' => __('Trust pages live', 'kuchnia-twist'),
+            'value' => (string) $trust_count,
+            'detail'=> __('About, contact, policy, and standards pages stay visible around the site.', 'kuchnia-twist'),
+        ],
+        [
+            'label' => __('Latest update', 'kuchnia-twist'),
+            'value' => $latest_post ? get_the_date('M j, Y', $latest_post[0]) : __('Soon', 'kuchnia-twist'),
+            'detail'=> __('Freshly published work helps the journal feel active and maintained.', 'kuchnia-twist'),
+        ],
+    ];
+}
+
+function kuchnia_twist_adjacent_story_links($post_id = 0)
+{
+    $post_id = $post_id ?: get_the_ID();
+    $post = get_post($post_id);
+    if (!$post instanceof WP_Post) {
+        return [];
+    }
+
+    setup_postdata($post);
+    $previous = get_previous_post();
+    $next = get_next_post();
+    wp_reset_postdata();
+
+    $links = [];
+
+    if ($previous instanceof WP_Post) {
+        $links[] = [
+            'direction' => __('Previous story', 'kuchnia-twist'),
+            'title'     => get_the_title($previous),
+            'url'       => get_permalink($previous),
+        ];
+    }
+
+    if ($next instanceof WP_Post) {
+        $links[] = [
+            'direction' => __('Next story', 'kuchnia-twist'),
+            'title'     => get_the_title($next),
+            'url'       => get_permalink($next),
+        ];
+    }
+
+    return $links;
+}
+
 function kuchnia_twist_render_posts_pagination()
 {
     the_posts_pagination([
