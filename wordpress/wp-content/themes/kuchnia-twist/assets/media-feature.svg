@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Feature artwork</title>
+  <desc id="desc">Editorial feature illustration with notebook, plate, and pantry palette.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f6ebde"/>
+      <stop offset="100%" stop-color="#e5cab1"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <rect x="118" y="126" width="412" height="540" rx="34" fill="#fff8f0"/>
+  <rect x="158" y="208" width="332" height="10" rx="5" fill="#c59a79"/>
+  <rect x="158" y="258" width="280" height="10" rx="5" fill="#d6af90"/>
+  <rect x="158" y="308" width="306" height="10" rx="5" fill="#d6af90"/>
+  <rect x="158" y="358" width="240" height="10" rx="5" fill="#d6af90"/>
+  <circle cx="834" cy="404" r="226" fill="#fff5eb"/>
+  <circle cx="834" cy="404" r="178" fill="#efd5bd"/>
+  <circle cx="834" cy="404" r="116" fill="#b1552e"/>
+  <path d="M736 620c104 62 210 66 320 0" fill="none" stroke="#7b341d" stroke-width="4" stroke-linecap="round"/>
+  <path d="M916 172c74 46 102 120 76 210-90-28-154-90-188-182 44-28 82-37 112-28z" fill="#efb530"/>
+  <rect x="132" y="710" width="388" height="88" rx="26" fill="#1f140d"/>
+  <text x="186" y="765" font-family="Georgia, 'Times New Roman', serif" font-size="42" font-weight="700" fill="#fff8f2">Featured Story</text>
+</svg>

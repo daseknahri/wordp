@@ -16,7 +16,7 @@ defined('ABSPATH') || exit;
         <div class="site-header__inner">
             <div class="site-branding">
                 <a class="site-branding__symbol" href="<?php echo esc_url(home_url('/')); ?>" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
-                    <span><?php echo esc_html(kuchnia_twist_publication_initials()); ?></span>
+                    <img src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')); ?>" alt="">
                 </a>
                 <div class="site-branding__copy">
                     <span class="site-branding__kicker"><?php esc_html_e('Editorial food journal', 'kuchnia-twist'); ?></span>
@@ -24,7 +24,9 @@ defined('ABSPATH') || exit;
                         <?php if (function_exists('the_custom_logo') && has_custom_logo()) : ?>
                             <div class="site-branding__logo"><?php the_custom_logo(); ?></div>
                         <?php else : ?>
-                            <a class="site-branding__mark" href="<?php echo esc_url(home_url('/')); ?>"><?php echo esc_html(get_bloginfo('name')); ?></a>
+                            <a class="site-branding__mark" href="<?php echo esc_url(home_url('/')); ?>">
+                                <img class="site-branding__wordmark-image" src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-wordmark.svg')); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
+                            </a>
                         <?php endif; ?>
                     </div>
                     <p class="site-branding__tag"><?php echo esc_html(get_bloginfo('description')); ?></p>

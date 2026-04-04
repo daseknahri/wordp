@@ -80,6 +80,54 @@ function kuchnia_twist_primary_category($post_id = 0)
     return $terms ? $terms[0] : null;
 }
 
+function kuchnia_twist_asset_url($relative_path)
+{
+    return trailingslashit(get_template_directory_uri()) . ltrim($relative_path, '/');
+}
+
+function kuchnia_twist_fallback_media_url($context = 'journal')
+{
+    $map = [
+        'hero'         => 'assets/media-hero-default.svg',
+        'feature'      => 'assets/media-feature.svg',
+        'journal'      => 'assets/media-journal.svg',
+        'recipes'      => 'assets/media-recipes.svg',
+        'food-facts'   => 'assets/media-food-facts.svg',
+        'food-stories' => 'assets/media-food-stories.svg',
+        'trust'        => 'assets/media-trust.svg',
+        'about'        => 'assets/media-about.svg',
+        'contact'      => 'assets/media-contact.svg',
+    ];
+
+    $asset = $map[$context] ?? $map['journal'];
+    return kuchnia_twist_asset_url($asset);
+}
+
+function kuchnia_twist_media_context_for_post($post_id = 0)
+{
+    $post_id = $post_id ?: get_the_ID();
+    $category = kuchnia_twist_primary_category($post_id);
+    if ($category instanceof WP_Term) {
+        return $category->slug;
+    }
+
+    return 'journal';
+}
+
+function kuchnia_twist_render_media_placeholder($context = 'journal', $label = '')
+{
+    $context = $context ?: 'journal';
+    $label = $label !== '' ? $label : __('Kuchnia Twist editorial artwork', 'kuchnia-twist');
+
+    echo '<span class="story-card__placeholder">';
+    printf(
+        '<img class="story-card__placeholder-art" src="%s" alt="">',
+        esc_url(kuchnia_twist_fallback_media_url($context))
+    );
+    printf('<span class="story-card__placeholder-label">%s</span>', esc_html($label));
+    echo '</span>';
+}
+
 function kuchnia_twist_render_nav_links()
 {
     $category_link = static function ($slug) {
@@ -151,13 +199,14 @@ function kuchnia_twist_estimated_read_time($post_id = 0)
 function kuchnia_twist_render_post_card($post_id)
 {
     $category = kuchnia_twist_primary_category($post_id);
+    $placeholder_context = kuchnia_twist_media_context_for_post($post_id);
     ?>
     <article class="story-card">
         <a class="story-card__media" href="<?php echo esc_url(get_permalink($post_id)); ?>">
             <?php if (has_post_thumbnail($post_id)) : ?>
                 <?php echo get_the_post_thumbnail($post_id, 'kuchnia-twist-card'); ?>
             <?php else : ?>
-                <span class="story-card__placeholder"><?php esc_html_e('Fresh from the kitchen journal', 'kuchnia-twist'); ?></span>
+                <?php kuchnia_twist_render_media_placeholder($placeholder_context, __('Fresh from the kitchen journal', 'kuchnia-twist')); ?>
             <?php endif; ?>
         </a>
         <div class="story-card__body">
@@ -555,12 +604,7 @@ add_action('wp_head', function () {
         return;
     }
 
-    $svg = sprintf(
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="18" fill="#1f140d"/><text x="50%%" y="56%%" dominant-baseline="middle" text-anchor="middle" font-family="Georgia,serif" font-size="24" font-weight="700" fill="#fff8f2">%s</text></svg>',
-        esc_html(kuchnia_twist_publication_initials())
-    );
-
-    echo '<link rel="icon" href="data:image/svg+xml,' . rawurlencode($svg) . '">';
+    echo '<link rel="icon" href="' . esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')) . '" type="image/svg+xml">';
 }, 1);
 
 add_action('wp_head', function () {

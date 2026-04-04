@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">About artwork</title>
+  <desc id="desc">Starter artwork for the About page.</desc>
+  <rect width="1200" height="900" fill="#f6ece0"/>
+  <path d="M118 674c176-264 352-438 528-522 118 86 214 204 288 352-192 174-466 238-816 170z" fill="#d89f79"/>
+  <circle cx="862" cy="286" r="112" fill="#fff4ea"/>
+  <circle cx="862" cy="286" r="68" fill="#b1552e"/>
+  <rect x="728" y="444" width="292" height="210" rx="30" fill="#fff8f1"/>
+  <rect x="770" y="514" width="206" height="12" rx="6" fill="#1f140d"/>
+  <rect x="770" y="560" width="188" height="10" rx="5" fill="#c89a78"/>
+  <rect x="770" y="596" width="170" height="10" rx="5" fill="#c89a78"/>
+  <text x="160" y="822" font-family="Georgia, 'Times New Roman', serif" font-size="50" font-weight="700" fill="#1f140d">About Kuchnia Twist</text>
+</svg>

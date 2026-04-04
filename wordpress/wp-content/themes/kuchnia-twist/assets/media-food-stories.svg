@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Food stories artwork</title>
+  <desc id="desc">Starter artwork for food story articles.</desc>
+  <rect width="1200" height="900" fill="#f7eee5"/>
+  <path d="M122 666c168-270 354-456 560-556 112 100 192 226 240 378-208 144-476 204-800 178z" fill="#d69a72"/>
+  <rect x="698" y="132" width="330" height="494" rx="34" fill="#fff8f1"/>
+  <rect x="742" y="204" width="244" height="12" rx="6" fill="#1f140d"/>
+  <rect x="742" y="254" width="214" height="10" rx="5" fill="#c79673"/>
+  <rect x="742" y="292" width="228" height="10" rx="5" fill="#c79673"/>
+  <rect x="742" y="330" width="192" height="10" rx="5" fill="#c79673"/>
+  <path d="M822 494c18-54 46-92 86-120 42 34 70 72 84 120-52 18-108 18-170 0z" fill="#b1552e"/>
+  <circle cx="312" cy="350" r="142" fill="#f4d8c2"/>
+  <circle cx="312" cy="350" r="86" fill="#7b341d"/>
+  <text x="160" y="810" font-family="Georgia, 'Times New Roman', serif" font-size="50" font-weight="700" fill="#1f140d">Food Stories</text>
+</svg>

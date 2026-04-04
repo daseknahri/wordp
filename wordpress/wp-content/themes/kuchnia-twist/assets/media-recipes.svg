@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Recipes artwork</title>
+  <desc id="desc">Starter artwork for recipe articles.</desc>
+  <rect width="1200" height="900" fill="#f7ede2"/>
+  <circle cx="825" cy="390" r="250" fill="#fff6ee"/>
+  <circle cx="825" cy="390" r="192" fill="#efdbc8"/>
+  <circle cx="825" cy="390" r="120" fill="#c76b3d"/>
+  <path d="M952 208c70 50 96 128 66 222-94-30-160-98-194-202 47-30 88-38 128-20z" fill="#efb530"/>
+  <rect x="116" y="154" width="398" height="560" rx="30" fill="#fff9f3"/>
+  <rect x="154" y="226" width="320" height="10" rx="5" fill="#1f140d"/>
+  <rect x="154" y="276" width="244" height="10" rx="5" fill="#cc9b79"/>
+  <rect x="154" y="314" width="276" height="10" rx="5" fill="#cc9b79"/>
+  <rect x="154" y="352" width="258" height="10" rx="5" fill="#cc9b79"/>
+  <circle cx="188" cy="466" r="20" fill="#b1552e"/>
+  <circle cx="188" cy="532" r="20" fill="#b1552e"/>
+  <circle cx="188" cy="598" r="20" fill="#b1552e"/>
+  <text x="156" y="770" font-family="Georgia, 'Times New Roman', serif" font-size="50" font-weight="700" fill="#1f140d">Recipes</text>
+</svg>

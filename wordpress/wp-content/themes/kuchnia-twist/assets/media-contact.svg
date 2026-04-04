@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Contact artwork</title>
+  <desc id="desc">Starter artwork for the Contact page.</desc>
+  <rect width="1200" height="900" fill="#f5ecdf"/>
+  <rect x="124" y="166" width="952" height="570" rx="40" fill="#fff9f3"/>
+  <path d="M174 226h852L600 516 174 226z" fill="#efd7c0"/>
+  <path d="M174 676V226l262 222" fill="none" stroke="#c59a79" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M1026 676V226L764 448" fill="none" stroke="#c59a79" stroke-width="18" stroke-linejoin="round"/>
+  <circle cx="600" cy="492" r="106" fill="#b1552e"/>
+  <circle cx="600" cy="492" r="54" fill="#fff8f2"/>
+  <text x="160" y="824" font-family="Georgia, 'Times New Roman', serif" font-size="50" font-weight="700" fill="#1f140d">Contact The Editorial Desk</text>
+</svg>

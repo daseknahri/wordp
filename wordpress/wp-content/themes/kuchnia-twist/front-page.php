@@ -15,6 +15,7 @@ $hero_id   = $hero_post ? $hero_post->ID : 0;
 $hero_image = ($hero_post && has_post_thumbnail($hero_post))
     ? get_the_post_thumbnail_url($hero_post, 'full')
     : '';
+$hero_background = $hero_image ?: kuchnia_twist_fallback_media_url('hero');
 $lead_post = $featured_posts[1] ?? null;
 $lead_id   = $lead_post ? $lead_post->ID : 0;
 $secondary_posts = array_slice($featured_posts, $lead_post ? 2 : 1, 4);
@@ -38,10 +39,14 @@ $pillar_queries = [
     ],
 ];
 ?>
-<section class="hero hero--poster"<?php if ($hero_image) : ?> style="--hero-image:url('<?php echo esc_url($hero_image); ?>')"<?php endif; ?>>
+<section class="hero hero--poster" style="--hero-image:url('<?php echo esc_url($hero_background); ?>')">
     <div class="hero__veil"></div>
     <div class="hero__inner">
         <div class="hero__copy">
+            <div class="hero__signature">
+                <img class="hero__signature-art" src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')); ?>" alt="">
+                <span><?php esc_html_e('Independent kitchen publication', 'kuchnia-twist'); ?></span>
+            </div>
             <span class="eyebrow"><?php esc_html_e('Editorial food journal', 'kuchnia-twist'); ?></span>
             <h1><?php bloginfo('name'); ?></h1>
             <p class="hero__lede"><?php esc_html_e('Recipes, food facts, and story-led kitchen writing shaped to feel generous, memorable, and worth trusting.', 'kuchnia-twist'); ?></p>
@@ -55,8 +60,8 @@ $pillar_queries = [
                 <?php endif; ?>
             </div>
         </div>
-        <?php if ($hero_post) : ?>
-            <article class="hero__feature-meta">
+        <article class="hero__feature-meta">
+            <?php if ($hero_post) : ?>
                 <span class="eyebrow"><?php esc_html_e('Latest feature', 'kuchnia-twist'); ?></span>
                 <h2><a href="<?php echo esc_url(get_permalink($hero_post)); ?>"><?php echo esc_html(get_the_title($hero_post)); ?></a></h2>
                 <p><?php echo esc_html(get_the_excerpt($hero_post)); ?></p>
@@ -64,8 +69,17 @@ $pillar_queries = [
                     <span><?php echo esc_html(get_the_date('', $hero_post)); ?></span>
                     <span><?php echo esc_html(kuchnia_twist_estimated_read_time($hero_id)); ?> min read</span>
                 </div>
-            </article>
-        <?php endif; ?>
+            <?php else : ?>
+                <span class="eyebrow"><?php esc_html_e('House note', 'kuchnia-twist'); ?></span>
+                <h2><?php esc_html_e('A warmer, slower food publication starts with consistent voice and generous articles.', 'kuchnia-twist'); ?></h2>
+                <p><?php esc_html_e('The first stories you publish here will automatically take over this space. Until then, the site carries a finished editorial identity instead of looking half-built.', 'kuchnia-twist'); ?></p>
+                <div class="hero__meta-row">
+                    <span><?php esc_html_e('Recipes', 'kuchnia-twist'); ?></span>
+                    <span><?php esc_html_e('Food Facts', 'kuchnia-twist'); ?></span>
+                    <span><?php esc_html_e('Food Stories', 'kuchnia-twist'); ?></span>
+                </div>
+            <?php endif; ?>
+        </article>
     </div>
 </section>
 
@@ -116,7 +130,7 @@ $pillar_queries = [
                     <?php if (has_post_thumbnail($lead_post)) : ?>
                         <?php echo get_the_post_thumbnail($lead_post, 'kuchnia-twist-hero'); ?>
                     <?php else : ?>
-                        <span class="story-card__placeholder"><?php esc_html_e('A fresh feature is waiting here', 'kuchnia-twist'); ?></span>
+                        <?php kuchnia_twist_render_media_placeholder('feature', __('A fresh feature is waiting here', 'kuchnia-twist')); ?>
                     <?php endif; ?>
                 </a>
                 <div class="journal-lead__body">

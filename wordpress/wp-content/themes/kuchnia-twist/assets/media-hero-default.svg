@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Kuchnia Twist hero still life</title>
+  <desc id="desc">Warm editorial still life illustration with plates, linen, citrus, herbs, and notebook.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8b4326"/>
+      <stop offset="48%" stop-color="#3a2419"/>
+      <stop offset="100%" stop-color="#130e0c"/>
+    </linearGradient>
+    <radialGradient id="plate" cx="50%" cy="48%" r="54%">
+      <stop offset="0%" stop-color="#fff7ef"/>
+      <stop offset="100%" stop-color="#ead4be"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <ellipse cx="1210" cy="760" rx="350" ry="188" fill="#291914" opacity=".42"/>
+  <ellipse cx="1140" cy="500" rx="270" ry="270" fill="url(#plate)"/>
+  <ellipse cx="1140" cy="500" rx="228" ry="228" fill="#f6e9db"/>
+  <ellipse cx="1140" cy="500" rx="148" ry="148" fill="#d38f63"/>
+  <ellipse cx="1140" cy="500" rx="102" ry="102" fill="#b1552e"/>
+  <rect x="880" y="148" width="310" height="230" rx="26" fill="#f1ddc8" transform="rotate(-8 880 148)"/>
+  <rect x="915" y="180" width="240" height="8" rx="4" fill="#b58d70" transform="rotate(-8 915 180)"/>
+  <rect x="925" y="216" width="212" height="8" rx="4" fill="#c79b79" transform="rotate(-8 925 216)"/>
+  <rect x="938" y="252" width="182" height="8" rx="4" fill="#c79b79" transform="rotate(-8 938 252)"/>
+  <path d="M1354 270c56 34 78 97 60 168-71-22-122-70-152-145 37-24 66-30 92-23z" fill="#f1b12d"/>
+  <path d="M1328 287c34 26 47 63 36 110-44-15-74-47-94-97 23-15 39-19 58-13z" fill="#ffd878"/>
+  <path d="M1358 264c18-22 49-36 92-39-3 52-23 89-64 110-29-20-40-44-28-71z" fill="#3d7d4a"/>
+  <path d="M1368 284c13-14 31-21 56-22-2 31-15 53-39 66-18-10-24-25-17-44z" fill="#84bb76"/>
+  <g fill="none" stroke="#7dae68" stroke-linecap="round">
+    <path d="M1276 708c-30-72-66-124-112-158" stroke-width="9"/>
+    <path d="M1246 710c-13-54-31-93-64-127" stroke-width="7"/>
+    <path d="M1208 675c-25 0-44 11-58 29" stroke-width="5"/>
+    <path d="M1177 624c-25 7-42 22-53 47" stroke-width="5"/>
+    <path d="M1142 587c-24 8-42 24-50 45" stroke-width="5"/>
+  </g>
+  <rect x="1004" y="708" width="320" height="74" rx="24" fill="#fef6ee" opacity=".9"/>
+  <text x="1040" y="752" font-family="Georgia, 'Times New Roman', serif" font-size="34" font-weight="700" fill="#2c1b14">Kuchnia Twist</text>
+</svg>

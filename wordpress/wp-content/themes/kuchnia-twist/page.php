@@ -10,6 +10,9 @@ get_header();
     $has_body       = kuchnia_twist_page_has_meaningful_body(get_post());
     $action_links   = $profile ? kuchnia_twist_page_action_links(get_post_field('post_name', get_the_ID())) : [];
     $page_slug      = get_post_field('post_name', get_the_ID());
+    $page_art       = in_array($page_slug, ['about', 'contact'], true)
+        ? kuchnia_twist_fallback_media_url($page_slug)
+        : kuchnia_twist_fallback_media_url('trust');
     ?>
     <article class="page-shell <?php echo $profile ? 'page-shell--trust' : ''; ?> page-shell--<?php echo esc_attr($page_slug); ?>">
         <header class="page-hero">
@@ -24,7 +27,8 @@ get_header();
             </div>
 
             <?php if (!empty($profile['highlights'])) : ?>
-                <aside class="page-highlights" aria-label="<?php esc_attr_e('Page highlights', 'kuchnia-twist'); ?>">
+                <aside class="page-highlights page-highlights--with-art" aria-label="<?php esc_attr_e('Page highlights', 'kuchnia-twist'); ?>">
+                    <img class="page-highlights__art" src="<?php echo esc_url($page_art); ?>" alt="">
                     <?php foreach ($profile['highlights'] as $highlight) : ?>
                         <p><?php echo esc_html($highlight); ?></p>
                     <?php endforeach; ?>

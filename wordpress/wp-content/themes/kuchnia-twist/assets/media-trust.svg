@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Trust artwork</title>
+  <desc id="desc">Starter artwork for trust and policy pages.</desc>
+  <rect width="1200" height="900" fill="#f6ede4"/>
+  <rect x="170" y="128" width="860" height="644" rx="36" fill="#fff9f3"/>
+  <rect x="248" y="216" width="438" height="18" rx="9" fill="#1f140d"/>
+  <rect x="248" y="278" width="356" height="10" rx="5" fill="#c89c7c"/>
+  <rect x="248" y="314" width="388" height="10" rx="5" fill="#c89c7c"/>
+  <rect x="248" y="350" width="312" height="10" rx="5" fill="#c89c7c"/>
+  <circle cx="844" cy="362" r="132" fill="#efd6c0"/>
+  <circle cx="844" cy="362" r="86" fill="#b1552e"/>
+  <path d="M778 540h238" stroke="#dbc1a8" stroke-width="2"/>
+  <rect x="252" y="468" width="280" height="170" rx="26" fill="#efe0d0"/>
+  <rect x="568" y="468" width="280" height="170" rx="26" fill="#efe0d0"/>
+  <text x="248" y="834" font-family="Georgia, 'Times New Roman', serif" font-size="50" font-weight="700" fill="#1f140d">Editorial Standards</text>
+</svg>
