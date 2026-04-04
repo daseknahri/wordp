@@ -1,0 +1,78 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: wordp-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${WORDPRESS_DB_NAME}
+      MYSQL_USER: ${WORDPRESS_DB_USER}
+      MYSQL_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    volumes:
+      - db_data:/var/lib/mysql
+
+  wordpress:
+    image: wordpress:6.9.4-php8.3-apache
+    container_name: wordp-web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+      WORDPRESS_TABLE_PREFIX: ${WORDPRESS_TABLE_PREFIX}
+      WORDPRESS_DEBUG: ${WORDPRESS_DEBUG}
+    ports:
+      - "${WP_PORT}:80"
+    volumes:
+      - wordpress_data:/var/www/html
+
+  autopost:
+    profiles:
+      - autopost
+    build:
+      context: ./autopost
+    container_name: wordp-autopost
+    restart: unless-stopped
+    depends_on:
+      wordpress:
+        condition: service_started
+    environment:
+      AUTOPOST_ENABLED: ${AUTOPOST_ENABLED}
+      AUTOPOST_RUN_ONCE: ${AUTOPOST_RUN_ONCE}
+      AUTOPOST_STARTUP_DELAY_SECONDS: ${AUTOPOST_STARTUP_DELAY_SECONDS}
+      AUTOPOST_INTERVAL_HOURS: ${AUTOPOST_INTERVAL_HOURS}
+      AUTOPOST_STATUS: ${AUTOPOST_STATUS}
+      AUTOPOST_SITE_NAME: ${AUTOPOST_SITE_NAME}
+      AUTOPOST_TONE: ${AUTOPOST_TONE}
+      AUTOPOST_AUTHOR_VOICE: ${AUTOPOST_AUTHOR_VOICE}
+      AUTOPOST_TOPICS: ${AUTOPOST_TOPICS}
+      AUTOPOST_MIN_WORDS: ${AUTOPOST_MIN_WORDS}
+      AUTOPOST_MAX_WORDS: ${AUTOPOST_MAX_WORDS}
+      WORDPRESS_URL: ${AUTOPOST_WORDPRESS_URL}
+      WORDPRESS_USERNAME: ${AUTOPOST_WORDPRESS_USERNAME}
+      WORDPRESS_APP_PASSWORD: ${AUTOPOST_WORDPRESS_APP_PASSWORD}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OPENAI_MODEL: ${OPENAI_MODEL}
+      AUTOPOST_STATE_DIR: /app/data
+    volumes:
+      - autopost_data:/app/data
+
+volumes:
+  db_data:
+  wordpress_data:
+  autopost_data:

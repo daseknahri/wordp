@@ -1,0 +1,10 @@
+{
+  "name": "wordp-autopost",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Auto-posting worker for WordPress",
+  "scripts": {
+    "start": "node index.mjs"
+  }
+}
