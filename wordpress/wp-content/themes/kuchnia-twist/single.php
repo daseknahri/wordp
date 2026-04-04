@@ -6,11 +6,18 @@ get_header();
 
 while (have_posts()) :
     the_post();
-    $category    = kuchnia_twist_primary_category(get_the_ID());
-    $recipe_data = kuchnia_twist_get_recipe_data(get_the_ID());
-    $article     = kuchnia_twist_prepare_article_content(get_the_ID());
-    $headings    = $article['headings'];
-    $is_updated  = get_the_modified_date('U') !== get_the_date('U');
+    $category            = kuchnia_twist_primary_category(get_the_ID());
+    $recipe_data         = kuchnia_twist_get_recipe_data(get_the_ID());
+    $article             = kuchnia_twist_prepare_article_content(get_the_ID());
+    $headings            = $article['headings'];
+    $is_updated          = get_the_modified_date('U') !== get_the_date('U');
+    $author_name         = get_the_author();
+    $author_description  = trim((string) get_the_author_meta('description'));
+    $about_page          = get_page_by_path('about');
+    $editorial_policy    = get_page_by_path('editorial-policy');
+    $author_summary      = $author_description !== ''
+        ? $author_description
+        : __('This piece was prepared for Kuchnia Twist with the same house standards used across the journal: clear structure, practical value, and a strong editorial point of view around recipes, food facts, and kitchen stories.', 'kuchnia-twist');
     ?>
     <article class="single-story">
         <header class="single-story__header">
@@ -77,12 +84,36 @@ while (have_posts()) :
                         <?php if ($category instanceof WP_Term) : ?>
                             <a class="text-link" href="<?php echo esc_url(get_category_link($category)); ?>"><?php esc_html_e('Browse this pillar', 'kuchnia-twist'); ?></a>
                         <?php endif; ?>
-                        <?php
-                        $editorial_policy = get_page_by_path('editorial-policy');
-                        if ($editorial_policy instanceof WP_Post) :
-                        ?>
+                        <?php if ($editorial_policy instanceof WP_Post) : ?>
                             <a class="text-link" href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Read the editorial policy', 'kuchnia-twist'); ?></a>
                         <?php endif; ?>
+                    </div>
+                </section>
+
+                <section class="editorial-bio">
+                    <div class="editorial-bio__avatar">
+                        <?php
+                        echo get_avatar(
+                            get_the_author_meta('user_email'),
+                            88,
+                            '',
+                            $author_name,
+                            ['class' => 'editorial-bio__avatar-image']
+                        );
+                        ?>
+                    </div>
+                    <div class="editorial-bio__body">
+                        <span class="eyebrow"><?php esc_html_e('From the editorial desk', 'kuchnia-twist'); ?></span>
+                        <h2><?php echo esc_html($author_name); ?></h2>
+                        <p><?php echo esc_html($author_summary); ?></p>
+                        <div class="article-note__links">
+                            <?php if ($about_page instanceof WP_Post) : ?>
+                                <a class="text-link" href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('About the publication', 'kuchnia-twist'); ?></a>
+                            <?php endif; ?>
+                            <?php if ($editorial_policy instanceof WP_Post) : ?>
+                                <a class="text-link" href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Editorial standards', 'kuchnia-twist'); ?></a>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </section>
             </div>

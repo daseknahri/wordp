@@ -7,6 +7,12 @@ add_action('after_setup_theme', function () {
     add_theme_support('post-thumbnails');
     add_theme_support('responsive-embeds');
     add_theme_support('html5', ['search-form', 'comment-form', 'comment-list', 'gallery', 'caption', 'style', 'script']);
+    add_theme_support('custom-logo', [
+        'height'      => 90,
+        'width'       => 320,
+        'flex-height' => true,
+        'flex-width'  => true,
+    ]);
 
     register_nav_menus([
         'primary' => __('Primary Navigation', 'kuchnia-twist'),
@@ -18,6 +24,7 @@ add_action('after_setup_theme', function () {
 
 add_action('wp_enqueue_scripts', function () {
     $theme_css = get_template_directory() . '/assets/theme.css';
+    $theme_js  = get_template_directory() . '/assets/theme.js';
 
     wp_enqueue_style(
         'kuchnia-twist-fonts',
@@ -30,6 +37,13 @@ add_action('wp_enqueue_scripts', function () {
         get_template_directory_uri() . '/assets/theme.css',
         ['kuchnia-twist-fonts'],
         file_exists($theme_css) ? (string) filemtime($theme_css) : '1.0.0'
+    );
+    wp_enqueue_script(
+        'kuchnia-twist-theme',
+        get_template_directory_uri() . '/assets/theme.js',
+        [],
+        file_exists($theme_js) ? (string) filemtime($theme_js) : '1.0.0',
+        true
     );
 });
 
@@ -292,6 +306,35 @@ function kuchnia_twist_prepare_article_content($post_id)
     ];
 }
 
+function kuchnia_twist_publication_initials()
+{
+    $name = trim((string) get_bloginfo('name'));
+    if ($name === '') {
+        return 'KT';
+    }
+
+    $words    = preg_split('/\s+/', $name) ?: [];
+    $initials = '';
+
+    foreach ($words as $word) {
+        $initials .= strtoupper(substr($word, 0, 1));
+        if (strlen($initials) >= 2) {
+            break;
+        }
+    }
+
+    return $initials !== '' ? $initials : 'KT';
+}
+
+function kuchnia_twist_render_posts_pagination()
+{
+    the_posts_pagination([
+        'mid_size'  => 1,
+        'prev_text' => __('Previous', 'kuchnia-twist'),
+        'next_text' => __('Next', 'kuchnia-twist'),
+    ]);
+}
+
 function kuchnia_twist_page_profile($post = null)
 {
     $post = $post ? get_post($post) : get_post();
@@ -506,6 +549,19 @@ function kuchnia_twist_page_action_links($slug)
 
     return array_values(array_filter($map[$slug] ?? [$make_link('home', __('Back to the homepage', 'kuchnia-twist'))]));
 }
+
+add_action('wp_head', function () {
+    if (has_site_icon()) {
+        return;
+    }
+
+    $svg = sprintf(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="18" fill="#1f140d"/><text x="50%%" y="56%%" dominant-baseline="middle" text-anchor="middle" font-family="Georgia,serif" font-size="24" font-weight="700" fill="#fff8f2">%s</text></svg>',
+        esc_html(kuchnia_twist_publication_initials())
+    );
+
+    echo '<link rel="icon" href="data:image/svg+xml,' . rawurlencode($svg) . '">';
+}, 1);
 
 add_action('wp_head', function () {
     if (!is_singular('post')) {

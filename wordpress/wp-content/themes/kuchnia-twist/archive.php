@@ -22,6 +22,6 @@ get_header();
         <p class="empty-state"><?php esc_html_e('Nothing has been filed here yet.', 'kuchnia-twist'); ?></p>
     <?php endif; ?>
 </section>
-<?php the_posts_pagination(); ?>
+<?php kuchnia_twist_render_posts_pagination(); ?>
 <?php
 get_footer();

@@ -29,6 +29,6 @@ get_header();
         <p class="empty-state"><?php esc_html_e('No matching articles yet. Try a broader ingredient, technique, or story topic.', 'kuchnia-twist'); ?></p>
     <?php endif; ?>
 </section>
-<?php the_posts_pagination(); ?>
+<?php kuchnia_twist_render_posts_pagination(); ?>
 <?php
 get_footer();
