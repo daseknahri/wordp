@@ -110,6 +110,22 @@ function kuchnia_twist_policy_links()
     }
 }
 
+function kuchnia_twist_pillar_links()
+{
+    $pillars = [
+        'recipes' => __('Recipes', 'kuchnia-twist'),
+        'food-facts' => __('Food Facts', 'kuchnia-twist'),
+        'food-stories' => __('Food Stories', 'kuchnia-twist'),
+    ];
+
+    foreach ($pillars as $slug => $label) {
+        $term = get_category_by_slug($slug);
+        if ($term instanceof WP_Term) {
+            printf('<a href="%s">%s</a>', esc_url(get_category_link($term)), esc_html($label));
+        }
+    }
+}
+
 function kuchnia_twist_estimated_read_time($post_id = 0)
 {
     $post_id = $post_id ?: get_the_ID();
@@ -143,6 +159,137 @@ function kuchnia_twist_render_post_card($post_id)
         </div>
     </article>
     <?php
+}
+
+function kuchnia_twist_get_breadcrumb_items($post = null)
+{
+    $items = [
+        ['label' => __('Home', 'kuchnia-twist'), 'url' => home_url('/')],
+    ];
+
+    if (is_front_page()) {
+        return [];
+    }
+
+    if (is_single()) {
+        $post = $post ? get_post($post) : get_post();
+        $category = $post ? kuchnia_twist_primary_category($post->ID) : null;
+        if ($category instanceof WP_Term) {
+            $items[] = ['label' => $category->name, 'url' => get_category_link($category)];
+        }
+        if ($post instanceof WP_Post) {
+            $items[] = ['label' => get_the_title($post), 'url' => ''];
+        }
+        return $items;
+    }
+
+    if (is_page()) {
+        $post = $post ? get_post($post) : get_post();
+        if ($post instanceof WP_Post) {
+            $items[] = ['label' => get_the_title($post), 'url' => ''];
+        }
+        return $items;
+    }
+
+    if (is_category()) {
+        $items[] = ['label' => single_cat_title('', false), 'url' => ''];
+        return $items;
+    }
+
+    if (is_search()) {
+        $items[] = ['label' => sprintf(__('Search: %s', 'kuchnia-twist'), get_search_query()), 'url' => ''];
+        return $items;
+    }
+
+    if (is_home()) {
+        $items[] = ['label' => __('Latest Articles', 'kuchnia-twist'), 'url' => ''];
+        return $items;
+    }
+
+    if (is_archive()) {
+        $items[] = ['label' => wp_strip_all_tags(get_the_archive_title()), 'url' => ''];
+        return $items;
+    }
+
+    return $items;
+}
+
+function kuchnia_twist_render_breadcrumbs($post = null)
+{
+    $items = kuchnia_twist_get_breadcrumb_items($post);
+    if (count($items) < 2) {
+        return;
+    }
+
+    echo '<nav class="breadcrumbs" aria-label="' . esc_attr__('Breadcrumbs', 'kuchnia-twist') . '"><ol>';
+    foreach ($items as $index => $item) {
+        $is_last = $index === array_key_last($items);
+        echo '<li>';
+        if (!$is_last && !empty($item['url'])) {
+            printf('<a href="%s">%s</a>', esc_url($item['url']), esc_html($item['label']));
+        } else {
+            printf('<span>%s</span>', esc_html($item['label']));
+        }
+        echo '</li>';
+    }
+    echo '</ol></nav>';
+}
+
+function kuchnia_twist_prepare_article_content($post_id)
+{
+    $content = apply_filters('the_content', get_post_field('post_content', $post_id));
+    $headings = [];
+    $used_ids = [];
+
+    $content = preg_replace_callback('/<h([23])([^>]*)>(.*?)<\/h\1>/is', static function ($matches) use (&$headings, &$used_ids) {
+        $level = (int) $matches[1];
+        $attrs = (string) $matches[2];
+        $inner = (string) $matches[3];
+        $text = trim(wp_strip_all_tags($inner));
+
+        if ($text === '') {
+            return $matches[0];
+        }
+
+        if (preg_match('/\sid=(["\'])(.*?)\1/i', $attrs, $id_match)) {
+            $id = sanitize_title($id_match[2]) ?: $id_match[2];
+        } else {
+            $base = sanitize_title($text);
+            $base = $base !== '' ? $base : 'section';
+            $id = $base;
+            $counter = 2;
+
+            while (in_array($id, $used_ids, true)) {
+                $id = $base . '-' . $counter;
+                $counter++;
+            }
+
+            $used_ids[] = $id;
+            $attrs = trim($attrs);
+            $attrs = $attrs !== '' ? $attrs . ' ' : '';
+            $attrs .= 'id="' . esc_attr($id) . '"';
+            $headings[] = [
+                'level' => $level,
+                'text'  => $text,
+                'id'    => $id,
+            ];
+            return sprintf('<h%d %s>%s</h%d>', $level, $attrs, $inner, $level);
+        }
+
+        $used_ids[] = $id;
+        $headings[] = [
+            'level' => $level,
+            'text'  => $text,
+            'id'    => $id,
+        ];
+
+        return $matches[0];
+    }, $content);
+
+    return [
+        'content'  => $content,
+        'headings' => $headings,
+    ];
 }
 
 function kuchnia_twist_page_profile($post = null)

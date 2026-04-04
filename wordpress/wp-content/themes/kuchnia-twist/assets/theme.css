@@ -148,6 +148,76 @@ select {
   transform: scaleX(1);
 }
 
+.skip-link {
+  position: absolute;
+  left: 20px;
+  top: -56px;
+  z-index: 100;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--ink);
+  color: #fff8f2;
+}
+
+.skip-link:focus {
+  top: 18px;
+}
+
+.site-header__tools {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.site-header__search {
+  min-width: min(320px, 36vw);
+}
+
+.site-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 253, 249, 0.82);
+}
+
+.site-search__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 0 12px;
+}
+
+.site-search__input:focus {
+  outline: none;
+}
+
+.site-search__button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff8f2;
+  cursor: pointer;
+}
+
+.screen-reader-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .site-main {
   padding-top: 0;
   padding-bottom: 88px;
@@ -381,6 +451,37 @@ select {
   font-size: 1.06rem;
 }
 
+.breadcrumbs {
+  margin-bottom: 18px;
+}
+
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.breadcrumbs li {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.breadcrumbs li:not(:last-child)::after {
+  content: "/";
+  opacity: 0.5;
+}
+
+.listing-search {
+  max-width: 520px;
+  margin-top: 22px;
+}
+
 .section--pillars {
   border-top: 1px solid var(--line);
   padding-top: 36px;
@@ -525,6 +626,12 @@ select {
   text-transform: uppercase;
 }
 
+.site-footer__eyebrow--sub {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
+}
+
 .cta-band__links,
 .site-footer__links {
   display: grid;
@@ -584,6 +691,18 @@ select {
   padding-top: 32px;
 }
 
+.single-story__layout {
+  display: grid;
+  grid-template-columns: minmax(0, var(--prose)) minmax(240px, 280px);
+  gap: 36px;
+  align-items: start;
+  justify-content: center;
+}
+
+.single-story__main {
+  min-width: 0;
+}
+
 .single-story__header,
 .single-story__media,
 .prose,
@@ -596,6 +715,68 @@ select {
 .single-story__header {
   text-align: center;
   margin-bottom: 34px;
+}
+
+.single-story__rail {
+  position: sticky;
+  top: 110px;
+  display: grid;
+  gap: 16px;
+}
+
+.story-rail__card,
+.article-note {
+  padding: 22px 22px 20px;
+  border: 1px solid var(--line);
+  background: rgba(255, 253, 249, 0.9);
+  box-shadow: var(--shadow);
+}
+
+.story-rail__meta {
+  display: grid;
+  gap: 14px;
+}
+
+.story-rail__meta p {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+
+.story-rail__meta strong {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.story-rail__meta span {
+  color: var(--ink);
+}
+
+.story-toc,
+.story-rail__links,
+.article-note__links {
+  display: grid;
+  gap: 10px;
+}
+
+.story-toc__link,
+.story-rail__links a {
+  color: var(--muted);
+}
+
+.story-toc__link--3 {
+  padding-left: 12px;
+  font-size: 0.96rem;
+}
+
+.story-toc__link:hover,
+.story-toc__link:focus-visible,
+.story-rail__links a:hover,
+.story-rail__links a:focus-visible {
+  color: var(--accent-deep);
 }
 
 .single-story__excerpt {
@@ -664,6 +845,24 @@ select {
   padding: 28px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(255, 253, 249, 0.88) 0%, rgba(245, 237, 228, 0.84) 100%);
+}
+
+.article-note {
+  max-width: var(--prose);
+  margin: 36px auto 0;
+}
+
+.article-note h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3vw, 2.7rem);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+}
+
+.article-note p {
+  margin: 14px 0 0;
+  color: var(--muted);
 }
 
 .recipe-panel__stats {
@@ -897,6 +1096,7 @@ select {
   .hero__inner,
   .journal-grid,
   .cta-band,
+  .single-story__layout,
   .page-hero,
   .page-callout,
   .site-footer__grid,
@@ -915,6 +1115,12 @@ select {
     margin-left: 0;
     max-width: none;
   }
+
+  .single-story__rail {
+    position: static;
+    max-width: var(--prose);
+    margin: 0 auto;
+  }
 }
 
 @media (max-width: 780px) {
@@ -932,6 +1138,11 @@ select {
     gap: 12px;
     padding: 16px 0;
     min-height: auto;
+  }
+
+  .site-header__tools,
+  .site-header__search {
+    width: 100%;
   }
 
   .site-nav__fallback,

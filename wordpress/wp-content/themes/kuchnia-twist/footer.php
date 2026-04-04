@@ -11,6 +11,9 @@ defined('ABSPATH') || exit;
                 <p><?php esc_html_e('Recipes, food facts, and kitchen stories built to feel useful before they ever try to convert.', 'kuchnia-twist'); ?></p>
             </div>
             <div class="site-footer__links">
+                <p class="site-footer__eyebrow"><?php esc_html_e('Browse the journal', 'kuchnia-twist'); ?></p>
+                <?php kuchnia_twist_pillar_links(); ?>
+                <p class="site-footer__eyebrow site-footer__eyebrow--sub"><?php esc_html_e('Trust pages', 'kuchnia-twist'); ?></p>
                 <?php kuchnia_twist_policy_links(); ?>
             </div>
         </div>

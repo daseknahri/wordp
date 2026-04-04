@@ -6,9 +6,16 @@ get_header();
 ?>
 <section class="listing-header">
     <?php kuchnia_twist_render_breadcrumbs(); ?>
-    <span class="eyebrow"><?php esc_html_e('Latest articles', 'kuchnia-twist'); ?></span>
-    <h1><?php bloginfo('name'); ?></h1>
-    <p><?php esc_html_e('Fresh writing from the kitchen journal, shaped to be useful and memorable.', 'kuchnia-twist'); ?></p>
+    <span class="eyebrow"><?php esc_html_e('Search results', 'kuchnia-twist'); ?></span>
+    <h1><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></h1>
+    <p>
+        <?php
+        printf(
+            esc_html__('Showing results for "%s".', 'kuchnia-twist'),
+            esc_html(get_search_query())
+        );
+        ?>
+    </p>
     <div class="listing-search">
         <?php get_search_form(); ?>
     </div>
@@ -19,7 +26,7 @@ get_header();
             <?php kuchnia_twist_render_post_card(get_the_ID()); ?>
         <?php endwhile; ?>
     <?php else : ?>
-        <p class="empty-state"><?php esc_html_e('No posts yet. Your first published article will appear here.', 'kuchnia-twist'); ?></p>
+        <p class="empty-state"><?php esc_html_e('No matching articles yet. Try a broader ingredient, technique, or story topic.', 'kuchnia-twist'); ?></p>
     <?php endif; ?>
 </section>
 <?php the_posts_pagination(); ?>
