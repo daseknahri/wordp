@@ -152,7 +152,6 @@ async function generatePost(topic) {
         ].join("\n"),
       },
     ],
-    temperature: 0.9,
   };
 
   const response = await fetch(`${config.openaiBaseUrl}/chat/completions`, {
