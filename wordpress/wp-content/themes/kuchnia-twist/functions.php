@@ -89,6 +89,7 @@ function kuchnia_twist_fallback_media_url($context = 'journal')
 {
     $map = [
         'hero'         => 'assets/media-hero-default.svg',
+        'desk'         => 'assets/media-desk.svg',
         'feature'      => 'assets/media-feature.svg',
         'journal'      => 'assets/media-journal.svg',
         'recipes'      => 'assets/media-recipes.svg',
@@ -615,6 +616,53 @@ function kuchnia_twist_reader_paths()
             __('Read the slower story-led pieces when you want the publication to feel more human than transactional.', 'kuchnia-twist'),
             __('This path adds memory, narrative, and tone so the site feels like a journal instead of just an archive.', 'kuchnia-twist')
         ),
+    ];
+}
+
+function kuchnia_twist_editorial_desk()
+{
+    $published_posts = wp_count_posts('post');
+    $published_count = $published_posts instanceof stdClass ? (int) ($published_posts->publish ?? 0) : 0;
+    $latest_post     = get_posts([
+        'post_type'      => 'post',
+        'post_status'    => 'publish',
+        'posts_per_page' => 1,
+        'orderby'        => 'date',
+        'order'          => 'DESC',
+    ]);
+    $latest_story    = $latest_post ? get_the_title($latest_post[0]) : __('The first feature is being prepared.', 'kuchnia-twist');
+    $public_email    = kuchnia_twist_public_contact_email();
+
+    return [
+        'eyebrow' => __('From the editorial desk', 'kuchnia-twist'),
+        'title'   => __('The publication should feel looked after, not merely decorated.', 'kuchnia-twist'),
+        'body'    => __('Kuchnia Twist is being shaped as a small food journal with visible standards, a steady archive rhythm, and enough structure that readers can quickly understand what kind of site they have landed on.', 'kuchnia-twist'),
+        'art'     => kuchnia_twist_fallback_media_url('desk'),
+        'notes'   => [
+            [
+                'label' => __('Current archive', 'kuchnia-twist'),
+                'title' => sprintf(
+                    _n('%s published article', '%s published articles', max(1, $published_count), 'kuchnia-twist'),
+                    number_format_i18n($published_count)
+                ),
+                'body'  => __('The goal is a tighter archive with clearer pillars, not volume for its own sake.', 'kuchnia-twist'),
+            ],
+            [
+                'label' => __('Latest story', 'kuchnia-twist'),
+                'title' => $latest_story,
+                'body'  => __('Fresh work should reinforce the same editorial voice readers see in the homepage and trust pages.', 'kuchnia-twist'),
+            ],
+            [
+                'label' => __('Reader access', 'kuchnia-twist'),
+                'title' => $public_email !== '' ? $public_email : __('Contact stays one click away', 'kuchnia-twist'),
+                'body'  => __('Questions, corrections, and partnership enquiries should feel welcome instead of hidden.', 'kuchnia-twist'),
+            ],
+            [
+                'label' => __('What this journal favors', 'kuchnia-twist'),
+                'title' => __('Cookable recipes, useful explainers, and slower story-led pieces', 'kuchnia-twist'),
+                'body'  => __('That mix helps the publication feel rounded, human, and worth returning to after the first click.', 'kuchnia-twist'),
+            ],
+        ],
     ];
 }
 

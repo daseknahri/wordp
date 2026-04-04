@@ -24,6 +24,8 @@ $contact_page = get_page_by_path('contact');
 $editorial_policy = get_page_by_path('editorial-policy');
 $journal_metrics = kuchnia_twist_publication_metrics();
 $reader_paths = kuchnia_twist_reader_paths();
+$editorial_desk = kuchnia_twist_editorial_desk();
+$public_email = kuchnia_twist_public_contact_email();
 $promises = [
     [
         'eyebrow' => __('Clear editorial shape', 'kuchnia-twist'),
@@ -104,7 +106,7 @@ $pillar_queries = [
     </div>
 </section>
 
-<section class="section section--signals">
+<section class="section section--signals" data-reveal>
     <div class="section__heading">
         <span class="eyebrow"><?php esc_html_e('Journal signals', 'kuchnia-twist'); ?></span>
         <h2><?php esc_html_e('Small details that help the publication feel active, contactable, and responsibly maintained.', 'kuchnia-twist'); ?></h2>
@@ -132,7 +134,7 @@ $pillar_queries = [
     </div>
 </section>
 
-<section class="section section--paths">
+<section class="section section--paths" data-reveal>
     <div class="section__heading">
         <span class="eyebrow"><?php esc_html_e('Start here', 'kuchnia-twist'); ?></span>
         <h2><?php esc_html_e('Three simple reading paths make the journal easier to enter for the first time.', 'kuchnia-twist'); ?></h2>
@@ -156,7 +158,7 @@ $pillar_queries = [
     </div>
 </section>
 
-<section class="section section--pillars">
+<section class="section section--pillars" data-reveal>
     <div class="section__heading">
         <span class="eyebrow"><?php esc_html_e('Three pillars', 'kuchnia-twist'); ?></span>
         <h2><?php esc_html_e('One publication, three clear reasons to return.', 'kuchnia-twist'); ?></h2>
@@ -191,7 +193,7 @@ $pillar_queries = [
     </div>
 </section>
 
-<section class="section section--journal">
+<section class="section section--journal" data-reveal>
     <div class="section__heading">
         <span class="eyebrow"><?php esc_html_e('Fresh from the journal', 'kuchnia-twist'); ?></span>
         <h2><?php esc_html_e('A quieter layout for the pieces carrying the site forward.', 'kuchnia-twist'); ?></h2>
@@ -246,7 +248,45 @@ $pillar_queries = [
     </div>
 </section>
 
-<section class="section section--standards">
+<section class="section section--desk" data-reveal>
+    <div class="desk-layout">
+        <div class="desk-copy">
+            <span class="eyebrow"><?php echo esc_html($editorial_desk['eyebrow']); ?></span>
+            <h2><?php echo esc_html($editorial_desk['title']); ?></h2>
+            <p><?php echo esc_html($editorial_desk['body']); ?></p>
+            <div class="desk-copy__actions">
+                <?php if ($about_page instanceof WP_Post) : ?>
+                    <a class="button button--primary" href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('Read the About page', 'kuchnia-twist'); ?></a>
+                <?php endif; ?>
+                <?php if ($contact_page instanceof WP_Post) : ?>
+                    <a class="button button--ghost" href="<?php echo esc_url(get_permalink($contact_page)); ?>"><?php esc_html_e('Contact the editorial desk', 'kuchnia-twist'); ?></a>
+                <?php endif; ?>
+            </div>
+            <div class="desk-copy__links">
+                <?php if ($editorial_policy instanceof WP_Post) : ?>
+                    <a class="text-link" href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Review editorial standards', 'kuchnia-twist'); ?></a>
+                <?php endif; ?>
+                <?php if ($public_email) : ?>
+                    <a class="text-link" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
+                <?php endif; ?>
+            </div>
+        </div>
+        <aside class="desk-panel">
+            <img class="desk-panel__art" src="<?php echo esc_url($editorial_desk['art']); ?>" alt="">
+            <div class="desk-notes">
+                <?php foreach ($editorial_desk['notes'] as $note) : ?>
+                    <article class="desk-note">
+                        <span class="eyebrow"><?php echo esc_html($note['label']); ?></span>
+                        <h3><?php echo esc_html($note['title']); ?></h3>
+                        <p><?php echo esc_html($note['body']); ?></p>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        </aside>
+    </div>
+</section>
+
+<section class="section section--standards" data-reveal>
     <div class="section__heading">
         <span class="eyebrow"><?php esc_html_e('Publication standards', 'kuchnia-twist'); ?></span>
         <h2><?php esc_html_e('The site should feel editorially calm, easy to verify, and built for long-term trust.', 'kuchnia-twist'); ?></h2>
@@ -282,7 +322,7 @@ $pillar_queries = [
     </div>
 </section>
 
-<section class="cta-band">
+<section class="cta-band" data-reveal>
     <div class="cta-band__copy">
         <span class="eyebrow"><?php esc_html_e('Built for trust', 'kuchnia-twist'); ?></span>
         <h2><?php esc_html_e('A cleaner editorial shape makes the blog easier to trust before it asks anything from the reader.', 'kuchnia-twist'); ?></h2>
@@ -296,8 +336,15 @@ $pillar_queries = [
     </div>
     <div class="cta-band__panel">
         <p class="site-footer__eyebrow"><?php esc_html_e('Trust pages', 'kuchnia-twist'); ?></p>
+        <p class="cta-band__summary"><?php esc_html_e('The clearest version of the site makes it easy to verify who is behind it, how the content is handled, and how readers can make contact.', 'kuchnia-twist'); ?></p>
         <div class="cta-band__links">
             <?php kuchnia_twist_policy_links(); ?>
+        </div>
+        <div class="cta-band__meta">
+            <span><?php printf(esc_html__('Latest archive signal: %s', 'kuchnia-twist'), esc_html($journal_metrics[3]['value'])); ?></span>
+            <?php if ($public_email) : ?>
+                <a href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
+            <?php endif; ?>
         </div>
     </div>
 </section>

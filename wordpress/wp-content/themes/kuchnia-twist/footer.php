@@ -32,6 +32,23 @@ defined('ABSPATH') || exit;
                 <?php if ($public_email) : ?>
                     <a href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
                 <?php endif; ?>
+                <div class="site-footer__notice-links">
+                    <?php
+                    $about_page = get_page_by_path('about');
+                    $contact_page = get_page_by_path('contact');
+                    $editorial_policy = get_page_by_path('editorial-policy');
+
+                    if ($about_page instanceof WP_Post) {
+                        printf('<a href="%s">%s</a>', esc_url(get_permalink($about_page)), esc_html__('About', 'kuchnia-twist'));
+                    }
+                    if ($contact_page instanceof WP_Post) {
+                        printf('<a href="%s">%s</a>', esc_url(get_permalink($contact_page)), esc_html__('Contact', 'kuchnia-twist'));
+                    }
+                    if ($editorial_policy instanceof WP_Post) {
+                        printf('<a href="%s">%s</a>', esc_url(get_permalink($editorial_policy)), esc_html__('Editorial Policy', 'kuchnia-twist'));
+                    }
+                    ?>
+                </div>
             </div>
         </div>
         <div class="site-footer__bottom">
