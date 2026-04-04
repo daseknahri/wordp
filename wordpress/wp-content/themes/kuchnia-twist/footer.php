@@ -5,6 +5,7 @@ defined('ABSPATH') || exit;
     </main>
     <footer class="site-footer">
         <?php $public_email = kuchnia_twist_public_contact_email(); ?>
+        <?php $editor_profile = kuchnia_twist_editor_profile(); ?>
         <div class="site-footer__grid">
             <div>
                 <div class="site-footer__brand">
@@ -13,7 +14,7 @@ defined('ABSPATH') || exit;
                 </div>
                 <p class="site-footer__eyebrow"><?php esc_html_e('Kuchnia Twist', 'kuchnia-twist'); ?></p>
                 <h2><?php esc_html_e('Food writing shaped for curiosity, appetite, and trust.', 'kuchnia-twist'); ?></h2>
-                <p><?php esc_html_e('Recipes, food facts, and kitchen stories built to feel useful before they ever try to convert.', 'kuchnia-twist'); ?></p>
+                <p><?php printf(esc_html__('Edited by %1$s, with recipes, food facts, and kitchen essays built to feel useful before they ever try to convert.', 'kuchnia-twist'), esc_html($editor_profile['name'])); ?></p>
             </div>
             <div class="site-footer__links">
                 <p class="site-footer__eyebrow"><?php esc_html_e('Browse the journal', 'kuchnia-twist'); ?></p>
@@ -25,7 +26,7 @@ defined('ABSPATH') || exit;
         <div class="site-footer__notice">
             <div>
                 <p class="site-footer__eyebrow"><?php esc_html_e('Publication note', 'kuchnia-twist'); ?></p>
-                <p><?php esc_html_e('This is an independent editorial food site built around original recipes, practical explainers, and story-led kitchen writing.', 'kuchnia-twist'); ?></p>
+                <p><?php printf(esc_html__('%1$s serves as %2$s for an independent food site built around original recipes, practical explainers, and story-led kitchen writing.', 'kuchnia-twist'), esc_html($editor_profile['name']), esc_html($editor_profile['role'])); ?></p>
             </div>
             <div class="site-footer__notice-meta">
                 <span><?php esc_html_e('Clear policies and contact details are always kept visible.', 'kuchnia-twist'); ?></span>

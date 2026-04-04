@@ -86,6 +86,48 @@
   color: #991b1b;
 }
 
+.kt-callout {
+  padding: 16px 18px;
+  border: 1px solid #fed7aa;
+  border-radius: 16px;
+  background: #fff7ed;
+}
+
+.kt-callout p {
+  margin: 8px 0 0;
+}
+
+.kt-media-field {
+  display: grid;
+  gap: 10px;
+}
+
+.kt-media-preview {
+  min-height: 72px;
+  padding: 14px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.kt-media-preview img {
+  display: block;
+  max-width: 120px;
+  height: auto;
+  border-radius: 12px;
+}
+
+.kt-media-preview p {
+  margin: 0;
+  color: #475569;
+}
+
+.kt-media-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 @media (max-width: 960px) {
   .kt-admin-grid {
     grid-template-columns: 1fr;

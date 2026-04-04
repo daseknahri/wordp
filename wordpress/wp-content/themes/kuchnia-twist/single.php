@@ -11,8 +11,9 @@ while (have_posts()) :
     $article             = kuchnia_twist_prepare_article_content(get_the_ID());
     $headings            = $article['headings'];
     $is_updated          = get_the_modified_date('U') !== get_the_date('U');
-    $author_name         = get_the_author();
-    $author_description  = trim((string) get_the_author_meta('description'));
+    $editor_profile      = kuchnia_twist_editor_profile();
+    $author_name         = $editor_profile['name'];
+    $author_description  = trim((string) $editor_profile['bio']);
     $about_page          = get_page_by_path('about');
     $contact_page        = get_page_by_path('contact');
     $editorial_policy    = get_page_by_path('editorial-policy');
@@ -35,7 +36,7 @@ while (have_posts()) :
     ];
     $author_summary      = $author_description !== ''
         ? $author_description
-        : __('This piece was prepared for Kuchnia Twist with the same house standards used across the journal: clear structure, practical value, and a strong editorial point of view around recipes, food facts, and kitchen stories.', 'kuchnia-twist');
+        : __('This piece was prepared for Kuchnia Twist with the same house standards used across the journal: clear structure, practical value, and a strong editorial point of view around recipes, food facts, and publication-voice kitchen essays.', 'kuchnia-twist');
     ?>
     <article class="single-story">
         <header class="single-story__header">
@@ -125,15 +126,19 @@ while (have_posts()) :
 
                 <section class="editorial-bio">
                     <div class="editorial-bio__avatar">
-                        <?php
-                        echo get_avatar(
-                            get_the_author_meta('user_email'),
-                            88,
-                            '',
-                            $author_name,
-                            ['class' => 'editorial-bio__avatar-image']
-                        );
-                        ?>
+                        <?php if (!empty($editor_profile['photo_id'])) : ?>
+                            <?php echo wp_get_attachment_image((int) $editor_profile['photo_id'], 'thumbnail', false, ['class' => 'editorial-bio__avatar-image']); ?>
+                        <?php else : ?>
+                            <?php
+                            echo get_avatar(
+                                $public_email ?: get_the_author_meta('user_email'),
+                                88,
+                                '',
+                                $author_name,
+                                ['class' => 'editorial-bio__avatar-image']
+                            );
+                            ?>
+                        <?php endif; ?>
                     </div>
                     <div class="editorial-bio__body">
                         <span class="eyebrow"><?php esc_html_e('From the editorial desk', 'kuchnia-twist'); ?></span>

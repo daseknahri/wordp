@@ -15,7 +15,7 @@ $hero_id   = $hero_post ? $hero_post->ID : 0;
 $hero_image = ($hero_post && has_post_thumbnail($hero_post))
     ? get_the_post_thumbnail_url($hero_post, 'full')
     : '';
-$hero_background = $hero_image ?: kuchnia_twist_fallback_media_url('hero');
+$hero_background = $hero_image ?: kuchnia_twist_context_media_url('hero');
 $lead_post = $featured_posts[1] ?? null;
 $lead_id   = $lead_post ? $lead_post->ID : 0;
 $secondary_posts = array_slice($featured_posts, $lead_post ? 2 : 1, 4);
@@ -26,6 +26,7 @@ $journal_metrics = kuchnia_twist_publication_metrics();
 $reader_paths = kuchnia_twist_reader_paths();
 $editorial_desk = kuchnia_twist_editorial_desk();
 $public_email = kuchnia_twist_public_contact_email();
+$editor_profile = kuchnia_twist_editor_profile();
 $promises = [
     [
         'eyebrow' => __('Clear editorial shape', 'kuchnia-twist'),
@@ -94,8 +95,8 @@ $pillar_queries = [
                 </div>
             <?php else : ?>
                 <span class="eyebrow"><?php esc_html_e('House note', 'kuchnia-twist'); ?></span>
-                <h2><?php esc_html_e('A warmer, slower food publication starts with consistent voice and generous articles.', 'kuchnia-twist'); ?></h2>
-                <p><?php esc_html_e('The first stories you publish here will automatically take over this space. Until then, the site carries a finished editorial identity instead of looking half-built.', 'kuchnia-twist'); ?></p>
+                <h2><?php esc_html_e('Warm home cooking, useful explainers, and slower kitchen essays all belong in the same calm archive.', 'kuchnia-twist'); ?></h2>
+                <p><?php esc_html_e('The site is arranged like a small editorial publication, with visible standards, clear pillars, and a trust layer that stays close to the reading experience.', 'kuchnia-twist'); ?></p>
                 <div class="hero__meta-row">
                     <span><?php esc_html_e('Recipes', 'kuchnia-twist'); ?></span>
                     <span><?php esc_html_e('Food Facts', 'kuchnia-twist'); ?></span>
@@ -185,8 +186,8 @@ $pillar_queries = [
                         <a class="text-link" href="<?php echo esc_url(get_category_link($category)); ?>"><?php esc_html_e('See all in this pillar', 'kuchnia-twist'); ?></a>
                     <?php endif; ?>
                 <?php else : ?>
-                    <h3><?php esc_html_e('This section is ready for your first story.', 'kuchnia-twist'); ?></h3>
-                    <p><?php esc_html_e('Once you start publishing, each pillar will surface its best current piece here.', 'kuchnia-twist'); ?></p>
+                    <h3><?php esc_html_e('Each pillar stays focused so the archive remains coherent as it grows.', 'kuchnia-twist'); ?></h3>
+                    <p><?php esc_html_e('Recipes, food facts, and food stories each carry a different job inside the publication instead of blending into one generic feed.', 'kuchnia-twist'); ?></p>
                 <?php endif; ?>
             </article>
         <?php endforeach; ?>
@@ -205,7 +206,7 @@ $pillar_queries = [
                     <?php if (has_post_thumbnail($lead_post)) : ?>
                         <?php echo get_the_post_thumbnail($lead_post, 'kuchnia-twist-hero'); ?>
                     <?php else : ?>
-                        <?php kuchnia_twist_render_media_placeholder('feature', __('A fresh feature is waiting here', 'kuchnia-twist')); ?>
+                        <?php kuchnia_twist_render_media_placeholder('feature', __('Editorial feature image', 'kuchnia-twist')); ?>
                     <?php endif; ?>
                 </a>
                 <div class="journal-lead__body">
@@ -242,7 +243,7 @@ $pillar_queries = [
                     </article>
                 <?php endforeach; ?>
             <?php elseif (!$lead_post) : ?>
-                <p class="empty-state"><?php esc_html_e('Start publishing to populate the homepage with your editorial lineup.', 'kuchnia-twist'); ?></p>
+                <p class="empty-state"><?php esc_html_e('This archive is designed to surface the latest publication work in a calmer, more editorial rhythm.', 'kuchnia-twist'); ?></p>
             <?php endif; ?>
         </div>
     </div>
@@ -289,7 +290,7 @@ $pillar_queries = [
 <section class="section section--standards" data-reveal>
     <div class="section__heading">
         <span class="eyebrow"><?php esc_html_e('Publication standards', 'kuchnia-twist'); ?></span>
-        <h2><?php esc_html_e('The site should feel editorially calm, easy to verify, and built for long-term trust.', 'kuchnia-twist'); ?></h2>
+        <h2><?php esc_html_e('The site feels editorially calm, easy to verify, and built for long-term trust.', 'kuchnia-twist'); ?></h2>
         <p><?php esc_html_e('Good design helps, but what really strengthens a young publication is clearer structure, visible standards, and reader-first articles that do not feel disposable.', 'kuchnia-twist'); ?></p>
     </div>
     <div class="standards-layout">
@@ -303,9 +304,9 @@ $pillar_queries = [
             <?php endforeach; ?>
         </div>
         <aside class="standards-panel">
-            <img class="standards-panel__art" src="<?php echo esc_url(kuchnia_twist_fallback_media_url('trust')); ?>" alt="">
+            <img class="standards-panel__art" src="<?php echo esc_url(kuchnia_twist_context_media_url('trust')); ?>" alt="">
             <span class="site-footer__eyebrow"><?php esc_html_e('Reader note', 'kuchnia-twist'); ?></span>
-            <h3><?php esc_html_e('Kuchnia Twist is being built as an independent food journal, not a thin-content project.', 'kuchnia-twist'); ?></h3>
+            <h3><?php printf(esc_html__('%s edits Kuchnia Twist as an independent food journal with visible standards and a clear publishing rhythm.', 'kuchnia-twist'), esc_html($editor_profile['name'])); ?></h3>
             <p><?php esc_html_e('That means keeping pages connected, using a consistent tone, and making it clear who is behind the publication and how readers can contact it.', 'kuchnia-twist'); ?></p>
             <div class="cta-band__links">
                 <?php if ($about_page instanceof WP_Post) : ?>

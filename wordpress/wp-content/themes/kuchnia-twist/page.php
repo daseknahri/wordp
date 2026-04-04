@@ -14,9 +14,9 @@ get_header();
     $trust_links    = $profile ? kuchnia_twist_trust_page_links($page_slug) : [];
     $reader_paths   = $profile ? kuchnia_twist_reader_paths() : [];
     $public_email   = kuchnia_twist_public_contact_email();
-    $page_art       = in_array($page_slug, ['about', 'contact'], true)
-        ? kuchnia_twist_fallback_media_url($page_slug)
-        : kuchnia_twist_fallback_media_url('trust');
+    $page_art       = has_post_thumbnail()
+        ? get_the_post_thumbnail_url(get_the_ID(), 'full')
+        : kuchnia_twist_context_media_url(in_array($page_slug, ['about', 'contact'], true) ? $page_slug : 'trust');
     ?>
     <article class="page-shell <?php echo $profile ? 'page-shell--trust' : ''; ?> page-shell--<?php echo esc_attr($page_slug); ?>">
         <?php kuchnia_twist_render_breadcrumbs(get_post()); ?>
@@ -46,7 +46,7 @@ get_header();
             <section class="page-signals" aria-label="<?php esc_attr_e('Publication signals', 'kuchnia-twist'); ?>" data-reveal>
                 <div class="page-signals__intro">
                     <span class="eyebrow"><?php esc_html_e('Publication signals', 'kuchnia-twist'); ?></span>
-                    <h2><?php esc_html_e('These pages should feel visibly maintained, connected, and easy to verify.', 'kuchnia-twist'); ?></h2>
+                    <h2><?php esc_html_e('These pages stay visibly maintained, connected, and easy to verify.', 'kuchnia-twist'); ?></h2>
                     <p><?php esc_html_e('Readers often land here to check whether the publication feels real. Freshness, reachability, and a clear trust network do a lot of that work before a single article is opened.', 'kuchnia-twist'); ?></p>
                 </div>
                 <div class="page-signals__grid">
@@ -60,7 +60,7 @@ get_header();
                 </div>
                 <aside class="page-network">
                     <span class="eyebrow"><?php esc_html_e('Trust network', 'kuchnia-twist'); ?></span>
-                    <h3><?php esc_html_e('Readers should never have to hunt for the basics.', 'kuchnia-twist'); ?></h3>
+                    <h3><?php esc_html_e('Readers never need to hunt for the basics.', 'kuchnia-twist'); ?></h3>
                     <p><?php esc_html_e('About, contact, privacy, cookies, and editorial standards become more believable when they stay linked together and visibly current.', 'kuchnia-twist'); ?></p>
                     <?php if ($trust_links) : ?>
                         <div class="page-network__links">
@@ -72,7 +72,7 @@ get_header();
                     <?php if ($public_email) : ?>
                         <a class="page-network__mail" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
                     <?php else : ?>
-                        <p class="page-network__note"><?php esc_html_e('Set a public email in Settings > General so the publication stays reachable from the trust pages.', 'kuchnia-twist'); ?></p>
+                        <p class="page-network__note"><?php esc_html_e('The editorial desk keeps a public email visible so the publication stays reachable from the trust pages.', 'kuchnia-twist'); ?></p>
                     <?php endif; ?>
                 </aside>
             </section>

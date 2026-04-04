@@ -220,6 +220,11 @@ async function processJob(job, settings) {
 async function ensureJobImages(job, settings, generated, current) {
   let featuredImage = current.featuredImage;
   let facebookImage = current.facebookImage;
+  const manualOnly = (settings.imageGenerationMode || "manual_only") === "manual_only";
+
+  if (manualOnly && (!featuredImage?.id || !facebookImage?.id)) {
+    throw new Error("Manual-only launch mode requires both a real uploaded blog image and a real uploaded Facebook image.");
+  }
 
   if (featuredImage?.id && !facebookImage?.id) {
     facebookImage = featuredImage;
@@ -230,6 +235,10 @@ async function ensureJobImages(job, settings, generated, current) {
   }
 
   if (!featuredImage?.id && !facebookImage?.id) {
+    if (manualOnly) {
+      throw new Error("Manual-only launch mode blocked AI image generation because no uploaded images were provided.");
+    }
+
     ensureOpenAiConfigured(settings);
 
     log(`generating blog hero image for job #${job.id}`);
@@ -342,7 +351,7 @@ async function generatePackage(job, settings) {
     throw new Error("OpenAI did not return article content.");
   }
 
-  return normalizeGeneratedPayload(parseJsonObject(content), job);
+  return validateGeneratedPayload(normalizeGeneratedPayload(parseJsonObject(content), job), job);
 }
 
 async function generateImageBase64(settings, prompt, size) {
@@ -491,6 +500,7 @@ function mergeSettings(raw) {
     articlePrompt: raw.article_prompt || "Write substantial, original food articles with a premium editorial tone.",
     defaultCta: raw.default_cta || "Read the full article on the blog.",
     imageStyle: raw.image_style || "Natural food photography, premium editorial light, no text overlays.",
+    imageGenerationMode: raw.image_generation_mode || "manual_only",
     facebookGraphVersion: raw.facebook_graph_version || "v22.0",
     facebookPageId: raw.facebook_page_id || "",
     facebookPageAccessToken: raw.facebook_page_access_token || "",
@@ -508,17 +518,29 @@ function buildEditorialPrompt(job, settings) {
     recipe: [
       "Write a recipe-led article with strong sensory writing and practical kitchen guidance.",
       "Do not place the full ingredients and method inside the article body; the structured recipe box will render them separately.",
+      "Use H2 sections for: why this works, ingredient notes, practical cooking method, and serving or storage guidance.",
+      "Never pretend personal testing happened if it is not explicitly in the prompt.",
+      "Reference at least three relevant internal Kuchnia Twist pages or posts inside the article body using shortcode format like [kuchnia_twist_link slug=\"editorial-policy\"]Editorial Policy[/kuchnia_twist_link].",
       "The recipe object must include prep_time, cook_time, total_time, yield, ingredients[], and instructions[].",
     ],
     food_fact: [
-      "Write a fact-led article that corrects confusion, explains why it matters, and gives a practical takeaway.",
+      "Write a fact-led article that answers the question directly, corrects confusion, explains why it matters, and gives a practical takeaway.",
+      "Use H2 sections for: the direct answer, what is happening, a common mistake, and a practical takeaway.",
+      "Do not make health, safety, or scientific claims beyond ordinary kitchen knowledge unless they are broadly non-controversial and directly useful.",
+      "Reference at least three relevant internal Kuchnia Twist pages or posts inside the article body using shortcode format like [kuchnia_twist_link slug=\"editorial-policy\"]Editorial Policy[/kuchnia_twist_link].",
       "The recipe object must contain empty strings and empty arrays.",
     ],
     food_story: [
-      "Write a story-led article with a clear narrative arc, practical food insight, and a reflective close.",
+      "Write a story-led publication essay with a clear narrative arc, practical food insight, and a reflective close.",
+      "Do not write fabricated first-person memories, invented reporting, or autobiography. Use publication voice rather than fake personal anecdote.",
+      "Use H2 sections for: the central observation, practical meaning in home cooking, and a reflective close.",
+      "Reference at least three relevant internal Kuchnia Twist pages or posts inside the article body using shortcode format like [kuchnia_twist_link slug=\"editorial-policy\"]Editorial Policy[/kuchnia_twist_link].",
       "The recipe object must contain empty strings and empty arrays.",
     ],
   };
+  const internalLinkLibrary = internalLinkTargetsForJob(job)
+    .map((item) => `- ${item.label}: [kuchnia_twist_link slug="${item.slug}"]${item.label}[/kuchnia_twist_link]`)
+    .join("\n");
 
   return [
     `Site name: ${settings.siteName}`,
@@ -531,14 +553,20 @@ function buildEditorialPrompt(job, settings) {
     job.title_override ? `Use this exact article title: ${job.title_override}` : "Generate a strong, editorial article title.",
     "Global rules:",
     "- Write original, useful, human-sounding content.",
-    "- Use a polished magazine tone, not generic SEO filler.",
+    "- Use a polished magazine tone, not generic SEO filler or padded introductions.",
     "- Do not mention AI or say the article was generated.",
     "- content_html must begin with an introduction paragraph and use clean H2 sections.",
+    "- The opening paragraph must be concrete and specific, not generic throat-clearing.",
     "- facebook_caption must be short, hook-led, and must not include the link.",
     "- group_share_kit must feel natural for manual posting into food groups and must not include the link.",
     "- seo_description should stay under 155 characters.",
     "- image_prompt must describe a premium food photo with no text overlays.",
+    "- excerpt should feel distinct, specific, and useful, not like a restatement of the title.",
+    "- Include at least three internal Kuchnia Twist links inside content_html.",
+    "- Avoid copy like 'when it comes to', 'in today's world', 'this article explores', or other generic filler openings.",
     ...contentTypeNotes[job.content_type] || contentTypeNotes.recipe,
+    "Preferred internal link library:",
+    internalLinkLibrary,
     "JSON contract:",
     "{",
     '  "title": "string",',
@@ -562,16 +590,72 @@ function buildEditorialPrompt(job, settings) {
   ].join("\n");
 }
 
+function validateGeneratedPayload(generated, job) {
+  const text = cleanText(generated.content_html.replace(/<[^>]+>/g, " "));
+  const opening = cleanText((generated.content_html.match(/<p>(.*?)<\/p>/i)?.[1] || generated.content_html).replace(/<[^>]+>/g, " ")).toLowerCase();
+  const h2Count = (generated.content_html.match(/<h2\b/gi) || []).length;
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  const minimumWords = {
+    recipe: 1200,
+    food_fact: 1100,
+    food_story: 1100,
+  }[job.content_type] || 1100;
+  const blockedPhrases = [
+    "when it comes to",
+    "in today",
+    "this article explores",
+    "whether you are",
+    "few things are as",
+    "as an ai",
+    "generated by ai",
+    "lorem ipsum",
+  ];
+
+  if (wordCount < minimumWords) {
+    throw new Error(`The generated article body was too short for launch publishing standards. Minimum words for ${job.content_type} is ${minimumWords}.`);
+  }
+
+  if (h2Count < 2) {
+    throw new Error("The generated article did not include enough H2 structure.");
+  }
+
+  if (generated.excerpt.length < 90) {
+    throw new Error("The generated excerpt was too short for a launch-quality archive card.");
+  }
+
+  if (generated.seo_description.length < 90) {
+    throw new Error("The generated SEO description was too short for launch quality standards.");
+  }
+
+  for (const phrase of blockedPhrases) {
+    if (opening.includes(phrase)) {
+      throw new Error(`The generated article used a blocked generic opening phrase: ${phrase}`);
+    }
+  }
+
+  if (countInternalLinks(generated.content_html) < 3) {
+    throw new Error("The generated article did not include enough internal Kuchnia Twist links.");
+  }
+
+  if (job.content_type === "food_story" && /\b(i|my|me|mine)\b/i.test(text)) {
+    throw new Error("Food story output used first-person voice, which is blocked for the publication-voice essay format.");
+  }
+
+  return generated;
+}
+
 function normalizeGeneratedPayload(raw, job) {
   const source = isPlainObject(raw) ? raw : {};
   const titleOverride = cleanText(job?.title_override || "");
   const title = titleOverride || cleanText(source.title) || cleanText(job?.topic) || "Fresh from Kuchnia Twist";
   const slug = normalizeSlug(source.slug || title);
-  const excerpt = trimText(cleanText(source.excerpt), 220) || `${title} on Kuchnia Twist.`;
+  const sourceContentText = cleanText(String(source.content_html || source.contentHtml || "").replace(/<[^>]+>/g, " "));
+  const fallbackExcerpt = trimText(sourceContentText.split(/(?<=[.!?])\s+/)[0] || sourceContentText, 220);
+  const excerpt = trimText(cleanText(source.excerpt), 220) || fallbackExcerpt || `${title} on Kuchnia Twist.`;
   const seoDescription =
     trimText(cleanText(source.seo_description || source.seoDescription), 155) ||
     trimText(excerpt, 155);
-  const contentHtml = normalizeHtml(source.content_html || source.contentHtml || "");
+  const contentHtml = ensureInternalLinks(normalizeHtml(source.content_html || source.contentHtml || ""), job);
   const facebookCaption =
     cleanMultilineText(source.facebook_caption || source.facebookCaption) ||
     buildFallbackFacebookCaption({ title, excerpt }, "Read the full article on the blog.");
@@ -629,6 +713,60 @@ function normalizeRecipe(value, contentType) {
     ingredients: ensureStringArray(recipe.ingredients),
     instructions: ensureStringArray(recipe.instructions),
   };
+}
+
+function countInternalLinks(contentHtml) {
+  const shortcodeCount = (String(contentHtml || "").match(/\[kuchnia_twist_link\s+slug=/gi) || []).length;
+  const anchorCount = (String(contentHtml || "").match(/<a\s+[^>]*href=/gi) || []).length;
+  return shortcodeCount + anchorCount;
+}
+
+function internalLinkTargetsForJob(job) {
+  const shared = [
+    { slug: "editorial-policy", label: "Editorial Policy" },
+    { slug: "about", label: "About" },
+    { slug: "contact", label: "Contact" },
+  ];
+
+  const byType = {
+    recipe: [
+      { slug: "recipes", label: "Recipes" },
+      { slug: "why-onions-need-more-time-than-most-recipes-admit", label: "Why Onions Need More Time Than Most Recipes Admit" },
+      { slug: "what-tomato-paste-actually-does-in-a-pan", label: "What Tomato Paste Actually Does in a Pan" },
+      { slug: "food-stories", label: "Food Stories" },
+    ],
+    food_fact: [
+      { slug: "food-facts", label: "Food Facts" },
+      { slug: "recipes", label: "Recipes" },
+      { slug: "crispy-sheet-pan-chicken-with-caramelized-onions-and-potatoes", label: "Crispy Sheet-Pan Chicken with Caramelized Onions and Potatoes" },
+      { slug: "tomato-butter-beans-on-toast-with-garlic-and-lemon", label: "Tomato Butter Beans on Toast with Garlic and Lemon" },
+    ],
+    food_story: [
+      { slug: "food-stories", label: "Food Stories" },
+      { slug: "recipes", label: "Recipes" },
+      { slug: "the-quiet-value-of-a-soup-pot-on-a-busy-weeknight", label: "The Quiet Value of a Soup Pot on a Busy Weeknight" },
+      { slug: "creamy-mushroom-barley-soup-for-busy-evenings", label: "Creamy Mushroom Barley Soup for Busy Evenings" },
+    ],
+  };
+
+  return [...(byType[job.content_type] || byType.recipe), ...shared];
+}
+
+function ensureInternalLinks(contentHtml, job) {
+  if (!contentHtml || countInternalLinks(contentHtml) >= 3) {
+    return contentHtml;
+  }
+
+  const selections = internalLinkTargetsForJob(job).slice(0, 3);
+  if (!selections.length) {
+    return contentHtml;
+  }
+
+  const links = selections
+    .map((item) => `[kuchnia_twist_link slug="${item.slug}"]${item.label}[/kuchnia_twist_link]`)
+    .join(", ");
+
+  return `${contentHtml}\n<p>Keep reading across the journal: ${links}.</p>`;
 }
 
 function buildImagePrompt(generated, variantHint) {
