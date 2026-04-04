@@ -381,6 +381,113 @@ function kuchnia_twist_public_contact_email()
     return is_email($email) ? $email : '';
 }
 
+function kuchnia_twist_archive_context()
+{
+    $context = [
+        'eyebrow'     => __('Latest articles', 'kuchnia-twist'),
+        'title'       => get_bloginfo('name'),
+        'description' => __('Fresh writing from the kitchen journal, shaped to be useful, memorable, and easy to trust.', 'kuchnia-twist'),
+        'art'         => kuchnia_twist_fallback_media_url('journal'),
+        'notes'       => [
+            __('Articles are grouped into clear editorial pillars.', 'kuchnia-twist'),
+            __('Policy pages and contact details stay visible across the site.', 'kuchnia-twist'),
+            __('The archive is designed to feel curated rather than cluttered.', 'kuchnia-twist'),
+        ],
+    ];
+
+    if (is_category()) {
+        $term = get_queried_object();
+        if ($term instanceof WP_Term) {
+            $context['eyebrow'] = __('Editorial pillar', 'kuchnia-twist');
+            $context['title'] = single_cat_title('', false);
+            $context['description'] = wp_strip_all_tags(category_description($term)) ?: __('A focused archive of articles gathered under one editorial theme.', 'kuchnia-twist');
+            $context['art'] = kuchnia_twist_fallback_media_url($term->slug);
+
+            $pillar_map = [
+                'recipes' => [
+                    'description' => __('Recipe articles are written to feel cookable, calm, and genuinely worth saving for later.', 'kuchnia-twist'),
+                    'notes' => [
+                        __('Methods should read clearly on the first pass.', 'kuchnia-twist'),
+                        __('Ingredients and timing are surfaced without unnecessary clutter.', 'kuchnia-twist'),
+                        __('The archive favors practical, repeatable cooking.', 'kuchnia-twist'),
+                    ],
+                ],
+                'food-facts' => [
+                    'description' => __('Food facts break down ingredients, techniques, and kitchen questions in a way that stays concrete and readable.', 'kuchnia-twist'),
+                    'notes' => [
+                        __('Explainers are meant to be specific, not fluffy.', 'kuchnia-twist'),
+                        __('The tone stays editorial rather than textbook dry.', 'kuchnia-twist'),
+                        __('Useful context matters more than volume.', 'kuchnia-twist'),
+                    ],
+                ],
+                'food-stories' => [
+                    'description' => __('Food stories give the publication warmth, memory, and a more human editorial rhythm.', 'kuchnia-twist'),
+                    'notes' => [
+                        __('Narrative pieces should still stay anchored in real food context.', 'kuchnia-twist'),
+                        __('They add personality without breaking trust.', 'kuchnia-twist'),
+                        __('This pillar helps the site feel like a publication, not a recipe dump.', 'kuchnia-twist'),
+                    ],
+                ],
+            ];
+
+            if (isset($pillar_map[$term->slug])) {
+                $context['description'] = $pillar_map[$term->slug]['description'];
+                $context['notes'] = $pillar_map[$term->slug]['notes'];
+            }
+        }
+    } elseif (is_archive()) {
+        $context['eyebrow'] = __('Archive', 'kuchnia-twist');
+        $context['title'] = wp_strip_all_tags(get_the_archive_title());
+        $context['description'] = wp_strip_all_tags(get_the_archive_description()) ?: __('A grouped view into the journal, with the same editorial standards carried across every archive page.', 'kuchnia-twist');
+        $context['art'] = kuchnia_twist_fallback_media_url('journal');
+    }
+
+    return $context;
+}
+
+function kuchnia_twist_story_practice($post_id = 0)
+{
+    $post_id = $post_id ?: get_the_ID();
+    $category = kuchnia_twist_primary_category($post_id);
+    $slug = $category instanceof WP_Term ? $category->slug : '';
+    $content_type = (string) get_post_meta($post_id, 'kuchnia_twist_content_type', true);
+
+    $practice = [
+        'eyebrow' => __('Editorial practice', 'kuchnia-twist'),
+        'title'   => __('Each article should feel specific, readable, and genuinely useful.', 'kuchnia-twist'),
+        'items'   => [
+            __('Clear structure matters more than content volume.', 'kuchnia-twist'),
+            __('Related trust pages remain one click away.', 'kuchnia-twist'),
+            __('The goal is long-term reader confidence, not thin traffic bait.', 'kuchnia-twist'),
+        ],
+    ];
+
+    if ($content_type === 'recipe' || $slug === 'recipes') {
+        $practice['title'] = __('Recipe posts are shaped to be practical first.', 'kuchnia-twist');
+        $practice['items'] = [
+            __('Ingredients and method should stay easy to scan while cooking.', 'kuchnia-twist'),
+            __('Times and yield are surfaced before the recipe card ends.', 'kuchnia-twist'),
+            __('The writing should help home cooks, not just fill space.', 'kuchnia-twist'),
+        ];
+    } elseif ($slug === 'food-facts') {
+        $practice['title'] = __('Food fact pieces should explain without drifting into filler.', 'kuchnia-twist');
+        $practice['items'] = [
+            __('Claims should stay concrete and readable.', 'kuchnia-twist'),
+            __('Context matters more than trivia for its own sake.', 'kuchnia-twist'),
+            __('Readers should finish knowing something useful.', 'kuchnia-twist'),
+        ];
+    } elseif ($slug === 'food-stories') {
+        $practice['title'] = __('Food stories add atmosphere without losing editorial discipline.', 'kuchnia-twist');
+        $practice['items'] = [
+            __('Narrative should still connect clearly to food or kitchen life.', 'kuchnia-twist'),
+            __('The tone can be warmer while staying specific and trustworthy.', 'kuchnia-twist'),
+            __('Storytelling should deepen the publication, not dilute it.', 'kuchnia-twist'),
+        ];
+    }
+
+    return $practice;
+}
+
 function kuchnia_twist_render_posts_pagination()
 {
     the_posts_pagination([

@@ -14,7 +14,9 @@ while (have_posts()) :
     $author_name         = get_the_author();
     $author_description  = trim((string) get_the_author_meta('description'));
     $about_page          = get_page_by_path('about');
+    $contact_page        = get_page_by_path('contact');
     $editorial_policy    = get_page_by_path('editorial-policy');
+    $story_practice      = kuchnia_twist_story_practice(get_the_ID());
     $author_summary      = $author_description !== ''
         ? $author_description
         : __('This piece was prepared for Kuchnia Twist with the same house standards used across the journal: clear structure, practical value, and a strong editorial point of view around recipes, food facts, and kitchen stories.', 'kuchnia-twist');
@@ -144,13 +146,21 @@ while (have_posts()) :
                     </section>
                 <?php endif; ?>
 
+                <section class="story-rail__card story-practice">
+                    <span class="eyebrow"><?php echo esc_html($story_practice['eyebrow']); ?></span>
+                    <h2><?php echo esc_html($story_practice['title']); ?></h2>
+                    <ul class="story-practice__list">
+                        <?php foreach ($story_practice['items'] as $item) : ?>
+                            <li><?php echo esc_html($item); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </section>
+
                 <section class="story-rail__card">
                     <span class="eyebrow"><?php esc_html_e('Keep exploring', 'kuchnia-twist'); ?></span>
                     <div class="story-rail__links">
                         <?php kuchnia_twist_pillar_links(); ?>
                         <?php
-                        $about_page = get_page_by_path('about');
-                        $contact_page = get_page_by_path('contact');
                         if ($about_page instanceof WP_Post) {
                             printf('<a href="%s">%s</a>', esc_url(get_permalink($about_page)), esc_html__('About the publication', 'kuchnia-twist'));
                         }
