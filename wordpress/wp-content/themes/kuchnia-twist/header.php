@@ -13,24 +13,26 @@ $has_social    = kuchnia_twist_has_social_profiles();
 <head>
     <meta charset="<?php bloginfo('charset'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>document.documentElement.classList.add('has-js');</script>
     <?php wp_head(); ?>
 </head>
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
 <a class="skip-link" href="#content"><?php esc_html_e('Skip to content', 'kuchnia-twist'); ?></a>
+<div class="screen-reader-text" aria-live="polite" aria-atomic="true" data-site-announcer></div>
 <div class="site-shell">
     <header class="site-header">
         <div class="site-header__bar">
             <div class="masthead">
                 <a class="masthead__brand" href="<?php echo esc_url(home_url('/')); ?>" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
                     <span class="masthead__symbol">
-                        <img src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')); ?>" alt="">
+                        <img src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')); ?>" alt="" width="38" height="38" decoding="async" fetchpriority="high">
                     </span>
                     <span class="masthead__wordmark">
                         <?php if (function_exists('the_custom_logo') && has_custom_logo()) : ?>
                             <span class="masthead__logo"><?php the_custom_logo(); ?></span>
                         <?php else : ?>
-                            <img class="masthead__wordmark-image" src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-wordmark.svg')); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
+                            <img class="masthead__wordmark-image" src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-wordmark.svg')); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>" width="170" height="44" decoding="async" fetchpriority="high">
                         <?php endif; ?>
                     </span>
                 </a>
@@ -52,6 +54,7 @@ $has_social    = kuchnia_twist_has_social_profiles();
                     <button
                         class="masthead__iconbutton"
                         type="button"
+                        aria-haspopup="dialog"
                         aria-expanded="false"
                         aria-controls="site-search-sheet"
                         data-search-toggle
@@ -65,6 +68,7 @@ $has_social    = kuchnia_twist_has_social_profiles();
                     <button
                         class="masthead__iconbutton masthead__iconbutton--menu"
                         type="button"
+                        aria-haspopup="dialog"
                         aria-expanded="false"
                         aria-controls="site-menu-sheet"
                         data-menu-toggle
@@ -79,16 +83,23 @@ $has_social    = kuchnia_twist_has_social_profiles();
         </div>
 
         <div class="site-header__panel">
-            <div class="site-search-sheet" id="site-search-sheet" hidden data-search-panel>
+            <div class="site-search-sheet" id="site-search-sheet" hidden aria-hidden="true" data-search-panel role="dialog" aria-modal="true" aria-labelledby="site-search-title">
                 <div class="site-search-sheet__inner">
+                    <div class="site-search-sheet__top">
+                        <h2 id="site-search-title"><?php esc_html_e('Search', 'kuchnia-twist'); ?></h2>
+                        <button class="site-search-sheet__close" type="button" data-search-close>
+                            <span class="screen-reader-text"><?php esc_html_e('Close search', 'kuchnia-twist'); ?></span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18"></path><path d="M18 6 6 18"></path></svg>
+                        </button>
+                    </div>
                     <?php get_search_form(); ?>
                 </div>
             </div>
 
-            <div class="menu-sheet" id="site-menu-sheet" hidden data-menu-panel>
+            <div class="menu-sheet" id="site-menu-sheet" hidden aria-hidden="true" data-menu-panel role="dialog" aria-modal="true" aria-labelledby="site-menu-title">
                 <div class="menu-sheet__inner">
                     <div class="menu-sheet__top">
-                        <h2><?php esc_html_e('Menu', 'kuchnia-twist'); ?></h2>
+                        <h2 id="site-menu-title"><?php esc_html_e('Menu', 'kuchnia-twist'); ?></h2>
                         <button class="menu-sheet__close" type="button" data-menu-close>
                             <span class="screen-reader-text"><?php esc_html_e('Close menu', 'kuchnia-twist'); ?></span>
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18"></path><path d="M18 6 6 18"></path></svg>

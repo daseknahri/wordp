@@ -42,7 +42,7 @@ while (have_posts()) :
                 <?php if (!empty($recipe_data)) : ?>
                     <a class="button button--primary" href="#recipe-card"><?php esc_html_e('Jump to recipe', 'kuchnia-twist'); ?></a>
                 <?php endif; ?>
-                <button class="button button--ghost" type="button" data-search-toggle><?php esc_html_e('Search next', 'kuchnia-twist'); ?></button>
+                <button class="button button--ghost" type="button" data-search-toggle><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></button>
             </div>
 
             <div class="article-utility__share">
@@ -55,7 +55,7 @@ while (have_posts()) :
 
         <?php if (has_post_thumbnail()) : ?>
             <figure class="article-hero__media">
-                <?php the_post_thumbnail('kuchnia-twist-hero'); ?>
+                <?php the_post_thumbnail('kuchnia-twist-hero', ['loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async']); ?>
             </figure>
         <?php endif; ?>
 
@@ -109,7 +109,9 @@ while (have_posts()) :
 
                 <section class="article-support">
                     <div class="article-support__editor">
+                        <span class="eyebrow"><?php echo esc_html($editor_profile['role']); ?></span>
                         <h2><?php echo esc_html($editor_profile['name']); ?></h2>
+                        <p><?php echo esc_html($editor_profile['bio']); ?></p>
                     </div>
                     <div class="article-support__links">
                         <?php if ($about_page instanceof WP_Post) : ?>
@@ -127,7 +129,7 @@ while (have_posts()) :
 
             <aside class="article-layout__rail single-story__rail">
                 <section class="article-rail">
-                    <span class="eyebrow"><?php esc_html_e('Article details', 'kuchnia-twist'); ?></span>
+                    <span class="eyebrow"><?php esc_html_e('At a glance', 'kuchnia-twist'); ?></span>
                     <div class="article-rail__meta">
                         <?php if ($category instanceof WP_Term) : ?>
                             <p><strong><?php esc_html_e('Pillar', 'kuchnia-twist'); ?></strong><span><?php echo esc_html($category->name); ?></span></p>
@@ -167,7 +169,7 @@ while (have_posts()) :
         <section class="related-section section">
             <div class="section-heading section-heading--split">
                 <div>
-                    <h2><?php esc_html_e('Related', 'kuchnia-twist'); ?></h2>
+                    <h2><?php esc_html_e('Keep reading', 'kuchnia-twist'); ?></h2>
                 </div>
             </div>
             <div class="story-grid">

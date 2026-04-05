@@ -28,14 +28,13 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
 
     <?php if ($lead_post instanceof WP_Post) : ?>
         <div class="archive-feed">
-            <article class="archive-feed__lead">
-                <a class="archive-feed__lead-media" href="<?php echo esc_url(get_permalink($lead_post)); ?>">
-                    <?php if (has_post_thumbnail($lead_post)) : ?>
-                        <?php echo get_the_post_thumbnail($lead_post, 'kuchnia-twist-hero'); ?>
-                    <?php else : ?>
-                        <?php kuchnia_twist_render_media_placeholder(kuchnia_twist_media_context_for_post($lead_post->ID), __('Lead archive image', 'kuchnia-twist')); ?>
-                    <?php endif; ?>
-                </a>
+            <?php $lead_media = kuchnia_twist_get_post_media_markup($lead_post->ID, 'kuchnia-twist-hero', ['loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async']); ?>
+            <article class="archive-feed__lead<?php echo $lead_media === '' ? ' archive-feed__lead--text-only' : ''; ?>">
+                <?php if ($lead_media !== '') : ?>
+                    <a class="archive-feed__lead-media" href="<?php echo esc_url(get_permalink($lead_post)); ?>">
+                        <?php echo $lead_media; ?>
+                    </a>
+                <?php endif; ?>
                 <div class="archive-feed__lead-body">
                     <?php $lead_category = kuchnia_twist_primary_category($lead_post->ID); ?>
                     <?php if ($lead_category instanceof WP_Term) : ?>
@@ -52,14 +51,13 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
 
             <div class="archive-feed__list">
                 <?php foreach ($feed_posts as $post_item) : ?>
-                    <article class="archive-item">
-                        <a class="archive-item__media" href="<?php echo esc_url(get_permalink($post_item)); ?>">
-                            <?php if (has_post_thumbnail($post_item)) : ?>
-                                <?php echo get_the_post_thumbnail($post_item, 'kuchnia-twist-card'); ?>
-                            <?php else : ?>
-                                <?php kuchnia_twist_render_media_placeholder(kuchnia_twist_media_context_for_post($post_item->ID), __('Archive story image', 'kuchnia-twist')); ?>
-                            <?php endif; ?>
-                        </a>
+                    <?php $item_media = kuchnia_twist_get_post_media_markup($post_item->ID, 'kuchnia-twist-card'); ?>
+                    <article class="archive-item<?php echo $item_media === '' ? ' archive-item--text-only' : ''; ?>">
+                        <?php if ($item_media !== '') : ?>
+                            <a class="archive-item__media" href="<?php echo esc_url(get_permalink($post_item)); ?>">
+                                <?php echo $item_media; ?>
+                            </a>
+                        <?php endif; ?>
                         <div class="archive-item__body">
                             <?php $item_category = kuchnia_twist_primary_category($post_item->ID); ?>
                             <?php if ($item_category instanceof WP_Term) : ?>
@@ -77,17 +75,14 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
             </div>
         </div>
     <?php else : ?>
-        <div class="search-rescue">
+        <div class="search-rescue search-rescue--text-only">
             <div class="search-rescue__copy">
-                <p class="empty-state"><?php esc_html_e('Nothing has been filed into this view yet. Jump back into one of the pillars to keep browsing.', 'kuchnia-twist'); ?></p>
+                <p class="empty-state"><?php esc_html_e('Nothing is filed here yet. Jump back into one of the pillars to keep browsing.', 'kuchnia-twist'); ?></p>
                 <div class="chip-links">
                     <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>
                         <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
                     <?php endforeach; ?>
                 </div>
-            </div>
-            <div class="search-rescue__art">
-                <img src="<?php echo esc_url($context['art'] ?? kuchnia_twist_context_media_url('journal')); ?>" alt="">
             </div>
         </div>
     <?php endif; ?>

@@ -14,6 +14,10 @@ $field_id = wp_unique_id('site-search-field-');
         type="search"
         class="site-search__input"
         placeholder="<?php esc_attr_e('Search recipes, facts, and stories', 'kuchnia-twist'); ?>"
+        autocomplete="off"
+        autocapitalize="none"
+        enterkeyhint="search"
+        spellcheck="false"
         value="<?php echo esc_attr(get_search_query()); ?>"
         name="s"
     >

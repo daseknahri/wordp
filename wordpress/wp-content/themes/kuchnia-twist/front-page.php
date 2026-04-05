@@ -22,7 +22,7 @@ $public_email      = kuchnia_twist_public_contact_email();
 $follow_label      = kuchnia_twist_social_follow_label();
 $has_social        = kuchnia_twist_has_social_profiles();
 $editor_profile    = kuchnia_twist_editor_profile();
-$hero_image        = $hero_post && has_post_thumbnail($hero_post) ? get_the_post_thumbnail_url($hero_post, 'full') : kuchnia_twist_context_media_url('hero');
+$hero_image_markup = '';
 $hero_category     = $hero_post ? kuchnia_twist_primary_category($hero_post->ID) : null;
 $recipe_lead       = $recipes_posts[0] ?? null;
 $recipe_stack      = $recipe_lead ? array_slice($recipes_posts, 1) : [];
@@ -30,12 +30,26 @@ $fact_lead         = $facts_posts[0] ?? null;
 $facts_stack       = $fact_lead ? array_slice($facts_posts, 1) : [];
 $story_lead        = $stories_posts[0] ?? null;
 $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
+
+if ($hero_post && has_post_thumbnail($hero_post)) {
+    $hero_image_markup = get_the_post_thumbnail($hero_post, 'kuchnia-twist-hero', [
+        'loading'       => 'eager',
+        'fetchpriority' => 'high',
+        'decoding'      => 'async',
+        'sizes'         => '(max-width: 767px) 100vw, (max-width: 1199px) 92vw, 56vw',
+        'alt'           => trim((string) get_post_meta(get_post_thumbnail_id($hero_post), '_wp_attachment_image_alt', true)) ?: get_the_title($hero_post),
+    ]);
+}
+
+$hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-media' : '');
 ?>
 
-<section class="home-hero" data-reveal>
-    <div class="home-hero__media">
-        <img src="<?php echo esc_url($hero_image); ?>" alt="">
-    </div>
+<section class="<?php echo esc_attr($hero_class); ?>" data-reveal>
+    <?php if ($hero_image_markup !== '') : ?>
+        <div class="home-hero__media">
+            <?php echo $hero_image_markup; ?>
+        </div>
+    <?php endif; ?>
     <div class="home-hero__content">
         <div class="home-hero__copy">
             <h1><?php bloginfo('name'); ?></h1>
@@ -94,14 +108,13 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
 
     <div class="editorial-module__layout editorial-module__layout--feature<?php echo empty($recipe_stack) ? ' editorial-module__layout--single' : ''; ?>">
         <?php if ($recipe_lead) : ?>
-            <article class="feature-story">
-                <a class="feature-story__media" href="<?php echo esc_url(get_permalink($recipe_lead)); ?>">
-                    <?php if (has_post_thumbnail($recipe_lead)) : ?>
-                        <?php echo get_the_post_thumbnail($recipe_lead, 'kuchnia-twist-hero'); ?>
-                    <?php else : ?>
-                        <?php kuchnia_twist_render_media_placeholder('recipes', __('Latest recipe image', 'kuchnia-twist')); ?>
-                    <?php endif; ?>
-                </a>
+            <?php $recipe_lead_media = kuchnia_twist_get_post_media_markup($recipe_lead->ID, 'kuchnia-twist-hero'); ?>
+            <article class="feature-story<?php echo $recipe_lead_media === '' ? ' feature-story--text-only' : ''; ?>">
+                <?php if ($recipe_lead_media !== '') : ?>
+                    <a class="feature-story__media" href="<?php echo esc_url(get_permalink($recipe_lead)); ?>">
+                        <?php echo $recipe_lead_media; ?>
+                    </a>
+                <?php endif; ?>
                 <div class="feature-story__body">
                     <span class="eyebrow"><?php esc_html_e('Lead recipe', 'kuchnia-twist'); ?></span>
                     <h3><a href="<?php echo esc_url(get_permalink($recipe_lead)); ?>"><?php echo esc_html(get_the_title($recipe_lead)); ?></a></h3>
@@ -117,14 +130,13 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
         <?php if ($recipe_stack) : ?>
             <div class="story-stack">
                 <?php foreach ($recipe_stack as $post_item) : ?>
-                    <article class="compact-story">
-                        <a class="compact-story__media" href="<?php echo esc_url(get_permalink($post_item)); ?>">
-                            <?php if (has_post_thumbnail($post_item)) : ?>
-                                <?php echo get_the_post_thumbnail($post_item, 'kuchnia-twist-card'); ?>
-                            <?php else : ?>
-                                <?php kuchnia_twist_render_media_placeholder('recipes', __('Recipe image', 'kuchnia-twist')); ?>
-                            <?php endif; ?>
-                        </a>
+                    <?php $recipe_card_media = kuchnia_twist_get_post_media_markup($post_item->ID, 'kuchnia-twist-card'); ?>
+                    <article class="compact-story<?php echo $recipe_card_media === '' ? ' compact-story--text-only' : ''; ?>">
+                        <?php if ($recipe_card_media !== '') : ?>
+                            <a class="compact-story__media" href="<?php echo esc_url(get_permalink($post_item)); ?>">
+                                <?php echo $recipe_card_media; ?>
+                            </a>
+                        <?php endif; ?>
                         <div class="compact-story__body">
                             <span class="eyebrow"><?php esc_html_e('Recipe', 'kuchnia-twist'); ?></span>
                             <h3><a href="<?php echo esc_url(get_permalink($post_item)); ?>"><?php echo esc_html(get_the_title($post_item)); ?></a></h3>
@@ -182,14 +194,13 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
 
     <div class="editorial-module__layout">
         <?php if ($story_lead) : ?>
-            <article class="feature-story feature-story--story">
-                <a class="feature-story__media" href="<?php echo esc_url(get_permalink($story_lead)); ?>">
-                    <?php if (has_post_thumbnail($story_lead)) : ?>
-                        <?php echo get_the_post_thumbnail($story_lead, 'kuchnia-twist-hero'); ?>
-                    <?php else : ?>
-                        <?php kuchnia_twist_render_media_placeholder('food-stories', __('Feature story image', 'kuchnia-twist')); ?>
-                    <?php endif; ?>
-                </a>
+            <?php $story_lead_media = kuchnia_twist_get_post_media_markup($story_lead->ID, 'kuchnia-twist-hero'); ?>
+            <article class="feature-story feature-story--story<?php echo $story_lead_media === '' ? ' feature-story--text-only' : ''; ?>">
+                <?php if ($story_lead_media !== '') : ?>
+                    <a class="feature-story__media" href="<?php echo esc_url(get_permalink($story_lead)); ?>">
+                        <?php echo $story_lead_media; ?>
+                    </a>
+                <?php endif; ?>
                 <div class="feature-story__body">
                     <span class="eyebrow"><?php esc_html_e('Story lead', 'kuchnia-twist'); ?></span>
                     <h3><a href="<?php echo esc_url(get_permalink($story_lead)); ?>"><?php echo esc_html(get_the_title($story_lead)); ?></a></h3>
@@ -214,13 +225,16 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
 
 <?php if ($has_social || $public_email) : ?>
     <section class="follow-panel section" id="follow-journal" data-reveal>
-        <div class="follow-panel__copy"><h2><?php echo esc_html($follow_label); ?></h2></div>
+        <div class="follow-panel__copy">
+            <h2><?php echo esc_html($follow_label); ?></h2>
+            <p><?php esc_html_e('Follow along for new recipes, kitchen notes, and story-led essays from the journal.', 'kuchnia-twist'); ?></p>
+        </div>
         <div class="follow-panel__actions">
             <?php if ($has_social) : ?>
                 <?php kuchnia_twist_render_social_links('social-links--panel', true); ?>
             <?php endif; ?>
             <?php if ($public_email) : ?>
-                <a class="button button--ghost" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php esc_html_e('Email the editorial desk', 'kuchnia-twist'); ?></a>
+                <a class="button button--ghost" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php esc_html_e('Email the editor', 'kuchnia-twist'); ?></a>
             <?php endif; ?>
         </div>
     </section>
@@ -230,13 +244,15 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
     <div class="support-strip__editor">
         <div class="support-strip__avatar">
             <?php if (!empty($editor_profile['photo_id'])) : ?>
-                <?php echo wp_get_attachment_image((int) $editor_profile['photo_id'], 'thumbnail', false, ['class' => 'support-strip__avatar-image']); ?>
+                <?php echo wp_get_attachment_image((int) $editor_profile['photo_id'], 'thumbnail', false, ['class' => 'support-strip__avatar-image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
             <?php else : ?>
-                <?php echo get_avatar($public_email ?: get_the_author_meta('user_email'), 88, '', $editor_profile['name'], ['class' => 'support-strip__avatar-image']); ?>
+                <?php echo get_avatar($public_email ?: get_the_author_meta('user_email'), 88, '', $editor_profile['name'], ['class' => 'support-strip__avatar-image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
             <?php endif; ?>
         </div>
         <div>
+            <span class="eyebrow"><?php echo esc_html($editor_profile['role']); ?></span>
             <h2><?php echo esc_html($editor_profile['name']); ?></h2>
+            <p><?php echo esc_html($editor_profile['bio']); ?></p>
         </div>
     </div>
 

@@ -11,22 +11,43 @@ get_header();
     $action_links  = $profile ? kuchnia_twist_page_action_links(get_post_field('post_name', get_the_ID())) : [];
     $public_email  = kuchnia_twist_public_contact_email();
     $page_slug     = get_post_field('post_name', get_the_ID());
-    $page_art      = has_post_thumbnail()
-        ? get_the_post_thumbnail_url(get_the_ID(), 'full')
-        : kuchnia_twist_context_media_url(in_array($page_slug, ['about', 'contact'], true) ? $page_slug : 'trust');
+    $page_art      = '';
+
+    if (has_post_thumbnail()) {
+        $page_art = get_the_post_thumbnail(get_the_ID(), 'kuchnia-twist-hero', [
+            'loading'  => 'eager',
+            'decoding' => 'async',
+            'sizes'    => '(max-width: 767px) 100vw, (max-width: 1199px) 92vw, 40vw',
+            'alt'      => trim((string) get_post_meta(get_post_thumbnail_id(get_the_ID()), '_wp_attachment_image_alt', true)) ?: get_the_title(),
+        ]);
+    }
     ?>
     <article class="trust-shell page-shell page-shell--<?php echo esc_attr($page_slug); ?>">
         <header class="trust-shell__hero">
             <?php kuchnia_twist_render_breadcrumbs(get_post()); ?>
             <div class="trust-shell__hero-copy">
+                <?php if ($profile && !empty($profile['eyebrow'])) : ?>
+                    <span class="eyebrow"><?php echo esc_html($profile['eyebrow']); ?></span>
+                <?php endif; ?>
                 <h1><?php the_title(); ?></h1>
                 <?php if (has_excerpt()) : ?>
                     <p><?php echo esc_html(get_the_excerpt()); ?></p>
+                <?php elseif ($profile && !empty($profile['intro'])) : ?>
+                    <p><?php echo esc_html($profile['intro']); ?></p>
+                <?php endif; ?>
+                <?php if ($profile && !empty($profile['highlights'])) : ?>
+                    <div class="chip-links">
+                        <?php foreach ($profile['highlights'] as $highlight) : ?>
+                            <span class="chip-link"><?php echo esc_html($highlight); ?></span>
+                        <?php endforeach; ?>
+                    </div>
                 <?php endif; ?>
             </div>
-            <div class="trust-shell__hero-media">
-                <img src="<?php echo esc_url($page_art); ?>" alt="">
-            </div>
+            <?php if ($page_art !== '') : ?>
+                <div class="trust-shell__hero-media">
+                    <?php echo $page_art; ?>
+                </div>
+            <?php endif; ?>
         </header>
 
         <?php if ($has_body) : ?>

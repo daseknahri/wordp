@@ -6,11 +6,12 @@ require_once __DIR__ . '/launch-content.php';
 
 final class Kuchnia_Twist_Publisher
 {
-    private const VERSION = '1.3.0';
+    private const VERSION = '1.3.3';
     private const OPTION_KEY = 'kuchnia_twist_settings';
     private const VERSION_KEY = 'kuchnia_twist_publisher_version';
     private const THEME_BOOTSTRAP_KEY = 'kuchnia_twist_theme_bootstrapped';
     private const WORKER_STATUS_KEY = 'kuchnia_twist_worker_status';
+    private const CORE_PAGE_SEED_HASH_META = '_kuchnia_twist_core_page_seed_hash';
 
     private static ?Kuchnia_Twist_Publisher $instance = null;
 
@@ -1488,7 +1489,9 @@ final class Kuchnia_Twist_Publisher
 
         foreach ($pages as $slug => $page) {
             $existing_page = get_page_by_path($slug, OBJECT, 'page');
-            $page_id = 0;
+            $page_id         = 0;
+            $did_seed_update = false;
+            $seed_hash       = $this->core_page_seed_hash($page);
 
             if (!$existing_page instanceof WP_Post) {
                 $page_id = (int) wp_insert_post([
@@ -1496,19 +1499,34 @@ final class Kuchnia_Twist_Publisher
                     'post_status'  => 'publish',
                     'post_title'   => $page['title'],
                     'post_name'    => $slug,
+                    'post_excerpt' => (string) ($page['excerpt'] ?? ''),
                     'post_content' => $page['content'],
                 ]);
-            } elseif ($this->should_refresh_core_page($existing_page)) {
+                $did_seed_update = $page_id > 0;
+            } elseif (
+                $this->should_refresh_core_page($existing_page)
+                || ($this->is_seed_managed_core_page($existing_page) && $this->current_core_page_hash($existing_page) !== $seed_hash)
+            ) {
                 $page_id = (int) wp_update_post([
                     'ID'           => $existing_page->ID,
                     'post_title'   => $page['title'],
+                    'post_excerpt' => (string) ($page['excerpt'] ?? $existing_page->post_excerpt),
                     'post_content' => $page['content'],
                 ]);
+                $did_seed_update = $page_id > 0;
             } else {
                 $page_id = (int) $existing_page->ID;
             }
 
-            if ($page_id > 0 && !empty($page['featured_asset'])) {
+            if ($did_seed_update && $page_id > 0) {
+                update_post_meta($page_id, self::CORE_PAGE_SEED_HASH_META, $seed_hash);
+            }
+
+            if ($did_seed_update && $page_id > 0 && !empty($page['seo_description'])) {
+                update_post_meta($page_id, 'kuchnia_twist_seo_description', (string) $page['seo_description']);
+            }
+
+            if ($did_seed_update && $page_id > 0 && !empty($page['featured_asset'])) {
                 $this->maybe_assign_local_featured_image(
                     $page_id,
                     (string) $page['featured_asset'],
@@ -1517,6 +1535,37 @@ final class Kuchnia_Twist_Publisher
                 );
             }
         }
+    }
+
+    private function core_page_seed_hash(array $page): string
+    {
+        return md5(wp_json_encode([
+            'title'           => (string) ($page['title'] ?? ''),
+            'excerpt'         => (string) ($page['excerpt'] ?? ''),
+            'content'         => (string) ($page['content'] ?? ''),
+            'seo_description' => (string) ($page['seo_description'] ?? ''),
+        ]));
+    }
+
+    private function current_core_page_hash(WP_Post $page): string
+    {
+        return md5(wp_json_encode([
+            'title'           => (string) $page->post_title,
+            'excerpt'         => (string) $page->post_excerpt,
+            'content'         => (string) $page->post_content,
+            'seo_description' => (string) get_post_meta($page->ID, 'kuchnia_twist_seo_description', true),
+        ]));
+    }
+
+    private function is_seed_managed_core_page(WP_Post $page): bool
+    {
+        $stored_hash = (string) get_post_meta($page->ID, self::CORE_PAGE_SEED_HASH_META, true);
+
+        if ($stored_hash === '') {
+            return false;
+        }
+
+        return hash_equals($stored_hash, $this->current_core_page_hash($page));
     }
 
     private function core_pages(): array
@@ -1594,6 +1643,9 @@ final class Kuchnia_Twist_Publisher
             'use this page to describe how recipes are developed',
             'this starter page should be replaced',
             'kuchnia twist is a food journal built around three pillars',
+            'the trust layer around the archive matters as much as the archive itself',
+            'a useful site should feel maintained in public',
+            'same public trust layer as this policy',
         ];
 
         foreach ($starter_markers as $marker) {

@@ -47,6 +47,18 @@ add_action('wp_enqueue_scripts', function () {
     );
 });
 
+add_filter('wp_resource_hints', function (array $urls, string $relation_type) {
+    if ($relation_type === 'preconnect') {
+        $urls[] = 'https://fonts.googleapis.com';
+        $urls[] = [
+            'href'        => 'https://fonts.gstatic.com',
+            'crossorigin' => 'anonymous',
+        ];
+    }
+
+    return $urls;
+}, 10, 2);
+
 add_filter('excerpt_length', function () {
     return 24;
 }, 99);
@@ -55,10 +67,24 @@ add_filter('excerpt_more', function () {
     return '...';
 });
 
+add_filter('wp_robots', function (array $robots) {
+    if (is_search()) {
+        $robots['noindex'] = true;
+        $robots['follow'] = true;
+        return $robots;
+    }
+
+    if (!isset($robots['max-image-preview'])) {
+        $robots['max-image-preview'] = 'large';
+    }
+
+    return $robots;
+});
+
 function kuchnia_twist_meta_description()
 {
     if (is_front_page()) {
-        return __('Warm home cooking, useful food facts, and slower kitchen stories from Kuchnia Twist, an independent editorial food journal.', 'kuchnia-twist');
+        return __('Warm home cooking, useful food facts, and slower kitchen stories from Kuchnia Twist, an independent food journal.', 'kuchnia-twist');
     }
 
     if (is_home() || is_archive() || is_search()) {
@@ -88,6 +114,177 @@ function kuchnia_twist_meta_description()
     return (string) get_bloginfo('description');
 }
 
+function kuchnia_twist_meta_canonical_url()
+{
+    if (is_front_page()) {
+        $canonical = home_url('/');
+        $paged = max(1, (int) get_query_var('paged'));
+        if ($paged > 1) {
+            $canonical = trailingslashit($canonical) . user_trailingslashit('page/' . $paged, 'paged');
+        }
+
+        return $canonical;
+    }
+
+    if (is_home() && !is_front_page()) {
+        $posts_page_id = (int) get_option('page_for_posts');
+        if ($posts_page_id > 0) {
+            $canonical = (string) get_permalink($posts_page_id);
+            $paged = max(1, (int) get_query_var('paged'));
+            if ($paged > 1) {
+                $canonical = trailingslashit($canonical) . user_trailingslashit('page/' . $paged, 'paged');
+            }
+
+            return $canonical;
+        }
+    }
+
+    if (is_singular()) {
+        $post_id = get_queried_object_id();
+        if ($post_id > 0) {
+            $canonical = wp_get_canonical_url($post_id);
+            if (is_string($canonical) && $canonical !== '') {
+                return $canonical;
+            }
+
+            return (string) get_permalink($post_id);
+        }
+    }
+
+    if (is_search()) {
+        $args = ['s' => get_search_query()];
+        $paged = max(1, (int) get_query_var('paged'));
+        if ($paged > 1) {
+            $args['paged'] = $paged;
+        }
+
+        return (string) add_query_arg($args, home_url('/'));
+    }
+
+    if (is_category() || is_tag() || is_tax()) {
+        $term = get_queried_object();
+        if ($term instanceof WP_Term) {
+            $canonical = get_term_link($term);
+            if (!is_wp_error($canonical)) {
+                $paged = max(1, (int) get_query_var('paged'));
+                if ($paged > 1) {
+                    $canonical = trailingslashit($canonical) . user_trailingslashit('page/' . $paged, 'paged');
+                }
+
+                return (string) $canonical;
+            }
+        }
+    }
+
+    if (is_post_type_archive()) {
+        $post_type = get_query_var('post_type');
+        if (is_array($post_type)) {
+            $post_type = reset($post_type);
+        }
+        if (is_string($post_type) && $post_type !== '') {
+            $canonical = get_post_type_archive_link($post_type);
+            if (is_string($canonical) && $canonical !== '') {
+                $paged = max(1, (int) get_query_var('paged'));
+                if ($paged > 1) {
+                    $canonical = trailingslashit($canonical) . user_trailingslashit('page/' . $paged, 'paged');
+                }
+
+                return $canonical;
+            }
+        }
+    }
+
+    if (is_archive()) {
+        return (string) get_pagenum_link(max(1, (int) get_query_var('paged')));
+    }
+
+    return home_url('/');
+}
+
+function kuchnia_twist_meta_image_from_attachment($image_id, string $fallback_alt = '')
+{
+    $image_id = (int) $image_id;
+    if ($image_id <= 0) {
+        return [];
+    }
+
+    $image_data = wp_get_attachment_image_src($image_id, 'full');
+    $image_url = is_array($image_data) ? (string) ($image_data[0] ?? '') : (string) wp_get_attachment_url($image_id);
+    if ($image_url === '') {
+        return [];
+    }
+
+    $image_alt = trim((string) get_post_meta($image_id, '_wp_attachment_image_alt', true));
+    if ($image_alt === '') {
+        $image_alt = $fallback_alt;
+    }
+
+    $image = [
+        'url' => $image_url,
+        'alt' => $image_alt,
+    ];
+
+    if (is_array($image_data)) {
+        $width = (int) ($image_data[1] ?? 0);
+        $height = (int) ($image_data[2] ?? 0);
+        if ($width > 0) {
+            $image['width'] = $width;
+        }
+        if ($height > 0) {
+            $image['height'] = $height;
+        }
+    }
+
+    $mime_type = (string) get_post_mime_type($image_id);
+    if ($mime_type !== '') {
+        $image['type'] = $mime_type;
+    }
+
+    return $image;
+}
+
+function kuchnia_twist_meta_image()
+{
+    if (is_singular()) {
+        $post_id = get_queried_object_id();
+        if ($post_id > 0 && has_post_thumbnail($post_id)) {
+            $image_id = (int) get_post_thumbnail_id($post_id);
+            return kuchnia_twist_meta_image_from_attachment($image_id, get_the_title($post_id));
+        }
+    }
+
+    if (is_front_page()) {
+        $lead_posts = get_posts([
+            'post_type'      => 'post',
+            'post_status'    => 'publish',
+            'posts_per_page' => 1,
+            'meta_key'       => '_thumbnail_id',
+        ]);
+
+        if ($lead_posts) {
+            $lead_post = $lead_posts[0];
+            if ($lead_post instanceof WP_Post && has_post_thumbnail($lead_post)) {
+                $image_id = (int) get_post_thumbnail_id($lead_post);
+                return kuchnia_twist_meta_image_from_attachment($image_id, get_the_title($lead_post));
+            }
+        }
+    }
+
+    if (is_home() || is_archive() || is_search()) {
+        global $wp_query;
+
+        if ($wp_query instanceof WP_Query && !empty($wp_query->posts)) {
+            $lead_post = $wp_query->posts[0];
+            if ($lead_post instanceof WP_Post && has_post_thumbnail($lead_post)) {
+                $image_id = (int) get_post_thumbnail_id($lead_post);
+                return kuchnia_twist_meta_image_from_attachment($image_id, get_the_title($lead_post));
+            }
+        }
+    }
+
+    return [];
+}
+
 add_action('wp_head', function () {
     if (is_admin()) {
         return;
@@ -102,9 +299,68 @@ add_action('wp_head', function () {
         ? wp_html_excerpt($description, 155, '...')
         : mb_substr($description, 0, 155);
 
+    $title = trim(preg_replace('/\s+/', ' ', wp_strip_all_tags(wp_get_document_title())));
+    $canonical = trim((string) kuchnia_twist_meta_canonical_url());
+    $image = kuchnia_twist_meta_image();
+    $image_url = trim((string) ($image['url'] ?? ''));
+    $image_alt = trim((string) ($image['alt'] ?? ''));
+    $image_width = (int) ($image['width'] ?? 0);
+    $image_height = (int) ($image['height'] ?? 0);
+    $image_type = trim((string) ($image['type'] ?? ''));
+    $og_type = is_singular('post') ? 'article' : 'website';
+    $locale = str_replace('_', '-', get_locale());
+
     printf("<meta name=\"description\" content=\"%s\">\n", esc_attr($description));
+    if ($canonical !== '') {
+        printf("<link rel=\"canonical\" href=\"%s\">\n", esc_url($canonical));
+        printf("<meta property=\"og:url\" content=\"%s\">\n", esc_url($canonical));
+    }
+    if ($title !== '') {
+        printf("<meta property=\"og:title\" content=\"%s\">\n", esc_attr($title));
+        printf("<meta name=\"twitter:title\" content=\"%s\">\n", esc_attr($title));
+    }
+    printf("<meta property=\"og:site_name\" content=\"%s\">\n", esc_attr(get_bloginfo('name')));
+    printf("<meta property=\"og:locale\" content=\"%s\">\n", esc_attr($locale));
+    printf("<meta property=\"og:type\" content=\"%s\">\n", esc_attr($og_type));
     printf("<meta property=\"og:description\" content=\"%s\">\n", esc_attr($description));
     printf("<meta name=\"twitter:description\" content=\"%s\">\n", esc_attr($description));
+    printf("<meta name=\"twitter:card\" content=\"%s\">\n", esc_attr($image_url !== '' ? 'summary_large_image' : 'summary'));
+
+    $author_schema = kuchnia_twist_schema_author();
+    if (is_array($author_schema) && !empty($author_schema['name'])) {
+        printf("<meta name=\"author\" content=\"%s\">\n", esc_attr((string) $author_schema['name']));
+        if (is_singular('post')) {
+            printf("<meta property=\"article:author\" content=\"%s\">\n", esc_attr((string) $author_schema['name']));
+        }
+    }
+
+    if ($image_url !== '') {
+        printf("<meta property=\"og:image\" content=\"%s\">\n", esc_url($image_url));
+        printf("<meta name=\"twitter:image\" content=\"%s\">\n", esc_url($image_url));
+        if ($image_width > 0) {
+            printf("<meta property=\"og:image:width\" content=\"%d\">\n", $image_width);
+        }
+        if ($image_height > 0) {
+            printf("<meta property=\"og:image:height\" content=\"%d\">\n", $image_height);
+        }
+        if ($image_type !== '') {
+            printf("<meta property=\"og:image:type\" content=\"%s\">\n", esc_attr($image_type));
+        }
+        if ($image_alt !== '') {
+            printf("<meta property=\"og:image:alt\" content=\"%s\">\n", esc_attr($image_alt));
+            printf("<meta name=\"twitter:image:alt\" content=\"%s\">\n", esc_attr($image_alt));
+        }
+    }
+
+    if (is_singular('post')) {
+        printf("<meta property=\"article:published_time\" content=\"%s\">\n", esc_attr(get_post_time(DATE_W3C, true)));
+        printf("<meta property=\"article:modified_time\" content=\"%s\">\n", esc_attr(get_post_modified_time(DATE_W3C, true)));
+
+        $primary_category = kuchnia_twist_primary_category(get_queried_object_id());
+        if ($primary_category instanceof WP_Term) {
+            printf("<meta property=\"article:section\" content=\"%s\">\n", esc_attr($primary_category->name));
+        }
+    }
 }, 1);
 
 function kuchnia_twist_get_recipe_data($post_id)
@@ -333,7 +589,7 @@ function kuchnia_twist_render_social_links($class = '', $show_labels = false)
     $class_attr = trim('social-links ' . $class);
     echo '<div class="' . esc_attr($class_attr) . '" aria-label="' . esc_attr(kuchnia_twist_social_follow_label()) . '">';
     foreach ($profiles as $profile) {
-        echo '<a class="social-links__item social-links__item--' . esc_attr($profile['slug']) . '" href="' . esc_url($profile['url']) . '" target="_blank" rel="noreferrer">';
+        echo '<a class="social-links__item social-links__item--' . esc_attr($profile['slug']) . '" href="' . esc_url($profile['url']) . '" target="_blank" rel="noopener noreferrer" aria-label="' . esc_attr($profile['label']) . '">';
         echo '<span class="social-links__icon">' . kuchnia_twist_social_icon_svg($profile['slug']) . '</span>';
         if ($show_labels) {
             echo '<span class="social-links__label">' . esc_html($profile['label']) . '</span>';
@@ -407,14 +663,15 @@ function kuchnia_twist_render_share_links($post_id = 0, $class = '')
     echo '<div class="' . esc_attr($class_attr) . '">';
     foreach ($links as $link) {
         if ($link['slug'] === 'copy') {
-            echo '<button type="button" class="share-links__item share-links__item--copy" data-copy-link="' . esc_attr($link['url']) . '">';
+            echo '<button type="button" class="share-links__item share-links__item--copy" data-copy-link="' . esc_attr($link['url']) . '" aria-label="' . esc_attr($link['label']) . '">';
             echo '<span class="share-links__icon">' . kuchnia_twist_social_icon_svg('copy') . '</span>';
             echo '<span class="share-links__label">' . esc_html__('Copy link', 'kuchnia-twist') . '</span>';
             echo '</button>';
             continue;
         }
 
-        echo '<a class="share-links__item share-links__item--' . esc_attr($link['slug']) . '" href="' . esc_url($link['url']) . '" target="_blank" rel="noreferrer">';
+        $target = str_starts_with($link['url'], 'mailto:') ? '' : ' target="_blank" rel="noopener noreferrer"';
+        echo '<a class="share-links__item share-links__item--' . esc_attr($link['slug']) . '" href="' . esc_url($link['url']) . '"' . $target . ' aria-label="' . esc_attr($link['label']) . '">';
         echo '<span class="share-links__icon">' . kuchnia_twist_social_icon_svg($link['slug']) . '</span>';
         echo '<span class="share-links__label">' . esc_html($link['label']) . '</span>';
         echo '</a>';
@@ -473,125 +730,6 @@ function kuchnia_twist_editor_profile()
     ];
 }
 
-function kuchnia_twist_page_featured_image_url($slug)
-{
-    $page = get_page_by_path($slug);
-    if (!$page instanceof WP_Post || !has_post_thumbnail($page)) {
-        return '';
-    }
-
-    return (string) get_the_post_thumbnail_url($page, 'full');
-}
-
-function kuchnia_twist_fallback_media_url($context = 'journal')
-{
-    $map = [
-        'hero'         => 'assets/media-hero-default.svg',
-        'desk'         => 'assets/media-desk.svg',
-        'feature'      => 'assets/media-feature.svg',
-        'journal'      => 'assets/media-journal.svg',
-        'recipes'      => 'assets/media-recipes.svg',
-        'food-facts'   => 'assets/media-food-facts.svg',
-        'food-stories' => 'assets/media-food-stories.svg',
-        'trust'        => 'assets/media-trust.svg',
-        'about'        => 'assets/media-about.svg',
-        'contact'      => 'assets/media-contact.svg',
-    ];
-
-    $asset = $map[$context] ?? $map['journal'];
-    return kuchnia_twist_asset_url($asset);
-}
-
-function kuchnia_twist_context_media_url($context = 'journal')
-{
-    static $cache = [];
-
-    if (isset($cache[$context])) {
-        return $cache[$context];
-    }
-
-    $page_contexts = [
-        'about' => 'about',
-        'contact' => 'contact',
-        'privacy-policy' => 'about',
-        'cookie-policy' => 'contact',
-        'editorial-policy' => 'about',
-        'trust' => 'about',
-        'desk' => 'about',
-    ];
-
-    if (isset($page_contexts[$context])) {
-        $page_image = kuchnia_twist_page_featured_image_url($page_contexts[$context]);
-        if ($page_image !== '') {
-            return $cache[$context] = $page_image;
-        }
-    }
-
-    $query_args = [
-        'post_type'      => 'post',
-        'post_status'    => 'publish',
-        'posts_per_page' => 1,
-        'meta_key'       => '_thumbnail_id',
-    ];
-
-    if (in_array($context, ['recipes', 'food-facts', 'food-stories'], true)) {
-        $term = get_category_by_slug($context);
-        if ($term instanceof WP_Term) {
-            $query_args['cat'] = $term->term_id;
-        }
-    }
-
-    $posts = get_posts($query_args);
-    if ($posts && has_post_thumbnail($posts[0])) {
-        return $cache[$context] = (string) get_the_post_thumbnail_url($posts[0], 'full');
-    }
-
-    return $cache[$context] = kuchnia_twist_fallback_media_url($context);
-}
-
-function kuchnia_twist_media_context_for_post($post_id = 0)
-{
-    $post_id = $post_id ?: get_the_ID();
-    $category = kuchnia_twist_primary_category($post_id);
-    if ($category instanceof WP_Term) {
-        return $category->slug;
-    }
-
-    return 'journal';
-}
-
-function kuchnia_twist_render_media_placeholder($context = 'journal', $label = '')
-{
-    $context = $context ?: 'journal';
-    $label = $label !== '' ? $label : __('Kuchnia Twist editorial artwork', 'kuchnia-twist');
-
-    echo '<span class="story-card__placeholder">';
-    printf(
-        '<img class="story-card__placeholder-art" src="%s" alt="">',
-        esc_url(kuchnia_twist_fallback_media_url($context))
-    );
-    printf('<span class="story-card__placeholder-label">%s</span>', esc_html($label));
-    echo '</span>';
-}
-
-function kuchnia_twist_render_nav_links()
-{
-    foreach (kuchnia_twist_primary_nav_items() as $item) {
-        if (!empty($item['url']) && !is_wp_error($item['url'])) {
-            printf('<a href="%s">%s</a>', esc_url($item['url']), esc_html($item['label']));
-        }
-    }
-}
-
-function kuchnia_twist_policy_links()
-{
-    foreach (kuchnia_twist_trust_nav_items() as $item) {
-        if (!empty($item['url']) && !is_wp_error($item['url'])) {
-            printf('<a href="%s">%s</a>', esc_url($item['url']), esc_html($item['label']));
-        }
-    }
-}
-
 function kuchnia_twist_pillar_links()
 {
     foreach (kuchnia_twist_pillar_nav_items() as $item) {
@@ -609,19 +747,38 @@ function kuchnia_twist_estimated_read_time($post_id = 0)
     return max(1, (int) ceil($words / 220));
 }
 
+function kuchnia_twist_get_post_media_markup($post_id = 0, $size = 'kuchnia-twist-card', array $attrs = [])
+{
+    $post_id = $post_id ?: get_the_ID();
+
+    if (!$post_id || !has_post_thumbnail($post_id)) {
+        return '';
+    }
+
+    return (string) get_the_post_thumbnail(
+        $post_id,
+        $size,
+        array_merge(
+            [
+                'loading'  => 'lazy',
+                'decoding' => 'async',
+            ],
+            $attrs
+        )
+    );
+}
+
 function kuchnia_twist_render_post_card($post_id)
 {
-    $category = kuchnia_twist_primary_category($post_id);
-    $placeholder_context = kuchnia_twist_media_context_for_post($post_id);
+    $category     = kuchnia_twist_primary_category($post_id);
+    $media_markup = kuchnia_twist_get_post_media_markup($post_id, 'kuchnia-twist-card');
     ?>
-    <article class="feed-card">
-        <a class="feed-card__media" href="<?php echo esc_url(get_permalink($post_id)); ?>">
-            <?php if (has_post_thumbnail($post_id)) : ?>
-                <?php echo get_the_post_thumbnail($post_id, 'kuchnia-twist-card'); ?>
-            <?php else : ?>
-                <?php kuchnia_twist_render_media_placeholder($placeholder_context, __('Fresh from the kitchen journal', 'kuchnia-twist')); ?>
-            <?php endif; ?>
-        </a>
+    <article class="feed-card<?php echo $media_markup === '' ? ' feed-card--text-only' : ''; ?>">
+        <?php if ($media_markup !== '') : ?>
+            <a class="feed-card__media" href="<?php echo esc_url(get_permalink($post_id)); ?>">
+                <?php echo $media_markup; ?>
+            </a>
+        <?php endif; ?>
         <div class="feed-card__body">
             <?php if ($category instanceof WP_Term) : ?>
                 <span class="eyebrow"><?php echo esc_html($category->name); ?></span>
@@ -678,7 +835,7 @@ function kuchnia_twist_get_breadcrumb_items($post = null)
     }
 
     if (is_home()) {
-        $items[] = ['label' => __('Latest Articles', 'kuchnia-twist'), 'url' => ''];
+        $items[] = ['label' => __('Latest posts', 'kuchnia-twist'), 'url' => ''];
         return $items;
     }
 
@@ -788,20 +945,6 @@ function kuchnia_twist_publication_initials()
     return $initials !== '' ? $initials : 'KT';
 }
 
-function kuchnia_twist_trust_page_count()
-{
-    $trust_slugs = ['about', 'contact', 'privacy-policy', 'cookie-policy', 'editorial-policy'];
-    $trust_count = 0;
-
-    foreach ($trust_slugs as $slug) {
-        if (get_page_by_path($slug) instanceof WP_Post) {
-            $trust_count++;
-        }
-    }
-
-    return $trust_count;
-}
-
 function kuchnia_twist_public_contact_email()
 {
     $profile = kuchnia_twist_editor_profile();
@@ -821,362 +964,77 @@ function kuchnia_twist_archive_context()
     global $wp_query;
 
     $context = [
-        'eyebrow'     => __('Latest articles', 'kuchnia-twist'),
+        'eyebrow'     => __('Latest posts', 'kuchnia-twist'),
         'title'       => get_bloginfo('name'),
-        'description' => __('Fresh writing from the kitchen journal, shaped to be useful, memorable, and easy to trust.', 'kuchnia-twist'),
-        'art'         => kuchnia_twist_context_media_url('journal'),
-        'notes'       => [
-            __('Articles are grouped into clear editorial pillars.', 'kuchnia-twist'),
-            __('Policy pages and contact details stay visible across the site.', 'kuchnia-twist'),
-            __('The archive is designed to feel curated rather than cluttered.', 'kuchnia-twist'),
-        ],
+        'description' => __('New recipes, kitchen notes, and essays from a home-cooking journal that values clarity over noise.', 'kuchnia-twist'),
     ];
 
     if (is_home()) {
-        $context['eyebrow'] = __('Latest articles', 'kuchnia-twist');
+        $context['eyebrow'] = __('Latest posts', 'kuchnia-twist');
         $context['title'] = __('The latest from Kuchnia Twist', 'kuchnia-twist');
-        $context['description'] = __('A running view of the newest recipes, explainers, and story-led pieces published into the journal.', 'kuchnia-twist');
-        $context['art'] = kuchnia_twist_context_media_url('journal');
+        $context['description'] = __('The newest recipes, explainers, and essays from Kuchnia Twist, gathered in one clean running feed.', 'kuchnia-twist');
     } elseif (is_search()) {
         $query_text = trim((string) get_search_query());
         $match_count = $wp_query instanceof WP_Query ? (int) $wp_query->found_posts : 0;
         $context['eyebrow'] = __('Search results', 'kuchnia-twist');
         $context['title'] = __('Search', 'kuchnia-twist');
-        $context['description'] = $query_text !== ''
-            ? sprintf(
-                _n('Showing %1$s result for "%2$s".', 'Showing %1$s results for "%2$s".', max(1, $match_count), 'kuchnia-twist'),
-                number_format_i18n($match_count),
-                $query_text
-            )
-            : __('Use the search field to look through recipes, food facts, and story-led pieces.', 'kuchnia-twist');
-        $context['art'] = kuchnia_twist_context_media_url('journal');
-        $context['notes'] = [
-            __('Search works best with ingredients, techniques, and story topics rather than very broad phrases.', 'kuchnia-twist'),
-            __('Results still stay inside the same editorial pillars as the rest of the site.', 'kuchnia-twist'),
-            __('If a search comes up thin, the pillar archives are still the fastest way back into the journal.', 'kuchnia-twist'),
-        ];
+        if ($query_text !== '') {
+            if ($match_count > 0) {
+                $context['description'] = sprintf(
+                    _n('Showing %1$s result for "%2$s".', 'Showing %1$s results for "%2$s".', $match_count, 'kuchnia-twist'),
+                    number_format_i18n($match_count),
+                    $query_text
+                );
+            } else {
+                $context['description'] = sprintf(__('No results yet for "%s". Try a broader ingredient, dish, or kitchen question.', 'kuchnia-twist'), $query_text);
+            }
+        } else {
+            $context['description'] = __('Search by ingredient, dish, technique, or story topic.', 'kuchnia-twist');
+        }
     } elseif (is_category()) {
         $term = get_queried_object();
         if ($term instanceof WP_Term) {
-            $context['eyebrow'] = __('Editorial pillar', 'kuchnia-twist');
+            $context['eyebrow'] = __('Journal pillar', 'kuchnia-twist');
             $context['title'] = single_cat_title('', false);
-            $context['description'] = wp_strip_all_tags(category_description($term)) ?: __('A focused archive of articles gathered under one editorial theme.', 'kuchnia-twist');
-            $context['art'] = kuchnia_twist_context_media_url($term->slug);
+            $context['description'] = wp_strip_all_tags(category_description($term)) ?: __('A focused archive of articles gathered around one kitchen theme.', 'kuchnia-twist');
 
             $pillar_map = [
                 'recipes' => [
                     'description' => __('Recipe articles are written to feel cookable, calm, and genuinely worth saving for later.', 'kuchnia-twist'),
-                    'notes' => [
-                        __('Methods should read clearly on the first pass.', 'kuchnia-twist'),
-                        __('Ingredients and timing are surfaced without unnecessary clutter.', 'kuchnia-twist'),
-                        __('The archive favors practical, repeatable cooking.', 'kuchnia-twist'),
-                    ],
                 ],
                 'food-facts' => [
                     'description' => __('Food facts break down ingredients, techniques, and kitchen questions in a way that stays concrete and readable.', 'kuchnia-twist'),
-                    'notes' => [
-                        __('Explainers are meant to be specific, not fluffy.', 'kuchnia-twist'),
-                        __('The tone stays editorial rather than textbook dry.', 'kuchnia-twist'),
-                        __('Useful context matters more than volume.', 'kuchnia-twist'),
-                    ],
                 ],
                 'food-stories' => [
-                    'description' => __('Food stories give the publication warmth, memory, and a more human editorial rhythm.', 'kuchnia-twist'),
-                    'notes' => [
-                        __('Narrative pieces should still stay anchored in real food context.', 'kuchnia-twist'),
-                        __('They add personality without breaking trust.', 'kuchnia-twist'),
-                        __('This pillar helps the site feel like a publication, not a recipe dump.', 'kuchnia-twist'),
-                    ],
+                    'description' => __('Food stories give the journal warmth, memory, and a more human rhythm.', 'kuchnia-twist'),
                 ],
             ];
 
             if (isset($pillar_map[$term->slug])) {
                 $context['description'] = $pillar_map[$term->slug]['description'];
-                $context['notes'] = $pillar_map[$term->slug]['notes'];
             }
         }
     } elseif (is_archive()) {
         $context['eyebrow'] = __('Archive', 'kuchnia-twist');
         $context['title'] = wp_strip_all_tags(get_the_archive_title());
-        $context['description'] = wp_strip_all_tags(get_the_archive_description()) ?: __('A grouped view into the journal, with the same editorial standards carried across every archive page.', 'kuchnia-twist');
-        $context['art'] = kuchnia_twist_context_media_url('journal');
+        $context['description'] = wp_strip_all_tags(get_the_archive_description()) ?: __('A grouped view into the journal, with the same calm, readable structure carried across each archive page.', 'kuchnia-twist');
     }
 
     return $context;
 }
 
-function kuchnia_twist_current_listing_lead_post()
+function kuchnia_twist_render_listing_empty_state(string $message)
 {
-    global $wp_query;
-
-    if (!$wp_query instanceof WP_Query || empty($wp_query->posts)) {
-        return null;
-    }
-
-    $lead = $wp_query->posts[0];
-    return $lead instanceof WP_Post ? $lead : null;
-}
-
-function kuchnia_twist_render_listing_overview()
-{
-    global $wp_query;
-
-    $lead = kuchnia_twist_current_listing_lead_post();
-    $trust_count = kuchnia_twist_trust_page_count();
-    $found_posts = $wp_query instanceof WP_Query ? (int) $wp_query->found_posts : 0;
-    $stats = [];
-
-    if (is_search()) {
-        $stats[] = [
-            'label' => __('Search matches', 'kuchnia-twist'),
-            'value' => number_format_i18n($found_posts),
-            'detail' => __('The point is to get readers back into a relevant pillar quickly, not overwhelm them with noise.', 'kuchnia-twist'),
-        ];
-    } elseif (is_category()) {
-        $term = get_queried_object();
-        $stats[] = [
-            'label' => __('Stories in this pillar', 'kuchnia-twist'),
-            'value' => number_format_i18n($found_posts),
-            'detail' => $term instanceof WP_Term
-                ? sprintf(__('Every piece here belongs to %s, which keeps the archive feeling coherent.', 'kuchnia-twist'), $term->name)
-                : __('A tighter pillar archive is easier to browse and easier to trust.', 'kuchnia-twist'),
-        ];
-    } elseif (is_home()) {
-        $stats[] = [
-            'label' => __('Articles in the latest feed', 'kuchnia-twist'),
-            'value' => number_format_i18n($found_posts),
-            'detail' => __('The latest view is meant to feel curated, not endless.', 'kuchnia-twist'),
-        ];
-    } else {
-        $stats[] = [
-            'label' => __('Archive results', 'kuchnia-twist'),
-            'value' => number_format_i18n($found_posts),
-            'detail' => __('Even the archive views should keep the same editorial shape as the rest of the site.', 'kuchnia-twist'),
-        ];
-    }
-
-    $stats[] = [
-        'label' => __('Latest in this view', 'kuchnia-twist'),
-        'value' => $lead instanceof WP_Post ? get_the_date('M j, Y', $lead) : __('Soon', 'kuchnia-twist'),
-        'detail' => __('Fresh work helps the publication feel maintained and genuinely active.', 'kuchnia-twist'),
-    ];
-    $stats[] = [
-        'label' => __('Trust pages live', 'kuchnia-twist'),
-        'value' => number_format_i18n($trust_count),
-        'detail' => __('About, contact, privacy, cookies, and editorial standards stay close to the archive.', 'kuchnia-twist'),
-    ];
-
-    $quick_links = [];
-
-    foreach ([
-        'recipes' => __('Recipes', 'kuchnia-twist'),
-        'food-facts' => __('Food Facts', 'kuchnia-twist'),
-        'food-stories' => __('Food Stories', 'kuchnia-twist'),
-    ] as $slug => $label) {
-        $term = get_category_by_slug($slug);
-        if ($term instanceof WP_Term) {
-            $quick_links[] = [
-                'label' => $label,
-                'url' => get_category_link($term),
-            ];
-        }
-    }
-
-    $about_page = get_page_by_path('about');
-    if ($about_page instanceof WP_Post) {
-        $quick_links[] = [
-            'label' => __('About', 'kuchnia-twist'),
-            'url' => get_permalink($about_page),
-        ];
-    }
-
-    echo '<div class="listing-overview" data-reveal>';
-
-    echo '<div class="listing-stats">';
-    foreach ($stats as $stat) {
-        echo '<article class="listing-stat">';
-        printf('<span class="eyebrow">%s</span>', esc_html($stat['label']));
-        printf('<h2>%s</h2>', esc_html($stat['value']));
-        printf('<p>%s</p>', esc_html($stat['detail']));
-        echo '</article>';
-    }
-    echo '</div>';
-
-    echo '<aside class="listing-lead">';
-    if ($lead instanceof WP_Post) {
-        $lead_category = kuchnia_twist_primary_category($lead->ID);
-        echo '<a class="listing-lead__media" href="' . esc_url(get_permalink($lead)) . '">';
-        if (has_post_thumbnail($lead)) {
-            echo get_the_post_thumbnail($lead, 'kuchnia-twist-card');
-        } else {
-            kuchnia_twist_render_media_placeholder(kuchnia_twist_media_context_for_post($lead->ID), __('Lead story in this view', 'kuchnia-twist'));
-        }
-        echo '</a>';
-        echo '<div class="listing-lead__body">';
-        if ($lead_category instanceof WP_Term) {
-            printf('<span class="eyebrow">%s</span>', esc_html($lead_category->name));
-        } else {
-            printf('<span class="eyebrow">%s</span>', esc_html__('Lead story', 'kuchnia-twist'));
-        }
-        printf('<h2><a href="%s">%s</a></h2>', esc_url(get_permalink($lead)), esc_html(get_the_title($lead)));
-        printf('<p>%s</p>', esc_html(get_the_excerpt($lead)));
-        echo '<div class="listing-lead__meta">';
-        printf('<span>%s</span>', esc_html(get_the_date('', $lead)));
-        printf('<span>%s %s</span>', esc_html(kuchnia_twist_estimated_read_time($lead->ID)), esc_html__('min read', 'kuchnia-twist'));
-        echo '</div>';
-        echo '</div>';
-    } else {
-        echo '<div class="listing-lead__body listing-lead__body--empty">';
-        printf('<span class="eyebrow">%s</span>', esc_html__('Browse next', 'kuchnia-twist'));
-        printf('<h2>%s</h2>', esc_html__('The strongest way back into the journal is through a clear pillar or trust page.', 'kuchnia-twist'));
-        printf('<p>%s</p>', esc_html__('Even when a query comes back light, the publication should still feel oriented and easy to navigate.', 'kuchnia-twist'));
-        echo '</div>';
-    }
-
-    if ($quick_links) {
-        echo '<div class="listing-quick-links">';
-        foreach ($quick_links as $link) {
-            printf('<a href="%s">%s</a>', esc_url($link['url']), esc_html($link['label']));
-        }
-        echo '</div>';
-    }
-    echo '</aside>';
-
-    echo '</div>';
-}
-
-function kuchnia_twist_render_listing_header(array $context, string $panel_label = '')
-{
-    $panel_label = $panel_label !== '' ? $panel_label : __('Publication snapshot', 'kuchnia-twist');
-    $notes = !empty($context['notes']) && is_array($context['notes']) ? $context['notes'] : [];
     ?>
-    <section class="listing-header listing-header--feature" data-reveal>
-        <div class="listing-hero">
-            <div class="listing-hero__copy">
-                <?php kuchnia_twist_render_breadcrumbs(); ?>
-                <span class="eyebrow"><?php echo esc_html($context['eyebrow'] ?? ''); ?></span>
-                <h1><?php echo esc_html($context['title'] ?? ''); ?></h1>
-                <p><?php echo esc_html($context['description'] ?? ''); ?></p>
-                <div class="listing-search">
-                    <?php get_search_form(); ?>
-                </div>
-            </div>
-            <aside class="listing-hero__panel">
-                <img class="listing-hero__art" src="<?php echo esc_url($context['art'] ?? kuchnia_twist_fallback_media_url('journal')); ?>" alt="">
-                <span class="site-footer__eyebrow"><?php echo esc_html($panel_label); ?></span>
-                <?php if ($notes) : ?>
-                    <div class="listing-hero__notes">
-                        <?php foreach ($notes as $note) : ?>
-                            <p><?php echo esc_html($note); ?></p>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-            </aside>
-        </div>
-        <?php kuchnia_twist_render_listing_overview(); ?>
-    </section>
-    <?php
-}
-
-function kuchnia_twist_render_listing_empty_state(string $message, string $art_url = '')
-{
-    $art_url = $art_url !== '' ? $art_url : kuchnia_twist_fallback_media_url('journal');
-    ?>
-    <div class="search-rescue">
+    <div class="search-rescue search-rescue--text-only">
         <div class="search-rescue__copy">
             <p class="empty-state"><?php echo esc_html($message); ?></p>
             <div class="rescue-links">
                 <?php kuchnia_twist_pillar_links(); ?>
             </div>
         </div>
-        <div class="search-rescue__art">
-            <img src="<?php echo esc_url($art_url); ?>" alt="">
-        </div>
     </div>
     <?php
-}
-
-function kuchnia_twist_story_practice($post_id = 0)
-{
-    $post_id = $post_id ?: get_the_ID();
-    $category = kuchnia_twist_primary_category($post_id);
-    $slug = $category instanceof WP_Term ? $category->slug : '';
-    $content_type = (string) get_post_meta($post_id, 'kuchnia_twist_content_type', true);
-
-    $practice = [
-        'eyebrow' => __('Editorial practice', 'kuchnia-twist'),
-        'title'   => __('Each article feels specific, readable, and genuinely useful.', 'kuchnia-twist'),
-        'items'   => [
-            __('Clear structure matters more than content volume.', 'kuchnia-twist'),
-            __('Related trust pages remain one click away.', 'kuchnia-twist'),
-            __('The goal is long-term reader confidence, not thin traffic bait.', 'kuchnia-twist'),
-        ],
-    ];
-
-    if ($content_type === 'recipe' || $slug === 'recipes') {
-        $practice['title'] = __('Recipe posts are shaped to be practical first.', 'kuchnia-twist');
-        $practice['items'] = [
-            __('Ingredients and method should stay easy to scan while cooking.', 'kuchnia-twist'),
-            __('Times and yield are surfaced before the recipe card ends.', 'kuchnia-twist'),
-            __('The writing should help home cooks, not just fill space.', 'kuchnia-twist'),
-        ];
-    } elseif ($slug === 'food-facts') {
-        $practice['title'] = __('Food fact pieces should explain without drifting into filler.', 'kuchnia-twist');
-        $practice['items'] = [
-            __('Claims should stay concrete and readable.', 'kuchnia-twist'),
-            __('Context matters more than trivia for its own sake.', 'kuchnia-twist'),
-            __('Readers should finish knowing something useful.', 'kuchnia-twist'),
-        ];
-    } elseif ($slug === 'food-stories') {
-        $practice['title'] = __('Food stories add atmosphere without losing editorial discipline.', 'kuchnia-twist');
-        $practice['items'] = [
-            __('Narrative should still connect clearly to food or kitchen life.', 'kuchnia-twist'),
-            __('The tone can be warmer while staying specific and trustworthy.', 'kuchnia-twist'),
-            __('Storytelling should deepen the publication, not dilute it.', 'kuchnia-twist'),
-        ];
-    }
-
-    return $practice;
-}
-
-function kuchnia_twist_publication_metrics()
-{
-    $published_posts = wp_count_posts('post');
-    $published_count = $published_posts instanceof stdClass ? (int) ($published_posts->publish ?? 0) : 0;
-    $trust_count = kuchnia_twist_trust_page_count();
-
-    $latest_post = get_posts([
-        'post_type'      => 'post',
-        'post_status'    => 'publish',
-        'posts_per_page' => 1,
-        'orderby'        => 'date',
-        'order'          => 'DESC',
-    ]);
-
-    return [
-        [
-            'label' => __('Published articles', 'kuchnia-twist'),
-            'value' => (string) $published_count,
-            'detail'=> $published_count > 0
-                ? __('The archive grows through recipes, food facts, and story-led pieces.', 'kuchnia-twist')
-                : __('The archive is structured around a small, consistent set of editorial pillars.', 'kuchnia-twist'),
-        ],
-        [
-            'label' => __('Editorial pillars', 'kuchnia-twist'),
-            'value' => '3',
-            'detail'=> __('Recipes, food facts, and food stories keep the publication structured.', 'kuchnia-twist'),
-        ],
-        [
-            'label' => __('Trust pages live', 'kuchnia-twist'),
-            'value' => (string) $trust_count,
-            'detail'=> __('About, contact, policy, and standards pages stay visible around the site.', 'kuchnia-twist'),
-        ],
-        [
-            'label' => __('Latest update', 'kuchnia-twist'),
-            'value' => $latest_post ? get_the_date('M j, Y', $latest_post[0]) : __('Soon', 'kuchnia-twist'),
-            'detail'=> __('Freshly published work helps the journal feel active and maintained.', 'kuchnia-twist'),
-        ],
-    ];
 }
 
 function kuchnia_twist_adjacent_story_links($post_id = 0)
@@ -1213,102 +1071,6 @@ function kuchnia_twist_adjacent_story_links($post_id = 0)
     return $links;
 }
 
-function kuchnia_twist_reader_paths()
-{
-    $make_path = static function ($slug, $eyebrow, $title, $description) {
-        $term = get_category_by_slug($slug);
-        $count = 0;
-        $url = home_url('/');
-
-        if ($term instanceof WP_Term) {
-            $count = (int) $term->count;
-            $url = get_category_link($term);
-        }
-
-        return [
-            'eyebrow'     => $eyebrow,
-            'title'       => $title,
-            'description' => $description,
-            'count'       => $count,
-            'count_label' => sprintf(
-                _n('%s article in this pillar', '%s articles in this pillar', max(1, $count), 'kuchnia-twist'),
-                number_format_i18n($count)
-            ),
-            'url'         => $url,
-            'art'         => kuchnia_twist_context_media_url($slug),
-        ];
-    };
-
-    return [
-        $make_path(
-            'recipes',
-            __('Cook tonight', 'kuchnia-twist'),
-            __('Start with the recipes that are meant to be useful on an ordinary day, not only on a perfect one.', 'kuchnia-twist'),
-            __('This path is for practical readers who want something clear, calm, and easy to save for later.', 'kuchnia-twist')
-        ),
-        $make_path(
-            'food-facts',
-            __('Learn something useful', 'kuchnia-twist'),
-            __('Open the explainers and ingredient pieces when you want clarity without textbook dryness.', 'kuchnia-twist'),
-            __('This path works best for readers who like kitchen context, technique notes, and answers to small food questions.', 'kuchnia-twist')
-        ),
-        $make_path(
-            'food-stories',
-            __('Stay for the atmosphere', 'kuchnia-twist'),
-            __('Read the slower story-led pieces when you want the publication to feel more human than transactional.', 'kuchnia-twist'),
-            __('This path adds memory, narrative, and tone so the site feels like a journal instead of just an archive.', 'kuchnia-twist')
-        ),
-    ];
-}
-
-function kuchnia_twist_editorial_desk()
-{
-    $editor_profile   = kuchnia_twist_editor_profile();
-    $published_posts = wp_count_posts('post');
-    $published_count = $published_posts instanceof stdClass ? (int) ($published_posts->publish ?? 0) : 0;
-    $latest_post     = get_posts([
-        'post_type'      => 'post',
-        'post_status'    => 'publish',
-        'posts_per_page' => 1,
-        'orderby'        => 'date',
-        'order'          => 'DESC',
-    ]);
-    $latest_story    = $latest_post ? get_the_title($latest_post[0]) : __('Warm home cooking, useful explainers, and reflective kitchen essays', 'kuchnia-twist');
-    $public_email    = kuchnia_twist_public_contact_email();
-
-    return [
-        'eyebrow' => __('From the editorial desk', 'kuchnia-twist'),
-        'title'   => sprintf(__('A calm food journal works best when readers can feel the editor behind it.', 'kuchnia-twist')),
-        'body'    => sprintf(__('%1$s edits Kuchnia Twist as a warm home-cooking publication with visible standards, a steady archive rhythm, and enough structure that readers can understand the site quickly.', 'kuchnia-twist'), $editor_profile['name']),
-        'art'     => kuchnia_twist_context_media_url('desk'),
-        'notes'   => [
-            [
-                'label' => __('Current archive', 'kuchnia-twist'),
-                'title' => sprintf(
-                    _n('%s published article', '%s published articles', max(1, $published_count), 'kuchnia-twist'),
-                    number_format_i18n($published_count)
-                ),
-                'body'  => __('The goal is a tighter archive with clearer pillars, not volume for its own sake.', 'kuchnia-twist'),
-            ],
-            [
-                'label' => __('Latest story', 'kuchnia-twist'),
-                'title' => $latest_story,
-                'body'  => __('Fresh work should reinforce the same editorial voice readers see in the homepage and trust pages.', 'kuchnia-twist'),
-            ],
-            [
-                'label' => __('Reader access', 'kuchnia-twist'),
-                'title' => $public_email !== '' ? $public_email : __('Contact stays one click away', 'kuchnia-twist'),
-                'body'  => __('Questions, corrections, and partnership enquiries stay visible and welcome instead of hidden.', 'kuchnia-twist'),
-            ],
-            [
-                'label' => __('What this journal favors', 'kuchnia-twist'),
-                'title' => __('Cookable recipes, useful explainers, and slower publication-voice essays', 'kuchnia-twist'),
-                'body'  => __('That mix helps the publication feel rounded, human, and worth returning to after the first click.', 'kuchnia-twist'),
-            ],
-        ],
-    ];
-}
-
 function kuchnia_twist_render_posts_pagination()
 {
     the_posts_pagination([
@@ -1332,115 +1094,115 @@ function kuchnia_twist_page_profile($post = null)
     $profiles = [
         'about' => [
             'eyebrow' => __('About the journal', 'kuchnia-twist'),
-            'intro' => __('Kuchnia Twist is a calm food publication built around warm home cooking, useful ingredient explainers, and story-led kitchen essays.', 'kuchnia-twist'),
+            'intro' => __('Kuchnia Twist is a calm food journal about home cooking, practical kitchen knowledge, and essays that stay close to real meals.', 'kuchnia-twist'),
             'highlights' => [
-                __('Three editorial pillars keep the site focused.', 'kuchnia-twist'),
-                __('Articles are written to be genuinely useful before they try to convert.', 'kuchnia-twist'),
-                __('The layout is intentionally clean so trust signals are easy to find.', 'kuchnia-twist'),
+                __('Recipes are written to be cooked, not just browsed.', 'kuchnia-twist'),
+                __('Food facts stay specific and readable.', 'kuchnia-twist'),
+                __('Stories add warmth without drifting away from the kitchen.', 'kuchnia-twist'),
             ],
             'sections' => [
                 [
                     'title' => __('What readers will find here', 'kuchnia-twist'),
-                    'body' => __("Every published piece should sit inside one of the site's core promises so the archive stays coherent as it grows.", 'kuchnia-twist'),
+                    'body' => __('Everything on the site sits inside one of three clear categories so readers always know what kind of promise a page is making.', 'kuchnia-twist'),
                     'items' => [
                         __('Recipes that feel cookable, clear, and worth saving.', 'kuchnia-twist'),
                         __('Food facts that explain techniques, ingredients, or kitchen myths without filler.', 'kuchnia-twist'),
-                        __('Food stories that add personality, memory, and editorial depth.', 'kuchnia-twist'),
+                        __('Food stories that add personality, memory, and depth.', 'kuchnia-twist'),
                     ],
                 ],
                 [
-                    'title' => __('What makes the site more trustworthy', 'kuchnia-twist'),
-                    'body' => sprintf(__('Trust grows when the publication feels consistent. That means clearer navigation, real policy pages, stronger single-article pages, and a visible editor in %s.', 'kuchnia-twist'), $editor['name']),
+                    'title' => __('How the journal stays accountable', 'kuchnia-twist'),
+                    'body' => sprintf(__('Readers should be able to see who edits the journal, how to get in touch, and where standards and corrections are explained. That visible structure matters as much as the recipes themselves, and it starts with %s.', 'kuchnia-twist'), $editor['name']),
                 ],
                 [
                     'title' => __('Why readers land here', 'kuchnia-twist'),
-                    'body' => __('This page works as the editorial introduction to the whole archive: who runs the publication, what it publishes, and why the site is arranged with visible standards.', 'kuchnia-twist'),
+                    'body' => __('This page explains who is behind the journal, what kind of food life it writes about, and why the archive stays focused on usefulness over noise.', 'kuchnia-twist'),
                 ],
             ],
         ],
         'contact' => [
-            'eyebrow' => __('Reach the editorial desk', 'kuchnia-twist'),
-            'intro' => __('This page keeps the editorial desk easy to reach for readers, collaborators, and relevant business enquiries, with a clear sense of what belongs in the inbox.', 'kuchnia-twist'),
+            'eyebrow' => __('Reach the editor', 'kuchnia-twist'),
+            'intro' => __('Use this page for recipe questions, corrections, sourcing notes, or partnership enquiries that genuinely fit the journal.', 'kuchnia-twist'),
             'highlights' => [
-                __('Recipe questions, corrections, and relevant business enquiries are welcome here.', 'kuchnia-twist'),
-                __('The editorial inbox stays visible so the publication remains reachable.', 'kuchnia-twist'),
-                __('Response expectations are stated plainly so the site feels current and responsibly run.', 'kuchnia-twist'),
+                __('Recipe questions and corrections are welcome.', 'kuchnia-twist'),
+                __('The contact email stays public and easy to find.', 'kuchnia-twist'),
+                __('Replies aim to arrive within a few business days.', 'kuchnia-twist'),
             ],
             'sections' => [
                 [
                     'title' => __('Why readers write', 'kuchnia-twist'),
-                    'body' => __('The most useful messages are the ones that improve clarity, correct an error, or open a partnership that fits the site without distracting from its editorial focus.', 'kuchnia-twist'),
+                    'body' => __('The most useful messages are the ones that improve clarity, correct an error, or open a partnership that fits the site without distracting from its food focus.', 'kuchnia-twist'),
                     'items' => [
                         __('Recipe clarification or kitchen troubleshooting.', 'kuchnia-twist'),
                         __('Corrections, sourcing notes, or factual updates.', 'kuchnia-twist'),
-                        __('Partnership and sponsorship enquiries that fit the publication.', 'kuchnia-twist'),
+                        __('Partnership and sponsorship enquiries that fit the journal.', 'kuchnia-twist'),
                     ],
                 ],
                 [
-                    'title' => __('How the desk stays reachable', 'kuchnia-twist'),
+                    'title' => __('How the contact routes work', 'kuchnia-twist'),
                     'body' => $business_email !== ''
-                        ? sprintf(__('The publication keeps one public editorial inbox at %1$s, a separate business route at %2$s, and a simple response-time expectation so readers can see that the site is both active and accountable.', 'kuchnia-twist'), $public_email, $business_email)
-                        : sprintf(__('The publication keeps one public editorial inbox at %s and a simple response-time expectation so readers can see that the site is active and accountable.', 'kuchnia-twist'), $public_email),
+                        ? sprintf(__('The journal keeps one public contact email at %1$s and a separate business route at %2$s, so readers and partners have a clear way to reach the right person.', 'kuchnia-twist'), $public_email, $business_email)
+                        : sprintf(__('The journal keeps one public contact email at %s so readers always have a visible route back to the editor.', 'kuchnia-twist'), $public_email),
                 ],
                 [
-                    'title' => __('A visible publishing standard', 'kuchnia-twist'),
-                    'body' => __('Even a small independent site feels more credible when the contact page is explicit, current, and easy to scan on mobile.', 'kuchnia-twist'),
+                    'title' => __('Corrections matter', 'kuchnia-twist'),
+                    'body' => __('A clear contact page makes it easier for readers to flag unclear steps, factual errors, or missing context before those problems linger.', 'kuchnia-twist'),
                 ],
             ],
         ],
         'privacy-policy' => [
             'eyebrow' => __('Privacy policy', 'kuchnia-twist'),
-            'intro' => __('This page explains what the site may collect at launch, how that information is used, and which tools are intentionally not active yet.', 'kuchnia-twist'),
+            'intro' => __('This page explains the limited data handling involved in running the site right now and the tools that are intentionally not active.', 'kuchnia-twist'),
             'highlights' => [
                 __('Basic hosting and security data may be processed to serve the site.', 'kuchnia-twist'),
-                __('No newsletter, ad-tech, affiliate, or third-party analytics tools are active at launch.', 'kuchnia-twist'),
-                __('If site tools change later, this page changes with them.', 'kuchnia-twist'),
+                __('No newsletter, advertising, affiliate, or third-party analytics tools are active right now.', 'kuchnia-twist'),
+                __('If the toolset changes, this page changes with it.', 'kuchnia-twist'),
             ],
             'sections' => [
                 [
-                    'title' => __('What is in scope at launch', 'kuchnia-twist'),
-                    'body' => __('The launch policy focuses on routine site delivery, security, and reader contact rather than on tracking-heavy systems, because the publication is not launching with ads, affiliate tools, or non-essential analytics.', 'kuchnia-twist'),
+                    'title' => __('What is in use today', 'kuchnia-twist'),
+                    'body' => __('The site relies on ordinary hosting, security, and reader contact handling rather than on tracking-heavy marketing systems.', 'kuchnia-twist'),
                 ],
                 [
-                    'title' => __('Why this matters for trust', 'kuchnia-twist'),
-                    'body' => __('Readers and advertising platforms both expect policy pages to be easy to find and specific enough to reflect the tools actually used on the site.', 'kuchnia-twist'),
+                    'title' => __('Why the page stays specific', 'kuchnia-twist'),
+                    'body' => __('Privacy pages are most useful when they describe the tools actually in use, not every service a website might install someday.', 'kuchnia-twist'),
                 ],
                 [
-                    'title' => __('What changes later', 'kuchnia-twist'),
-                    'body' => __('If analytics, newsletters, ads, or affiliate tools are added later, this page should be updated before those systems become part of normal site operation.', 'kuchnia-twist'),
+                    'title' => __('If the setup changes', 'kuchnia-twist'),
+                    'body' => __('If newsletters, advertising, affiliate tools, or analytics are added later, this page should be updated before those services go live.', 'kuchnia-twist'),
                 ],
             ],
         ],
         'cookie-policy' => [
             'eyebrow' => __('Cookie guide', 'kuchnia-twist'),
-            'intro' => __('This page explains the limited cookie use associated with the launch site and what would change if new tools are introduced later.', 'kuchnia-twist'),
+            'intro' => __('This page explains the limited cookie use connected to the site right now and what would change if the toolset expands later.', 'kuchnia-twist'),
             'highlights' => [
-                __('Only essential platform and hosting cookies are expected at launch.', 'kuchnia-twist'),
-                __('No ad-tech, affiliate, or third-party analytics cookies are part of the launch setup.', 'kuchnia-twist'),
+                __('Only essential platform and hosting cookies are expected right now.', 'kuchnia-twist'),
+                __('No advertising, affiliate, or third-party analytics cookies are part of the current setup.', 'kuchnia-twist'),
                 __('If tracking or ad technology is added later, this page is updated at the same time.', 'kuchnia-twist'),
             ],
             'sections' => [
                 [
                     'title' => __('Where cookies may come from', 'kuchnia-twist'),
-                    'body' => __('At launch, cookies are expected to come from WordPress itself and the hosting stack, rather than from advertising or analytics networks.', 'kuchnia-twist'),
+                    'body' => __('Right now, cookies are expected to come from WordPress itself and the hosting stack rather than from advertising or analytics networks.', 'kuchnia-twist'),
                 ],
                 [
-                    'title' => __('What keeps the page useful', 'kuchnia-twist'),
-                    'body' => __('Cookie language stays most useful when it describes the real tools in use on the site instead of collapsing into vague legal filler.', 'kuchnia-twist'),
+                    'title' => __('Why the page stays simple', 'kuchnia-twist'),
+                    'body' => __('Cookie language is most useful when it describes the real tools on the site instead of collapsing into generic legal filler.', 'kuchnia-twist'),
                 ],
                 [
                     'title' => __('When to revisit it', 'kuchnia-twist'),
-                    'body' => __('If you install analytics, ad tags, new plugins, or embedded social widgets, this page should be reviewed at the same time.', 'kuchnia-twist'),
+                    'body' => __('If analytics, ad tags, new plugins, or embedded social widgets are added, this page should be reviewed at the same time.', 'kuchnia-twist'),
                 ],
             ],
         ],
         'editorial-policy' => [
             'eyebrow' => __('Editorial standards', 'kuchnia-twist'),
-            'intro' => __('An editorial policy gives the publication a visible backbone. It explains how recipes are structured, how fact-led pieces are handled, and how corrections are approached.', 'kuchnia-twist'),
+            'intro' => __('This page explains how the journal handles recipes, explainers, essays, corrections, and future commercial disclosure.', 'kuchnia-twist'),
             'highlights' => [
-                __('Recipe work should aim to be practical and reader-first.', 'kuchnia-twist'),
-                __('Food facts should be handled with care and clarity.', 'kuchnia-twist'),
-                __('Story-led essays should stay clearly in publication voice rather than fake autobiography.', 'kuchnia-twist'),
+                __('Recipes aim to be practical and reader-first.', 'kuchnia-twist'),
+                __('Food facts stay careful, specific, and plainspoken.', 'kuchnia-twist'),
+                __('Essays use a clear voice, not fake autobiography.', 'kuchnia-twist'),
             ],
             'sections' => [
                 [
@@ -1453,7 +1215,7 @@ function kuchnia_twist_page_profile($post = null)
                 ],
                 [
                     'title' => __('Corrections and updates', 'kuchnia-twist'),
-                    'body' => __("If a recipe instruction is unclear or a factual statement needs revision, correct it promptly and keep the publication's standards visible through that process.", 'kuchnia-twist'),
+                    'body' => __("If a recipe instruction is unclear or a factual statement needs revision, correct it promptly and keep the journal's standards visible through that process.", 'kuchnia-twist'),
                 ],
             ],
         ],
@@ -1519,168 +1281,441 @@ function kuchnia_twist_page_action_links($slug)
         ],
         'contact' => [
             $make_link('about', __('Read the about page', 'kuchnia-twist')),
-            $make_link('editorial-policy', __('See editorial standards', 'kuchnia-twist')),
+            $make_link('editorial-policy', __('See site standards', 'kuchnia-twist')),
         ],
         'privacy-policy' => [
             $make_link('cookie-policy', __('Review the cookie page', 'kuchnia-twist')),
-            $make_link('contact', __('Contact the site owner', 'kuchnia-twist')),
+            $make_link('contact', __('Contact the editor', 'kuchnia-twist')),
         ],
         'cookie-policy' => [
             $make_link('privacy-policy', __('Review the privacy page', 'kuchnia-twist')),
-            $make_link('contact', __('Contact the site owner', 'kuchnia-twist')),
+            $make_link('contact', __('Contact the editor', 'kuchnia-twist')),
         ],
         'editorial-policy' => [
-            $make_link('about', __('About the publication', 'kuchnia-twist')),
-            $make_link('contact', __('Contact the editorial desk', 'kuchnia-twist')),
+            $make_link('about', __('About the journal', 'kuchnia-twist')),
+            $make_link('contact', __('Contact the editor', 'kuchnia-twist')),
         ],
     ];
 
     return array_values(array_filter($map[$slug] ?? [$make_link('home', __('Back to the homepage', 'kuchnia-twist'))]));
 }
 
-function kuchnia_twist_page_signal_cards($post = null)
+function kuchnia_twist_render_browser_chrome_meta()
 {
-    $post = $post ? get_post($post) : get_post();
-
-    if (!$post instanceof WP_Post || $post->post_type !== 'page') {
-        return [];
-    }
-
-    $published_posts = wp_count_posts('post');
-    $published_count = $published_posts instanceof stdClass ? (int) ($published_posts->publish ?? 0) : 0;
-    $trust_count     = kuchnia_twist_trust_page_count();
-    $public_email    = kuchnia_twist_public_contact_email();
-    $modified_date   = get_the_modified_date('M j, Y', $post);
-
-    $lead_cards = [
-        'about' => [
-            'label'  => __('Editorial pillars', 'kuchnia-twist'),
-            'value'  => '3',
-            'detail' => __('Recipes, food facts, and food stories keep the journal understandable from the first click.', 'kuchnia-twist'),
-        ],
-        'contact' => [
-            'label'  => __('Editorial inbox', 'kuchnia-twist'),
-            'value'  => $public_email !== '' ? antispambot($public_email) : __('Editorial email', 'kuchnia-twist'),
-            'detail' => __('A visible response channel helps the publication feel real, maintained, and reachable.', 'kuchnia-twist'),
-        ],
-        'privacy-policy' => [
-            'label'  => __('Privacy scope', 'kuchnia-twist'),
-            'value'  => __('Site data', 'kuchnia-twist'),
-            'detail' => __('This page should match the real analytics, forms, embeds, and ad tools used on the site.', 'kuchnia-twist'),
-        ],
-        'cookie-policy' => [
-            'label'  => __('Cookie scope', 'kuchnia-twist'),
-            'value'  => __('Site tools', 'kuchnia-twist'),
-            'detail' => __('Consent language works best when it reflects the actual tracking and embedded services in use.', 'kuchnia-twist'),
-        ],
-        'editorial-policy' => [
-            'label'  => __('Standards scope', 'kuchnia-twist'),
-            'value'  => __('Recipes + facts + stories', 'kuchnia-twist'),
-            'detail' => __('Editorial standards matter most when they guide every pillar, not only the fact-led pieces.', 'kuchnia-twist'),
-        ],
-    ];
-
-    $signals = [
-        $lead_cards[$post->post_name] ?? [
-            'label'  => __('Editorial pillars', 'kuchnia-twist'),
-            'value'  => '3',
-            'detail' => __('Keeping every article inside a clear pillar makes the publication easier to trust and easier to browse.', 'kuchnia-twist'),
-        ],
-        [
-            'label'  => __('Last reviewed', 'kuchnia-twist'),
-            'value'  => $modified_date ?: __('Recently updated', 'kuchnia-twist'),
-            'detail' => __('Trust pages should stay current as the publication, tools, and reader promises evolve.', 'kuchnia-twist'),
-        ],
-        [
-            'label'  => __('Published archive', 'kuchnia-twist'),
-            'value'  => number_format_i18n($published_count),
-            'detail' => $published_count > 0
-                ? __('Readers can move from trust pages back into a live journal instead of a static shell.', 'kuchnia-twist')
-                : __('Once publishing starts, this page should still send readers back into the live archive.', 'kuchnia-twist'),
-        ],
-        [
-            'label'  => __('Trust pages live', 'kuchnia-twist'),
-            'value'  => number_format_i18n($trust_count),
-            'detail' => __('About, contact, privacy, cookies, and standards should read like one connected trust layer.', 'kuchnia-twist'),
-        ],
-    ];
-
-    return $signals;
-}
-
-function kuchnia_twist_trust_page_links($current_slug = '')
-{
-    $links = [];
-    $slugs = ['about', 'contact', 'privacy-policy', 'cookie-policy', 'editorial-policy'];
-
-    foreach ($slugs as $slug) {
-        if ($slug === $current_slug) {
-            continue;
-        }
-
-        $page = get_page_by_path($slug);
-        if (!$page instanceof WP_Post) {
-            continue;
-        }
-
-        $links[] = [
-            'label' => get_the_title($page),
-            'url'   => get_permalink($page),
-        ];
-    }
-
-    return $links;
+    echo '<meta name="theme-color" content="#f6f0e8">' . "\n";
+    echo '<meta name="apple-mobile-web-app-capable" content="yes">' . "\n";
+    echo '<meta name="apple-mobile-web-app-status-bar-style" content="default">' . "\n";
 }
 
 add_action('wp_head', function () {
     if (has_site_icon()) {
+        kuchnia_twist_render_browser_chrome_meta();
         return;
     }
 
     echo '<link rel="icon" href="' . esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')) . '" type="image/svg+xml">';
+    echo "\n";
+    echo '<link rel="apple-touch-icon" href="' . esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')) . '">' . "\n";
+    kuchnia_twist_render_browser_chrome_meta();
 }, 1);
 
+function kuchnia_twist_schema_logo_url()
+{
+    if (function_exists('has_site_icon') && has_site_icon()) {
+        $site_icon = get_site_icon_url(512);
+        if (is_string($site_icon) && $site_icon !== '') {
+            return $site_icon;
+        }
+    }
+
+    $custom_logo_id = (int) get_theme_mod('custom_logo');
+    if ($custom_logo_id > 0) {
+        $custom_logo = wp_get_attachment_image_url($custom_logo_id, 'full');
+        if (is_string($custom_logo) && $custom_logo !== '') {
+            return $custom_logo;
+        }
+    }
+
+    return '';
+}
+
+function kuchnia_twist_schema_image_object_from_attachment($attachment_id, $size = 'full', $fallback_alt = '')
+{
+    $attachment_id = (int) $attachment_id;
+    if ($attachment_id <= 0) {
+        return null;
+    }
+
+    $image_data = wp_get_attachment_image_src($attachment_id, $size);
+    if (!is_array($image_data) || empty($image_data[0])) {
+        return null;
+    }
+
+    $image = [
+        '@type' => 'ImageObject',
+        'url'   => (string) $image_data[0],
+    ];
+
+    $width = (int) ($image_data[1] ?? 0);
+    $height = (int) ($image_data[2] ?? 0);
+    if ($width > 0) {
+        $image['width'] = $width;
+    }
+    if ($height > 0) {
+        $image['height'] = $height;
+    }
+
+    $mime_type = (string) get_post_mime_type($attachment_id);
+    if ($mime_type !== '') {
+        $image['encodingFormat'] = $mime_type;
+    }
+
+    $alt = trim((string) get_post_meta($attachment_id, '_wp_attachment_image_alt', true));
+    if ($alt === '') {
+        $alt = trim((string) $fallback_alt);
+    }
+    if ($alt !== '') {
+        $image['caption'] = $alt;
+    }
+
+    return $image;
+}
+
+function kuchnia_twist_schema_publisher()
+{
+    $profile = kuchnia_twist_editor_profile();
+    $publisher = [
+        '@type' => 'Organization',
+        '@id'   => trailingslashit(home_url('/')) . '#/schema/publisher',
+        'name'  => get_bloginfo('name'),
+        'url'   => home_url('/'),
+    ];
+
+    $description = trim((string) get_bloginfo('description'));
+    if ($description !== '') {
+        $publisher['description'] = $description;
+    }
+
+    $logo_object = null;
+    $site_icon_id = function_exists('has_site_icon') && has_site_icon() ? (int) get_option('site_icon') : 0;
+    if ($site_icon_id > 0) {
+        $logo_object = kuchnia_twist_schema_image_object_from_attachment($site_icon_id, 'full', get_bloginfo('name'));
+    }
+    if (!$logo_object) {
+        $custom_logo_id = (int) get_theme_mod('custom_logo');
+        if ($custom_logo_id > 0) {
+            $logo_object = kuchnia_twist_schema_image_object_from_attachment($custom_logo_id, 'full', get_bloginfo('name'));
+        }
+    }
+
+    if ($logo_object) {
+        $publisher['logo'] = $logo_object;
+    } else {
+        $logo_url = kuchnia_twist_schema_logo_url();
+        if ($logo_url !== '') {
+            $publisher['logo'] = [
+                '@type' => 'ImageObject',
+                'url'   => $logo_url,
+            ];
+        }
+    }
+
+    if (!empty($profile['public_email'])) {
+        $publisher['email'] = $profile['public_email'];
+    }
+
+    $contact_points = [];
+    if (!empty($profile['public_email'])) {
+        $contact_points[] = [
+            '@type'             => 'ContactPoint',
+            'contactType'       => 'editorial',
+            'email'             => $profile['public_email'],
+            'availableLanguage' => 'en',
+        ];
+    }
+    if (!empty($profile['business_email'])) {
+        $contact_points[] = [
+            '@type'             => 'ContactPoint',
+            'contactType'       => 'business',
+            'email'             => $profile['business_email'],
+            'availableLanguage' => 'en',
+        ];
+    }
+    if ($contact_points) {
+        $publisher['contactPoint'] = $contact_points;
+    }
+
+    $same_as = array_values(array_map(static function ($profile) {
+        return $profile['url'];
+    }, kuchnia_twist_social_profiles()));
+
+    if ($same_as) {
+        $publisher['sameAs'] = $same_as;
+    }
+
+    return $publisher;
+}
+
+function kuchnia_twist_schema_author()
+{
+    $profile = kuchnia_twist_editor_profile();
+    $site_name = trim((string) get_bloginfo('name'));
+    $author_name = trim((string) ($profile['name'] ?? ''));
+    $about_page = get_page_by_path('about');
+    $about_url = $about_page instanceof WP_Post ? get_permalink($about_page) : home_url('/');
+    $photo_id = !empty($profile['photo_id']) ? (int) $profile['photo_id'] : 0;
+
+    if ($author_name === '' || strtolower($author_name) === strtolower($site_name)) {
+        return [
+            '@type' => 'Organization',
+            '@id'   => trailingslashit(home_url('/')) . '#/schema/publisher',
+            'name'  => $site_name,
+            'url'   => home_url('/'),
+        ];
+    }
+
+    $author = [
+        '@type' => 'Person',
+        '@id'   => trailingslashit(home_url('/')) . '#/schema/editor',
+        'name'  => $author_name,
+        'url'   => $about_url,
+    ];
+
+    if (!empty($profile['role'])) {
+        $author['jobTitle'] = $profile['role'];
+    }
+
+    if (!empty($profile['public_email'])) {
+        $author['email'] = $profile['public_email'];
+    }
+
+    if ($photo_id > 0) {
+        $author_image = kuchnia_twist_schema_image_object_from_attachment($photo_id, 'full', $author_name);
+        if ($author_image) {
+            $author['image'] = $author_image;
+        }
+    }
+
+    $same_as = array_values(array_map(static function ($profile) {
+        return $profile['url'];
+    }, kuchnia_twist_social_profiles()));
+
+    if ($same_as) {
+        $author['sameAs'] = $same_as;
+    }
+
+    return $author;
+}
+
+function kuchnia_twist_schema_website()
+{
+    $website = [
+        '@type'     => 'WebSite',
+        '@id'       => trailingslashit(home_url('/')) . '#/schema/website',
+        'url'       => home_url('/'),
+        'name'      => get_bloginfo('name'),
+        'inLanguage'=> str_replace('_', '-', get_locale()),
+        'publisher' => ['@id' => trailingslashit(home_url('/')) . '#/schema/publisher'],
+    ];
+
+    $description = trim((string) kuchnia_twist_meta_description());
+    if ($description !== '') {
+        $website['description'] = $description;
+    }
+
+    $website['potentialAction'] = [
+        '@type'       => 'SearchAction',
+        'target'      => add_query_arg('s', '{search_term_string}', home_url('/')),
+        'query-input' => 'required name=search_term_string',
+    ];
+
+    return $website;
+}
+
+function kuchnia_twist_schema_breadcrumbs($post = null)
+{
+    $items = kuchnia_twist_get_breadcrumb_items($post);
+    if (count($items) < 2) {
+        return null;
+    }
+
+    $list_items = [];
+
+    foreach ($items as $index => $item) {
+        $entry = [
+            '@type'    => 'ListItem',
+            'position' => $index + 1,
+            'name'     => $item['label'],
+        ];
+
+        if (!empty($item['url'])) {
+            $entry['item'] = $item['url'];
+        }
+
+        $list_items[] = $entry;
+    }
+
+    return [
+        '@type'           => 'BreadcrumbList',
+        '@id'             => trailingslashit(home_url('/')) . '#/schema/breadcrumbs',
+        'itemListElement' => $list_items,
+    ];
+}
+
+function kuchnia_twist_schema_page_entity()
+{
+    if (is_singular('post')) {
+        $post_id      = get_the_ID();
+        $recipe_data  = kuchnia_twist_get_recipe_data($post_id);
+        $content_type = get_post_meta($post_id, 'kuchnia_twist_content_type', true);
+        $image_id     = (int) get_post_thumbnail_id($post_id);
+        $description  = trim((string) get_post_meta($post_id, 'kuchnia_twist_seo_description', true));
+
+        if ($description === '') {
+            $description = trim((string) get_the_excerpt($post_id));
+        }
+
+        $common = [
+            '@id'              => trailingslashit(get_permalink($post_id)) . '#/schema/main',
+            'name'             => get_the_title($post_id),
+            'headline'         => get_the_title($post_id),
+            'description'      => $description,
+            'datePublished'    => get_the_date(DATE_W3C, $post_id),
+            'dateModified'     => get_the_modified_date(DATE_W3C, $post_id),
+            'mainEntityOfPage' => get_permalink($post_id),
+            'author'           => kuchnia_twist_schema_author(),
+            'publisher'        => ['@id' => trailingslashit(home_url('/')) . '#/schema/publisher'],
+            'isPartOf'         => ['@id' => trailingslashit(home_url('/')) . '#/schema/website'],
+        ];
+
+        if ($image_id > 0) {
+            $image_object = kuchnia_twist_schema_image_object_from_attachment($image_id, 'full', get_the_title($post_id));
+            if ($image_object) {
+                $common['image'] = [$image_object];
+            }
+        }
+
+        $category = kuchnia_twist_primary_category($post_id);
+        if ($category instanceof WP_Term) {
+            $common['articleSection'] = $category->name;
+        }
+
+        if ($content_type === 'recipe' && !empty($recipe_data)) {
+            $common['@type'] = 'Recipe';
+            $common['recipeIngredient'] = $recipe_data['ingredients'] ?? [];
+            $common['recipeInstructions'] = array_map(static function ($step) {
+                return ['@type' => 'HowToStep', 'text' => $step];
+            }, $recipe_data['instructions'] ?? []);
+            if (!empty($recipe_data['prep_time'])) {
+                $common['prepTime'] = $recipe_data['prep_time'];
+            }
+            if (!empty($recipe_data['cook_time'])) {
+                $common['cookTime'] = $recipe_data['cook_time'];
+            }
+            if (!empty($recipe_data['total_time'])) {
+                $common['totalTime'] = $recipe_data['total_time'];
+            }
+            if (!empty($recipe_data['yield'])) {
+                $common['recipeYield'] = $recipe_data['yield'];
+            }
+            if ($category instanceof WP_Term) {
+                $common['recipeCategory'] = $category->name;
+            }
+
+            return $common;
+        }
+
+        $common['@type'] = 'Article';
+        return $common;
+    }
+
+    if (is_page()) {
+        $post_id = get_the_ID();
+        $page_slug = (string) get_post_field('post_name', $post_id);
+        $page_type_map = [
+            'about'   => 'AboutPage',
+            'contact' => 'ContactPage',
+        ];
+        $entity = [
+            '@type'            => $page_type_map[$page_slug] ?? 'WebPage',
+            '@id'              => trailingslashit(get_permalink($post_id)) . '#/schema/page',
+            'name'             => get_the_title($post_id),
+            'url'              => get_permalink($post_id),
+            'description'      => kuchnia_twist_meta_description(),
+            'isPartOf'         => ['@id' => trailingslashit(home_url('/')) . '#/schema/website'],
+            'publisher'        => ['@id' => trailingslashit(home_url('/')) . '#/schema/publisher'],
+            'author'           => kuchnia_twist_schema_author(),
+            'mainEntityOfPage' => get_permalink($post_id),
+        ];
+
+        $image_id = (int) get_post_thumbnail_id($post_id);
+        if ($image_id > 0) {
+            $image_object = kuchnia_twist_schema_image_object_from_attachment($image_id, 'full', get_the_title($post_id));
+            if ($image_object) {
+                $entity['image'] = [$image_object];
+            }
+        }
+
+        return $entity;
+    }
+
+    if (is_front_page()) {
+        return [
+            '@type'            => 'WebPage',
+            '@id'              => trailingslashit(home_url('/')) . '#/schema/home',
+            'name'             => get_bloginfo('name'),
+            'url'              => home_url('/'),
+            'description'      => kuchnia_twist_meta_description(),
+            'isPartOf'         => ['@id' => trailingslashit(home_url('/')) . '#/schema/website'],
+            'publisher'        => ['@id' => trailingslashit(home_url('/')) . '#/schema/publisher'],
+            'mainEntityOfPage' => home_url('/'),
+        ];
+    }
+
+    if (is_home() || is_archive() || is_search()) {
+        $canonical = trim((string) kuchnia_twist_meta_canonical_url());
+        return [
+            '@type'            => is_search() ? 'SearchResultsPage' : 'CollectionPage',
+            '@id'              => $canonical . '#/schema/collection',
+            'name'             => wp_get_document_title(),
+            'url'              => $canonical,
+            'description'      => kuchnia_twist_meta_description(),
+            'isPartOf'         => ['@id' => trailingslashit(home_url('/')) . '#/schema/website'],
+            'publisher'        => ['@id' => trailingslashit(home_url('/')) . '#/schema/publisher'],
+            'mainEntityOfPage' => $canonical,
+        ];
+    }
+
+    return null;
+}
+
 add_action('wp_head', function () {
-    if (!is_singular('post')) {
+    if (is_admin()) {
         return;
     }
 
-    $post_id      = get_the_ID();
-    $recipe_data  = kuchnia_twist_get_recipe_data($post_id);
-    $content_type = get_post_meta($post_id, 'kuchnia_twist_content_type', true);
-    $image_url    = get_the_post_thumbnail_url($post_id, 'full');
+    $graph = [
+        kuchnia_twist_schema_publisher(),
+        kuchnia_twist_schema_website(),
+    ];
 
-    if ($content_type === 'recipe' && !empty($recipe_data)) {
-        $schema = [
-            '@context'          => 'https://schema.org',
-            '@type'             => 'Recipe',
-            'name'              => get_the_title($post_id),
-            'description'       => get_the_excerpt($post_id),
-            'author'            => ['@type' => 'Organization', 'name' => get_bloginfo('name')],
-            'image'             => $image_url ? [$image_url] : [],
-            'recipeIngredient'  => $recipe_data['ingredients'] ?? [],
-            'recipeInstructions'=> array_map(static function ($step) {
-                return ['@type' => 'HowToStep', 'text' => $step];
-            }, $recipe_data['instructions'] ?? []),
-            'prepTime'          => $recipe_data['prep_time'] ?? '',
-            'cookTime'          => $recipe_data['cook_time'] ?? '',
-            'totalTime'         => $recipe_data['total_time'] ?? '',
-            'recipeYield'       => $recipe_data['yield'] ?? '',
-        ];
-    } else {
-        $schema = [
-            '@context'         => 'https://schema.org',
-            '@type'            => 'Article',
-            'headline'         => get_the_title($post_id),
-            'description'      => get_the_excerpt($post_id),
-            'datePublished'    => get_the_date(DATE_W3C, $post_id),
-            'dateModified'     => get_the_modified_date(DATE_W3C, $post_id),
-            'author'           => ['@type' => 'Organization', 'name' => get_bloginfo('name')],
-            'publisher'        => ['@type' => 'Organization', 'name' => get_bloginfo('name')],
-            'image'            => $image_url ? [$image_url] : [],
-            'mainEntityOfPage' => get_permalink($post_id),
-        ];
+    $breadcrumbs = kuchnia_twist_schema_breadcrumbs();
+    if (is_array($breadcrumbs)) {
+        $graph[] = $breadcrumbs;
     }
 
-    echo '<script type="application/ld+json">' . wp_json_encode($schema) . '</script>';
-});
+    $page_entity = kuchnia_twist_schema_page_entity();
+    if (is_array($page_entity)) {
+        $graph[] = $page_entity;
+    }
+
+    $graph = array_values(array_filter($graph));
+    if (!$graph) {
+        return;
+    }
+
+    echo '<script type="application/ld+json">' . wp_json_encode([
+        '@context' => 'https://schema.org',
+        '@graph'   => $graph,
+    ]) . '</script>';
+}, 20);

@@ -29,7 +29,7 @@ The workflow is intentionally small and upgrade-friendly. WordPress stays the co
   - queue worker that:
     - claims jobs from WordPress
     - generates the article
-    - generates missing images if needed
+    - generates missing images only when the launch policy allows it
     - publishes the WordPress post
     - publishes the Facebook Page post
     - adds the CTA link as the first comment
@@ -128,7 +128,7 @@ The worker will pick up the queued job in the background.
 For each job:
 
 1. The worker generates the article package with OpenAI.
-2. If images are missing, it generates them too.
+2. If the site is in an AI-fallback image mode and images are missing, it generates them too.
 3. The WordPress article is published immediately.
 4. A Facebook Page post is published.
 5. The article link is posted as the first Facebook comment.
@@ -168,9 +168,38 @@ After each deploy:
 6. Confirm the Facebook post and first comment were created.
 7. If Facebook fails after blog publish, confirm the job becomes `partial_failure` and retry it from wp-admin.
 
+## Public launch QA
+
+After the deploy is live, review the public site at:
+
+- `360px`
+- `390px`
+- `430px`
+- `768px`
+- `1024px`
+- `1440px`
+
+Acceptance checklist:
+
+- mobile nav opens, closes, and stays visible
+- homepage first viewport feels content-led rather than chrome-led
+- homepage sections do not leave oversized empty gaps
+- archive and search pages scan cleanly on mobile and desktop
+- no decorative placeholder artwork appears on homepage, archive, search, or related-story cards
+- single posts show a clear excerpt, useful support links, and consistent trust signals
+- About, Contact, Privacy Policy, Cookie Policy, and Editorial Policy read like live publication pages
+- launch posts and trust pages have distinct excerpts and meta descriptions
+- canonical, Open Graph, and Twitter metadata reflect the current page, with real image alt text and dimensions where available, and search results stay `noindex`
+- the launch head output also sets a warm browser `theme-color` and icon hints for mobile/browser chrome
+- the theme emits a structured-data graph for the publisher, website, breadcrumbs, and page/article/recipe entity, using richer image objects when real media is available
+- search `noindex` is handled through WordPress `wp_robots`, and publisher schema includes editorial/business contact points when those settings are filled
+- reveal-on-scroll sections still render normally when JavaScript is unavailable, and the search/menu overlays behave like proper dialogs when JavaScript is present
+- above-the-fold hero and lead images use eager/high-priority loading without falling back to oversized full-size homepage images
+- the site still contains no ad placeholders, sponsor placeholders, or `ads.txt` before a real AdSense account exists
+
 ## Notes
 
-- The plugin auto-creates `About`, `Contact`, `Privacy Policy`, `Cookie Policy`, and `Editorial Policy` placeholder pages.
+- The plugin seeds `About`, `Contact`, `Privacy Policy`, `Cookie Policy`, and `Editorial Policy` with launch-ready copy and media, and now keeps a seed hash so later launch-copy improvements can refresh untouched seeded pages without overwriting manual edits.
 - The theme is switched automatically to `Kuchnia Twist` on first load.
 - Facebook Groups are manual in phase 1. The system prepares the copy, but it does not auto-post into groups.
 - The worker is stateless now. It polls for queued jobs instead of keeping its own post history file.

@@ -36,6 +36,7 @@ It now also owns:
 - worker heartbeat status
 - per-job ops events
 - filtered job export from wp-admin
+- seeded launch-page refresh tracking via stored seed hashes
 
 Current structure:
 
@@ -120,6 +121,25 @@ The publisher screen is now an operator console:
 - filtered CSV export for reporting/debugging
 
 This keeps WordPress as the source of truth for editorial and operational state.
+
+### Seeded trust pages
+
+The launch trust pages (`About`, `Contact`, `Privacy Policy`, `Cookie Policy`, and `Editorial Policy`) are now tracked with a stored seed hash.
+
+- untouched seeded pages can be refreshed on later plugin versions
+- manually edited pages are left alone once their current content no longer matches the stored seed hash
+- older placeholder-style pages can still be refreshed through marker-based detection
+
+### Theme metadata and schema
+
+The theme owns the public metadata layer for launch.
+
+- canonical URLs are emitted per page, including paginated archive/feed variants
+- Open Graph and Twitter tags reflect the current page and preferred image when one exists
+- search result pages are marked `noindex` through WordPress `wp_robots`
+- JSON-LD emits a graph for the publisher, website, breadcrumbs, and the current page/article/recipe entity
+- schema images use richer `ImageObject` data when real attachment metadata is available
+- publisher schema can expose editorial/business contact points and social profiles when those settings are configured
 
 ## What does not need a rethink now
 
