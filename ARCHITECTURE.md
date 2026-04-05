@@ -31,6 +31,12 @@ Responsibility:
 
 The plugin is the control plane for the publishing system.
 
+It now also owns:
+
+- worker heartbeat status
+- per-job ops events
+- filtered job export from wp-admin
+
 Current structure:
 
 - `kuchnia-twist-publisher.php` is the thin plugin loader
@@ -53,8 +59,67 @@ Responsibility:
 - publish the Facebook Page post
 - add the first comment with the tracked link
 - save the manual group-share kit
+- send worker heartbeat snapshots back to WordPress
 
 The worker is the execution engine. It should stay stateless except for short-lived runtime state.
+
+## Operations model
+
+### Worker heartbeat status
+
+The worker reports to:
+
+- `POST /wp-json/kuchnia-twist/v1/worker/heartbeat`
+
+WordPress stores the latest snapshot in:
+
+- `kuchnia_twist_worker_status`
+
+Tracked fields:
+
+- `worker_version`
+- `enabled`
+- `run_once`
+- `poll_seconds`
+- `startup_delay_seconds`
+- `config_ok`
+- `last_seen_at`
+- `last_loop_result`
+- `last_job_id`
+- `last_job_status`
+- `last_error`
+
+The wp-admin dashboard treats the worker as stale when no heartbeat arrives within `max(90 seconds, poll_seconds * 3)`.
+
+### Job events table
+
+The plugin keeps a lightweight ops log in:
+
+- `wp_kuchnia_twist_job_events`
+
+Each row stores:
+
+- `job_id`
+- `event_type`
+- `status`
+- `stage`
+- `message`
+- `context_json`
+- `created_at`
+
+This is intentionally compact. It should store short operational context only, not full article HTML or large generated payloads.
+
+### Operator console direction
+
+The publisher screen is now an operator console:
+
+- system status strip for worker/OpenAI/Facebook readiness
+- paginated job list with search and filters
+- selected job detail with snapshots, outputs, media, and retry actions
+- per-job ops timeline
+- filtered CSV export for reporting/debugging
+
+This keeps WordPress as the source of truth for editorial and operational state.
 
 ## What does not need a rethink now
 
@@ -76,11 +141,12 @@ This architecture is still the right one for the current phase.
 
 ### Plugin track
 
-- split the single plugin file into `includes/` modules when phase 2 starts
+- split the single plugin file into `includes/` modules when the current production hardening pass is stable
 - suggested split:
   - `class-settings.php`
   - `class-admin-pages.php`
   - `class-jobs-repository.php`
+  - `class-job-events-repository.php`
   - `class-rest-api.php`
   - `class-media.php`
   - `class-bootstrap.php`
@@ -89,12 +155,13 @@ This architecture is still the right one for the current phase.
 ### Worker track
 
 - keep provider integrations isolated in helper functions or modules
+- keep heartbeat/reporting separate from generation/publishing logic when modularization starts
 - if more channels are added later, move provider-specific publishing into separate files
 
 ## Phase order
 
-1. Finish public blog polish.
-2. Validate local and Coolify deployment again.
+1. Run production hardening and validate the live pipeline.
+2. Use heartbeat + ops log + export to catch real runtime issues.
 3. Start phase-2 plugin cleanup by modularizing the plugin.
 4. Extend the content machine only after the codebase is easier to maintain.
 

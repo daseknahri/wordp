@@ -19,8 +19,11 @@ The workflow is intentionally small and upgrade-friendly. WordPress stays the co
   - trust-ready footer and page links
 - `wordpress/wp-content/plugins/kuchnia-twist-publisher/`
   - topic-list-driven publishing UI in wp-admin
+  - system-status dashboard with worker freshness checks
+  - event timeline and CSV export for filtered job history
   - settings screen for OpenAI + Facebook
   - queued job storage
+  - job event storage
   - internal REST endpoints for the worker
 - `autopost/`
   - queue worker that:
@@ -31,6 +34,7 @@ The workflow is intentionally small and upgrade-friendly. WordPress stays the co
     - publishes the Facebook Page post
     - adds the CTA link as the first comment
     - stores a manual group-share kit
+    - sends heartbeat updates back to WordPress
 
 ## Local development
 
@@ -112,10 +116,10 @@ Then open `Kuchnia Twist` and create a job:
 
 1. Select a topic
 2. Select `Recipe`, `Food Fact`, or `Food Story`
-3. Optionally override the title
-4. Optionally upload a blog image
-5. Optionally upload a Facebook image
-6. Click `Generate & Publish`
+3. Set the final title when launch mode is `manual_only`
+4. Upload a blog image
+5. Upload a Facebook image
+6. Click `Queue Job`
 
 The worker will pick up the queued job in the background.
 
@@ -131,6 +135,38 @@ For each job:
 6. A manual group-share kit is saved in the job record for your food groups.
 
 If the blog publishes but Facebook fails, the WordPress post stays live and the job is marked as `partial_failure`. You can retry it from wp-admin without duplicating the article.
+
+## Operations and worker health
+
+- The worker sends a heartbeat to WordPress on boot, after startup delay, and after every loop.
+- WordPress stores the latest worker snapshot in the `kuchnia_twist_worker_status` option.
+- The dashboard marks the worker as stale if no heartbeat arrives within `max(90 seconds, poll_seconds * 3)`.
+- Missing Facebook credentials do not block queueing because the publish policy keeps the blog live even if Facebook fails later.
+- Missing OpenAI credentials or a stale worker heartbeat show warnings in wp-admin before you queue jobs.
+- The job list can be filtered and exported as CSV from the current filtered result set. CSV export intentionally omits article HTML, raw payload blobs, and long generated copy.
+
+## Production smoke test
+
+After each deploy:
+
+1. Open `Kuchnia Twist` in wp-admin and confirm the worker status strip shows a recent heartbeat.
+2. Open `Kuchnia Twist -> Settings` and confirm:
+   - worker secret is present
+   - OpenAI is ready
+   - Facebook is ready, or the warning is expected
+3. Queue one valid `manual_only` job with:
+   - a final title
+   - a blog hero image
+   - a Facebook image
+4. Watch the job move through:
+   - `queued`
+   - `generating`
+   - `publishing_blog`
+   - `publishing_facebook`
+   - `completed`
+5. Open the published post and confirm the article is live.
+6. Confirm the Facebook post and first comment were created.
+7. If Facebook fails after blog publish, confirm the job becomes `partial_failure` and retry it from wp-admin.
 
 ## Notes
 

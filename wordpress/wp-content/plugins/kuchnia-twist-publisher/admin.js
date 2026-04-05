@@ -1,5 +1,6 @@
 (function ($) {
   const emptyPortraitText = "<p>No portrait selected.</p>";
+  const autoRefreshStorageKey = "kuchniaTwistAutoRefreshPaused";
 
   const parseTarget = (button) => {
     try {
@@ -107,4 +108,77 @@
   $(document).on("change", ".kt-jobs-toolbar select", function () {
     $(this).closest("form").trigger("submit");
   });
+
+  const adminRoot = $(".kt-admin[data-auto-refresh-seconds]");
+  const toggle = $(".kt-auto-refresh-toggle[data-seconds]");
+  const label = $("[data-auto-refresh-label]");
+
+  if (adminRoot.length && toggle.length) {
+    const refreshSeconds = Number(adminRoot.attr("data-auto-refresh-seconds") || toggle.attr("data-seconds") || 0);
+    let paused = window.sessionStorage?.getItem(autoRefreshStorageKey) === "1";
+    let remaining = refreshSeconds;
+
+    const isInteractiveFocus = () => {
+      const active = document.activeElement;
+      return Boolean(active && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(active.tagName));
+    };
+
+    const renderRefreshState = () => {
+      toggle.text(paused ? "Resume Auto Refresh" : "Pause Auto Refresh");
+
+      if (!label.length) {
+        return;
+      }
+
+      if (paused) {
+        label.text("Auto refresh paused");
+        return;
+      }
+
+      label.text(`Refreshing in ${remaining}s while jobs are active`);
+    };
+
+    toggle.on("click", function (event) {
+      event.preventDefault();
+      paused = !paused;
+      remaining = refreshSeconds;
+
+      if (window.sessionStorage) {
+        window.sessionStorage.setItem(autoRefreshStorageKey, paused ? "1" : "0");
+      }
+
+      renderRefreshState();
+    });
+
+    renderRefreshState();
+
+    if (refreshSeconds > 0) {
+      window.setInterval(() => {
+        if (paused) {
+          return;
+        }
+
+        if (document.hidden) {
+          remaining = refreshSeconds;
+          renderRefreshState();
+          return;
+        }
+
+        if (isInteractiveFocus()) {
+          remaining = Math.min(refreshSeconds, Math.max(5, remaining));
+          renderRefreshState();
+          return;
+        }
+
+        remaining -= 1;
+
+        if (remaining <= 0) {
+          window.location.reload();
+          return;
+        }
+
+        renderRefreshState();
+      }, 1000);
+    }
+  }
 })(jQuery);

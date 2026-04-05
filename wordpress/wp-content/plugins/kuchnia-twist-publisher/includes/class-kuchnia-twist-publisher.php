@@ -6,10 +6,11 @@ require_once __DIR__ . '/launch-content.php';
 
 final class Kuchnia_Twist_Publisher
 {
-    private const VERSION = '1.2.1';
+    private const VERSION = '1.3.0';
     private const OPTION_KEY = 'kuchnia_twist_settings';
     private const VERSION_KEY = 'kuchnia_twist_publisher_version';
     private const THEME_BOOTSTRAP_KEY = 'kuchnia_twist_theme_bootstrapped';
+    private const WORKER_STATUS_KEY = 'kuchnia_twist_worker_status';
 
     private static ?Kuchnia_Twist_Publisher $instance = null;
 
@@ -36,6 +37,7 @@ final class Kuchnia_Twist_Publisher
         add_action('admin_post_kuchnia_twist_create_job', [$this, 'handle_create_job']);
         add_action('admin_post_kuchnia_twist_save_settings', [$this, 'handle_save_settings']);
         add_action('admin_post_kuchnia_twist_retry_job', [$this, 'handle_retry_job']);
+        add_action('admin_post_kuchnia_twist_export_jobs', [$this, 'handle_export_jobs']);
         add_action('rest_api_init', [$this, 'register_rest_routes']);
     }
 
@@ -142,6 +144,12 @@ final class Kuchnia_Twist_Publisher
             'callback'            => [$this, 'rest_fail_job'],
             'permission_callback' => '__return_true',
         ]);
+
+        register_rest_route('kuchnia-twist/v1', '/worker/heartbeat', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'rest_worker_heartbeat'],
+            'permission_callback' => '__return_true',
+        ]);
     }
 
     public function render_publisher_page(): void
@@ -150,23 +158,33 @@ final class Kuchnia_Twist_Publisher
             wp_die(esc_html__('You do not have permission to access this page.', 'kuchnia-twist'));
         }
 
-        $settings    = $this->get_settings();
-        $topics      = $this->parse_topics($settings['topics_text']);
-        $job_filters = $this->job_filters_from_request();
-        $jobs        = $this->get_jobs(24, $job_filters);
-        $selected_id = isset($_GET['job_id']) ? (int) $_GET['job_id'] : 0;
-        $selected    = $this->resolve_selected_job($jobs, $selected_id);
-        $counts      = $this->get_dashboard_counts();
-        $notice_key  = isset($_GET['kt_notice']) ? sanitize_key(wp_unslash($_GET['kt_notice'])) : '';
-        $manual_only = $settings['image_generation_mode'] === 'manual_only';
+        $settings      = $this->get_settings();
+        $topics        = $this->parse_topics($settings['topics_text']);
+        $job_filters   = $this->job_filters_from_request();
+        $pagination    = $this->job_pagination_from_request();
+        $job_page      = $this->get_jobs_page($job_filters, $pagination['page'], $pagination['per_page']);
+        $jobs          = $job_page['items'];
+        $selected_id   = isset($_GET['job_id']) ? (int) $_GET['job_id'] : 0;
+        $selected      = $this->resolve_selected_job($jobs, $selected_id);
+        $counts        = $this->get_dashboard_counts();
+        $notice_key    = isset($_GET['kt_notice']) ? sanitize_key(wp_unslash($_GET['kt_notice'])) : '';
+        $manual_only   = $settings['image_generation_mode'] === 'manual_only';
+        $system_status = $this->system_status_snapshot($settings);
+        $export_url    = $this->export_jobs_url($job_filters);
+        $worker_last_job = !empty($system_status['last_job_id']) ? $this->get_job((int) $system_status['last_job_id']) : null;
+        $auto_refresh_seconds = ($counts['queued'] + $counts['running']) > 0 ? 20 : 0;
         ?>
-        <div class="wrap kt-admin">
+        <div class="wrap kt-admin"<?php echo $auto_refresh_seconds > 0 ? ' data-auto-refresh-seconds="' . esc_attr((string) $auto_refresh_seconds) . '"' : ''; ?>>
             <div class="kt-page-head">
                 <div>
                     <h1><?php esc_html_e('Publisher', 'kuchnia-twist'); ?></h1>
                     <p><?php esc_html_e('Queue articles, watch the pipeline, and jump back into anything that needs attention.', 'kuchnia-twist'); ?></p>
                 </div>
                 <div class="kt-head-actions">
+                    <?php if ($auto_refresh_seconds > 0) : ?>
+                        <button type="button" class="button kt-auto-refresh-toggle" data-seconds="<?php echo esc_attr((string) $auto_refresh_seconds); ?>"><?php esc_html_e('Pause Auto Refresh', 'kuchnia-twist'); ?></button>
+                        <span class="kt-head-status" data-auto-refresh-label><?php echo esc_html(sprintf(__('Refreshing every %ds while jobs are active.', 'kuchnia-twist'), $auto_refresh_seconds)); ?></span>
+                    <?php endif; ?>
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=kuchnia-twist-settings')); ?>"><?php esc_html_e('Open Settings', 'kuchnia-twist'); ?></a>
                 </div>
             </div>
@@ -188,6 +206,80 @@ final class Kuchnia_Twist_Publisher
                     <span class="kt-stat__label"><?php esc_html_e('Completed', 'kuchnia-twist'); ?></span>
                     <strong class="kt-stat__value"><?php echo esc_html((string) $counts['completed']); ?></strong>
                 </article>
+            </section>
+
+            <section class="kt-system-strip">
+                <article class="kt-system-card<?php echo $system_status['worker_stale'] ? ' is-warning' : ' is-ready'; ?>">
+                    <span class="kt-system-card__label"><?php esc_html_e('Worker', 'kuchnia-twist'); ?></span>
+                    <strong class="kt-system-card__value"><?php echo esc_html($system_status['worker_stale'] ? __('Stale', 'kuchnia-twist') : __('Seen recently', 'kuchnia-twist')); ?></strong>
+                    <p><?php echo esc_html($system_status['worker_heartbeat_text']); ?></p>
+                </article>
+                <article class="kt-system-card<?php echo $system_status['worker_enabled'] ? ' is-ready' : ' is-warning'; ?>">
+                    <span class="kt-system-card__label"><?php esc_html_e('Processing', 'kuchnia-twist'); ?></span>
+                    <strong class="kt-system-card__value"><?php echo esc_html($system_status['worker_enabled'] ? __('Enabled', 'kuchnia-twist') : __('Disabled', 'kuchnia-twist')); ?></strong>
+                    <p><?php echo esc_html($system_status['worker_loop_text']); ?></p>
+                </article>
+                <article class="kt-system-card<?php echo $system_status['openai_ready'] ? ' is-ready' : ' is-warning'; ?>">
+                    <span class="kt-system-card__label"><?php esc_html_e('OpenAI', 'kuchnia-twist'); ?></span>
+                    <strong class="kt-system-card__value"><?php echo esc_html($system_status['openai_ready'] ? __('Ready', 'kuchnia-twist') : __('Missing', 'kuchnia-twist')); ?></strong>
+                    <p><?php echo esc_html($system_status['openai_text']); ?></p>
+                </article>
+                <article class="kt-system-card<?php echo $system_status['facebook_ready'] ? ' is-ready' : ' is-warning'; ?>">
+                    <span class="kt-system-card__label"><?php esc_html_e('Facebook', 'kuchnia-twist'); ?></span>
+                    <strong class="kt-system-card__value"><?php echo esc_html($system_status['facebook_ready'] ? __('Ready', 'kuchnia-twist') : __('Warning', 'kuchnia-twist')); ?></strong>
+                    <p><?php echo esc_html($system_status['facebook_text']); ?></p>
+                </article>
+            </section>
+
+            <?php $this->render_system_alerts($system_status); ?>
+
+            <section class="kt-card kt-card--system-detail">
+                <div class="kt-card-head">
+                    <div>
+                        <h2><?php esc_html_e('System Detail', 'kuchnia-twist'); ?></h2>
+                        <p><?php esc_html_e('Worker freshness, last loop, and the latest operational touchpoint.', 'kuchnia-twist'); ?></p>
+                    </div>
+                </div>
+                <dl class="kt-keyfacts">
+                    <div>
+                        <dt><?php esc_html_e('Last Seen', 'kuchnia-twist'); ?></dt>
+                        <dd><?php echo esc_html($system_status['last_seen_label']); ?></dd>
+                    </div>
+                    <div>
+                        <dt><?php esc_html_e('Last Loop', 'kuchnia-twist'); ?></dt>
+                        <dd><?php echo esc_html($system_status['last_loop_label']); ?></dd>
+                    </div>
+                    <div>
+                        <dt><?php esc_html_e('Stale After', 'kuchnia-twist'); ?></dt>
+                        <dd><?php echo esc_html($system_status['stale_after_label']); ?></dd>
+                    </div>
+                    <div>
+                        <dt><?php esc_html_e('Last Job', 'kuchnia-twist'); ?></dt>
+                        <dd>
+                            <?php if ($worker_last_job) : ?>
+                                <a href="<?php echo esc_url($this->publisher_page_url(['job_id' => (int) $worker_last_job['id']])); ?>"><?php echo esc_html(sprintf(__('Job #%1$d', 'kuchnia-twist'), (int) $worker_last_job['id'])); ?></a>
+                            <?php else : ?>
+                                <?php esc_html_e('No recent job', 'kuchnia-twist'); ?>
+                            <?php endif; ?>
+                        </dd>
+                    </div>
+                </dl>
+                <?php if ($worker_last_job) : ?>
+                    <p class="kt-system-note">
+                        <?php
+                        echo esc_html(
+                            sprintf(
+                                __('Last worker job: %1$s (%2$s).', 'kuchnia-twist'),
+                                $worker_last_job['topic'],
+                                $this->format_human_label((string) ($system_status['last_job_status'] ?: $worker_last_job['status']))
+                            )
+                        );
+                        ?>
+                    </p>
+                <?php endif; ?>
+                <?php if (!empty($system_status['worker_last_error'])) : ?>
+                    <p class="kt-system-note kt-system-note--error"><?php echo esc_html(sprintf(__('Last worker error: %s', 'kuchnia-twist'), $system_status['worker_last_error'])); ?></p>
+                <?php endif; ?>
             </section>
 
             <div class="kt-admin-grid">
@@ -259,7 +351,7 @@ final class Kuchnia_Twist_Publisher
                         </div>
                     </div>
                     <?php if ($selected) : ?>
-                        <?php $this->render_job_summary($selected); ?>
+                        <?php $this->render_job_summary($selected, $system_status); ?>
                     <?php else : ?>
                         <div class="kt-empty-state">
                             <h3><?php esc_html_e('No jobs yet', 'kuchnia-twist'); ?></h3>
@@ -273,11 +365,12 @@ final class Kuchnia_Twist_Publisher
                 <div class="kt-card-head">
                     <div>
                         <h2><?php esc_html_e('Recent Jobs', 'kuchnia-twist'); ?></h2>
-                        <p><?php echo esc_html(sprintf(_n('%d job shown', '%d jobs shown', count($jobs), 'kuchnia-twist'), count($jobs))); ?></p>
+                        <p><?php echo esc_html($this->job_results_summary($job_page)); ?></p>
                     </div>
                 </div>
                 <form method="get" class="kt-jobs-toolbar">
                     <input type="hidden" name="page" value="kuchnia-twist-publisher">
+                    <input type="hidden" name="job_page" value="1">
                     <label class="kt-toolbar-search">
                         <span class="screen-reader-text"><?php esc_html_e('Search jobs', 'kuchnia-twist'); ?></span>
                         <input type="search" name="job_search" value="<?php echo esc_attr($job_filters['search']); ?>" placeholder="<?php esc_attr_e('Search topic, title, or error', 'kuchnia-twist'); ?>">
@@ -291,6 +384,14 @@ final class Kuchnia_Twist_Publisher
                             <?php endforeach; ?>
                         </select>
                     </label>
+                    <label class="kt-toolbar-select">
+                        <span class="screen-reader-text"><?php esc_html_e('Jobs per page', 'kuchnia-twist'); ?></span>
+                        <select name="job_per_page">
+                            <?php foreach ($this->job_per_page_options() as $value) : ?>
+                                <option value="<?php echo esc_attr((string) $value); ?>" <?php selected($job_page['per_page'], $value); ?>><?php echo esc_html(sprintf(_n('%d per page', '%d per page', $value, 'kuchnia-twist'), $value)); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
                     <div class="kt-filter-pills" role="tablist" aria-label="<?php esc_attr_e('Job filters', 'kuchnia-twist'); ?>">
                         <?php foreach ($this->job_filter_options() as $value => $label) : ?>
                             <a
@@ -299,6 +400,7 @@ final class Kuchnia_Twist_Publisher
                                     'job_status' => $value === 'all' ? null : $value,
                                     'job_search' => $job_filters['search'] !== '' ? $job_filters['search'] : null,
                                     'job_type'   => $job_filters['content_type'] !== '' ? $job_filters['content_type'] : null,
+                                    'job_per_page' => $job_page['per_page'],
                                 ])); ?>"
                             >
                                 <span><?php echo esc_html($label); ?></span>
@@ -307,9 +409,10 @@ final class Kuchnia_Twist_Publisher
                         <?php endforeach; ?>
                     </div>
                     <div class="kt-toolbar-actions">
+                        <a class="button" href="<?php echo esc_url($export_url); ?>"><?php esc_html_e('Export CSV', 'kuchnia-twist'); ?></a>
                         <button type="submit" class="button"><?php esc_html_e('Apply', 'kuchnia-twist'); ?></button>
                         <?php if ($job_filters['search'] !== '' || $job_filters['status_group'] !== 'all' || $job_filters['content_type'] !== '') : ?>
-                            <a class="button button-link" href="<?php echo esc_url($this->publisher_page_url()); ?>"><?php esc_html_e('Clear', 'kuchnia-twist'); ?></a>
+                            <a class="button button-link" href="<?php echo esc_url($this->publisher_page_url(['job_per_page' => $job_page['per_page']])); ?>"><?php esc_html_e('Clear', 'kuchnia-twist'); ?></a>
                         <?php endif; ?>
                     </div>
                 </form>
@@ -322,6 +425,8 @@ final class Kuchnia_Twist_Publisher
                                 'job_status' => $job_filters['status_group'] !== 'all' ? $job_filters['status_group'] : null,
                                 'job_search' => $job_filters['search'] !== '' ? $job_filters['search'] : null,
                                 'job_type'   => $job_filters['content_type'] !== '' ? $job_filters['content_type'] : null,
+                                'job_page'   => $job_page['page'],
+                                'job_per_page' => $job_page['per_page'],
                             ]);
                             ?>
                             <article
@@ -344,7 +449,16 @@ final class Kuchnia_Twist_Publisher
                                     </div>
                                     <div class="kt-chip-row">
                                         <?php $this->render_job_asset_badges($job); ?>
+                                        <?php if (!empty($job['stage']) && $job['stage'] !== $job['status']) : ?>
+                                            <span class="kt-stage-pill"><?php echo esc_html($this->format_human_label($job['stage'])); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($job['retry_target'])) : ?>
+                                            <span class="kt-asset-pill"><?php echo esc_html(sprintf(__('Retry %s', 'kuchnia-twist'), $this->format_human_label($job['retry_target']))); ?></span>
+                                        <?php endif; ?>
                                     </div>
+                                    <?php if (!empty($job['error_message'])) : ?>
+                                        <p class="kt-job-row__error"><?php echo esc_html(wp_html_excerpt((string) $job['error_message'], 140, '...')); ?></p>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="kt-job-row__actions">
                                     <a class="button button-small" href="<?php echo esc_url($job_url); ?>"><?php esc_html_e('View', 'kuchnia-twist'); ?></a>
@@ -370,6 +484,7 @@ final class Kuchnia_Twist_Publisher
                         </p>
                     </div>
                 <?php endif; ?>
+                <?php $this->render_jobs_pagination($job_page, $job_filters); ?>
             </section>
         </div>
         <?php
@@ -382,6 +497,7 @@ final class Kuchnia_Twist_Publisher
         }
 
         $settings = $this->get_settings();
+        $system_status = $this->system_status_snapshot($settings);
         ?>
         <div class="wrap kt-admin">
             <div class="kt-page-head">
@@ -516,6 +632,42 @@ final class Kuchnia_Twist_Publisher
                     <div class="kt-environment-list">
                         <div class="kt-env-item">
                             <div>
+                                <strong><?php esc_html_e('Worker heartbeat', 'kuchnia-twist'); ?></strong>
+                                <p><?php echo esc_html($system_status['worker_heartbeat_text']); ?></p>
+                            </div>
+                            <span class="kt-env-pill <?php echo $system_status['worker_stale'] ? 'is-missing' : 'is-ready'; ?>">
+                                <?php echo $system_status['worker_stale'] ? esc_html__('Stale', 'kuchnia-twist') : esc_html__('Fresh', 'kuchnia-twist'); ?>
+                            </span>
+                        </div>
+                        <div class="kt-env-item">
+                            <div>
+                                <strong><?php esc_html_e('Worker processing', 'kuchnia-twist'); ?></strong>
+                                <p><?php echo esc_html($system_status['worker_loop_text']); ?></p>
+                            </div>
+                            <span class="kt-env-pill <?php echo $system_status['worker_enabled'] ? 'is-ready' : 'is-missing'; ?>">
+                                <?php echo $system_status['worker_enabled'] ? esc_html__('Enabled', 'kuchnia-twist') : esc_html__('Disabled', 'kuchnia-twist'); ?>
+                            </span>
+                        </div>
+                        <div class="kt-env-item">
+                            <div>
+                                <strong><?php esc_html_e('Last loop result', 'kuchnia-twist'); ?></strong>
+                                <p><?php echo esc_html($system_status['last_seen_label']); ?></p>
+                            </div>
+                            <span class="kt-env-pill <?php echo $system_status['worker_stale'] ? 'is-missing' : 'is-ready'; ?>">
+                                <?php echo esc_html($system_status['last_loop_label']); ?>
+                            </span>
+                        </div>
+                        <div class="kt-env-item">
+                            <div>
+                                <strong><?php esc_html_e('Worker config', 'kuchnia-twist'); ?></strong>
+                                <p><?php echo esc_html($system_status['worker_config_text']); ?></p>
+                            </div>
+                            <span class="kt-env-pill <?php echo $system_status['worker_config_ok'] ? 'is-ready' : 'is-missing'; ?>">
+                                <?php echo $system_status['worker_config_ok'] ? esc_html__('Valid', 'kuchnia-twist') : esc_html__('Invalid', 'kuchnia-twist'); ?>
+                            </span>
+                        </div>
+                        <div class="kt-env-item">
+                            <div>
                                 <strong><?php esc_html_e('Worker secret', 'kuchnia-twist'); ?></strong>
                                 <p><?php esc_html_e('Required for the autopost worker callback.', 'kuchnia-twist'); ?></p>
                             </div>
@@ -525,11 +677,29 @@ final class Kuchnia_Twist_Publisher
                         </div>
                         <div class="kt-env-item">
                             <div>
-                                <strong><?php esc_html_e('OpenAI environment key', 'kuchnia-twist'); ?></strong>
-                                <p><?php esc_html_e('Optional fallback when the saved API key is empty.', 'kuchnia-twist'); ?></p>
+                                <strong><?php esc_html_e('OpenAI availability', 'kuchnia-twist'); ?></strong>
+                                <p><?php echo esc_html($system_status['openai_text']); ?></p>
                             </div>
-                            <span class="kt-env-pill <?php echo getenv('OPENAI_API_KEY') ? 'is-ready' : 'is-missing'; ?>">
-                                <?php echo getenv('OPENAI_API_KEY') ? esc_html__('Present', 'kuchnia-twist') : esc_html__('Missing', 'kuchnia-twist'); ?>
+                            <span class="kt-env-pill <?php echo $system_status['openai_ready'] ? 'is-ready' : 'is-missing'; ?>">
+                                <?php echo $system_status['openai_ready'] ? esc_html__('Ready', 'kuchnia-twist') : esc_html__('Missing', 'kuchnia-twist'); ?>
+                            </span>
+                        </div>
+                        <div class="kt-env-item">
+                            <div>
+                                <strong><?php esc_html_e('Facebook availability', 'kuchnia-twist'); ?></strong>
+                                <p><?php echo esc_html($system_status['facebook_text']); ?></p>
+                            </div>
+                            <span class="kt-env-pill <?php echo $system_status['facebook_ready'] ? 'is-ready' : 'is-missing'; ?>">
+                                <?php echo $system_status['facebook_ready'] ? esc_html__('Ready', 'kuchnia-twist') : esc_html__('Warning', 'kuchnia-twist'); ?>
+                            </span>
+                        </div>
+                        <div class="kt-env-item">
+                            <div>
+                                <strong><?php esc_html_e('Stale threshold', 'kuchnia-twist'); ?></strong>
+                                <p><?php esc_html_e('The worker is flagged stale after this heartbeat gap.', 'kuchnia-twist'); ?></p>
+                            </div>
+                            <span class="kt-env-pill <?php echo $system_status['worker_stale'] ? 'is-missing' : 'is-ready'; ?>">
+                                <?php echo esc_html($system_status['stale_after_label']); ?>
                             </span>
                         </div>
                     </div>
@@ -638,7 +808,22 @@ final class Kuchnia_Twist_Publisher
             'updated_at'        => $now,
         ]);
 
-        wp_safe_redirect(admin_url('admin.php?page=kuchnia-twist-publisher&job_id=' . (int) $wpdb->insert_id . '&kt_notice=job_created'));
+        $job_id = (int) $wpdb->insert_id;
+        $this->add_job_event(
+            $job_id,
+            'job_created',
+            'queued',
+            'queued',
+            __('Job queued from wp-admin.', 'kuchnia-twist'),
+            [
+                'content_type'      => $content_type,
+                'created_by'        => get_current_user_id(),
+                'blog_image_id'     => $blog_image_id ?: 0,
+                'facebook_image_id' => $facebook_image_id ?: 0,
+            ]
+        );
+
+        wp_safe_redirect(admin_url('admin.php?page=kuchnia-twist-publisher&job_id=' . $job_id . '&kt_notice=job_created'));
         exit;
     }
 
@@ -721,7 +906,85 @@ final class Kuchnia_Twist_Publisher
             ['%d']
         );
 
-        wp_safe_redirect(admin_url('admin.php?page=kuchnia-twist-publisher&job_id=' . $job_id . '&kt_notice=job_queued'));
+        $this->add_job_event(
+            $job_id,
+            'retry_queued',
+            'queued',
+            'queued',
+            __('Job queued for retry.', 'kuchnia-twist'),
+            ['retry_target' => $retry_target]
+        );
+
+        $redirect = wp_get_referer() ?: admin_url('admin.php?page=kuchnia-twist-publisher');
+        $redirect = remove_query_arg(['_wpnonce', 'action'], $redirect);
+        $redirect = add_query_arg([
+            'job_id'    => $job_id,
+            'kt_notice' => 'job_queued',
+        ], $redirect);
+
+        wp_safe_redirect($redirect);
+        exit;
+    }
+
+    public function handle_export_jobs(): void
+    {
+        if (!current_user_can('publish_posts')) {
+            wp_die(esc_html__('You do not have permission to perform this action.', 'kuchnia-twist'));
+        }
+
+        check_admin_referer('kuchnia_twist_export_jobs');
+
+        $filters = $this->job_filters_from_request();
+        $rows    = $this->get_jobs_for_export($filters);
+
+        nocache_headers();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=kuchnia-twist-jobs-' . gmdate('Y-m-d-H-i-s') . '.csv');
+
+        $output = fopen('php://output', 'w');
+        if ($output === false) {
+            exit;
+        }
+
+        fputcsv($output, [
+            'id',
+            'topic',
+            'content_type',
+            'status',
+            'stage',
+            'created_at',
+            'last_attempt_at',
+            'updated_at',
+            'created_by',
+            'post_id',
+            'permalink',
+            'facebook_post_id',
+            'facebook_comment_id',
+            'retry_target',
+            'error_message',
+        ]);
+
+        foreach ($rows as $job) {
+            fputcsv($output, [
+                (int) $job['id'],
+                (string) $job['topic'],
+                (string) $job['content_type'],
+                (string) $job['status'],
+                (string) $job['stage'],
+                (string) ($job['created_at'] ?? ''),
+                (string) ($job['last_attempt_at'] ?? ''),
+                (string) ($job['updated_at'] ?? ''),
+                (string) ($job['created_by'] ?? ''),
+                (string) ($job['post_id'] ?? ''),
+                (string) ($job['permalink'] ?? ''),
+                (string) ($job['facebook_post_id'] ?? ''),
+                (string) ($job['facebook_comment_id'] ?? ''),
+                (string) ($job['retry_target'] ?? ''),
+                (string) ($job['error_message'] ?? ''),
+            ]);
+        }
+
+        fclose($output);
         exit;
     }
 
@@ -751,6 +1014,15 @@ final class Kuchnia_Twist_Publisher
             ['id' => (int) $job['id']],
             ['%s', '%s', '%s', '%s'],
             ['%d']
+        );
+
+        $this->add_job_event(
+            (int) $job['id'],
+            'job_claimed',
+            'generating',
+            'generating',
+            __('Worker claimed queued job.', 'kuchnia-twist'),
+            ['last_attempt_at' => current_time('mysql', true)]
         );
 
         $settings = $this->get_settings();
@@ -809,6 +1081,19 @@ final class Kuchnia_Twist_Publisher
             ['%d']
         );
 
+        $message = !empty($params['error_message'])
+            ? (string) $params['error_message']
+            : sprintf(__('Job moved to %s.', 'kuchnia-twist'), $this->format_human_label($stage));
+
+        $this->add_job_event(
+            (int) $job['id'],
+            'progress_update',
+            $status,
+            $stage,
+            $message,
+            []
+        );
+
         return rest_ensure_response(['ok' => true]);
     }
 
@@ -864,6 +1149,18 @@ final class Kuchnia_Twist_Publisher
             ['id' => (int) $job['id']],
             ['%d', '%s'],
             ['%d']
+        );
+
+        $this->add_job_event(
+            (int) $job['id'],
+            'media_uploaded',
+            (string) $job['status'],
+            (string) $job['stage'],
+            sprintf(__('Uploaded %s image asset.', 'kuchnia-twist'), $slot === 'facebook' ? __('Facebook', 'kuchnia-twist') : __('blog', 'kuchnia-twist')),
+            [
+                'slot'          => $slot,
+                'attachment_id' => $attachment_id,
+            ]
         );
 
         return rest_ensure_response($this->attachment_payload($attachment_id));
@@ -941,6 +1238,20 @@ final class Kuchnia_Twist_Publisher
             ['%d']
         );
 
+        $this->add_job_event(
+            (int) $job['id'],
+            'blog_published',
+            'publishing_facebook',
+            'publishing_facebook',
+            __('WordPress article published successfully.', 'kuchnia-twist'),
+            [
+                'post_id'             => $post_id,
+                'featured_image_id'   => $featured_image ?: 0,
+                'facebook_image_id'   => $facebook_image ?: 0,
+                'permalink'           => get_permalink($post_id),
+            ]
+        );
+
         return rest_ensure_response([
             'post_id'    => $post_id,
             'permalink'  => get_permalink($post_id),
@@ -980,6 +1291,19 @@ final class Kuchnia_Twist_Publisher
             ['%d']
         );
 
+        $final_status = sanitize_key($params['status'] ?? 'completed');
+        $this->add_job_event(
+            (int) $job['id'],
+            'job_completed',
+            $final_status,
+            $final_status,
+            __('Job completed successfully.', 'kuchnia-twist'),
+            [
+                'facebook_post_id'    => sanitize_text_field($params['facebook_post_id'] ?? ''),
+                'facebook_comment_id' => sanitize_text_field($params['facebook_comment_id'] ?? ''),
+            ]
+        );
+
         return rest_ensure_response(['ok' => true]);
     }
 
@@ -1015,14 +1339,73 @@ final class Kuchnia_Twist_Publisher
             ['%d']
         );
 
+        $failed_status = sanitize_key($params['status'] ?? 'failed');
+        $failed_stage  = sanitize_key($params['stage'] ?? 'failed');
+        $message       = (string) ($params['error_message'] ?? __('Unknown job failure.', 'kuchnia-twist'));
+
+        $this->add_job_event(
+            (int) $job['id'],
+            'job_failed',
+            $failed_status,
+            $failed_stage,
+            $message,
+            [
+                'facebook_post_id'    => sanitize_text_field($params['facebook_post_id'] ?? $job['facebook_post_id']),
+                'facebook_comment_id' => sanitize_text_field($params['facebook_comment_id'] ?? $job['facebook_comment_id']),
+                'retry_target'        => (string) ($job['retry_target'] ?? ''),
+            ]
+        );
+
+        return rest_ensure_response(['ok' => true]);
+    }
+
+    public function rest_worker_heartbeat(WP_REST_Request $request)
+    {
+        $auth = $this->authorize_worker($request);
+        if (is_wp_error($auth)) {
+            return $auth;
+        }
+
+        $payload = $request->get_json_params();
+        $status = [
+            'worker_version'         => sanitize_text_field($payload['worker_version'] ?? ''),
+            'enabled'                => !empty($payload['enabled']),
+            'run_once'               => !empty($payload['run_once']),
+            'poll_seconds'           => max(0, (int) ($payload['poll_seconds'] ?? 0)),
+            'startup_delay_seconds'  => max(0, (int) ($payload['startup_delay_seconds'] ?? 0)),
+            'config_ok'              => !empty($payload['config_ok']),
+            'last_seen_at'           => current_time('mysql', true),
+            'last_loop_result'       => sanitize_key($payload['last_loop_result'] ?? ''),
+            'last_job_id'            => absint($payload['last_job_id'] ?? 0),
+            'last_job_status'        => sanitize_key($payload['last_job_status'] ?? ''),
+            'last_error'             => sanitize_text_field($payload['last_error'] ?? ''),
+        ];
+
+        update_option(self::WORKER_STATUS_KEY, wp_parse_args($status, $this->default_worker_status()), false);
+
+        if ($status['last_job_id'] > 0 && ($status['last_error'] !== '' || !$status['config_ok'])) {
+            $this->add_job_event(
+                $status['last_job_id'],
+                !$status['config_ok'] ? 'worker_config_warning' : 'worker_warning',
+                $status['last_job_status'],
+                $status['last_loop_result'],
+                $status['last_error'] !== '' ? $status['last_error'] : __('Worker configuration warning received.', 'kuchnia-twist'),
+                [
+                    'worker_version' => $status['worker_version'],
+                    'loop_result'    => $status['last_loop_result'],
+                ]
+            );
+        }
+
         return rest_ensure_response(['ok' => true]);
     }
 
     private function install(): void
     {
         global $wpdb;
-        $table           = $this->table_name();
-        $charset_collate = $wpdb->get_charset_collate();
+        $table             = $this->table_name();
+        $events_table      = $this->events_table_name();
+        $charset_collate   = $wpdb->get_charset_collate();
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta(
@@ -1058,7 +1441,24 @@ final class Kuchnia_Twist_Publisher
             ) {$charset_collate};"
         );
 
+        dbDelta(
+            "CREATE TABLE {$events_table} (
+                id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                job_id bigint(20) unsigned NOT NULL,
+                event_type varchar(64) NOT NULL,
+                status varchar(32) NOT NULL DEFAULT '',
+                stage varchar(32) NOT NULL DEFAULT '',
+                message text NULL,
+                context_json longtext NULL,
+                created_at datetime NOT NULL,
+                PRIMARY KEY  (id),
+                KEY job_created (job_id, created_at),
+                KEY event_type_created (event_type, created_at)
+            ) {$charset_collate};"
+        );
+
         update_option(self::OPTION_KEY, wp_parse_args(get_option(self::OPTION_KEY, []), $this->default_settings()));
+        update_option(self::WORKER_STATUS_KEY, wp_parse_args(get_option(self::WORKER_STATUS_KEY, []), $this->default_worker_status()));
         update_option(self::VERSION_KEY, self::VERSION, false);
 
         $this->ensure_site_identity();
@@ -1322,7 +1722,70 @@ final class Kuchnia_Twist_Publisher
         return (int) $attachment_id;
     }
 
-    private function get_jobs(int $limit = 10, array $filters = []): array
+    private function get_jobs(int $limit = 10, array $filters = [], int $offset = 0): array
+    {
+        global $wpdb;
+
+        [$where_sql, $params] = $this->job_query_parts($filters);
+        $sql = "SELECT * FROM {$this->table_name()} {$where_sql} ORDER BY id DESC LIMIT %d OFFSET %d";
+        $params[] = $limit;
+        $params[] = max(0, $offset);
+
+        $rows = $wpdb->get_results($wpdb->prepare($sql, ...$params), ARRAY_A);
+        return array_map([$this, 'prepare_job_record'], $rows ?: []);
+    }
+
+    private function get_jobs_page(array $filters, int $page = 1, int $per_page = 24): array
+    {
+        $per_page    = $this->normalize_job_per_page($per_page);
+        $total       = $this->count_jobs($filters);
+        $total_pages = max(1, (int) ceil(($total ?: 1) / $per_page));
+        $page        = min(max(1, $page), $total_pages);
+        $offset      = ($page - 1) * $per_page;
+        $items       = $total > 0 ? $this->get_jobs($per_page, $filters, $offset) : [];
+
+        return [
+            'items'       => $items,
+            'total'       => $total,
+            'page'        => $page,
+            'per_page'    => $per_page,
+            'total_pages' => $total_pages,
+            'from'        => $total > 0 ? $offset + 1 : 0,
+            'to'          => $total > 0 ? $offset + count($items) : 0,
+        ];
+    }
+
+    private function count_jobs(array $filters = []): int
+    {
+        global $wpdb;
+
+        [$where_sql, $params] = $this->job_query_parts($filters);
+        $sql = "SELECT COUNT(*) FROM {$this->table_name()} {$where_sql}";
+
+        if ($params) {
+            return (int) $wpdb->get_var($wpdb->prepare($sql, ...$params));
+        }
+
+        return (int) $wpdb->get_var($sql);
+    }
+
+    private function get_jobs_for_export(array $filters = []): array
+    {
+        global $wpdb;
+
+        [$where_sql, $params] = $this->job_query_parts($filters);
+        $sql = "SELECT id, topic, content_type, status, stage, created_at, last_attempt_at, updated_at, created_by, post_id, permalink, facebook_post_id, facebook_comment_id, retry_target, error_message FROM {$this->table_name()} {$where_sql} ORDER BY id DESC";
+
+        if ($params) {
+            $rows = $wpdb->get_results($wpdb->prepare($sql, ...$params), ARRAY_A);
+        } else {
+            $rows = $wpdb->get_results($sql, ARRAY_A);
+        }
+
+        return is_array($rows) ? $rows : [];
+    }
+
+    private function job_query_parts(array $filters): array
     {
         global $wpdb;
 
@@ -1353,15 +1816,7 @@ final class Kuchnia_Twist_Publisher
             }
         }
 
-        $sql = "SELECT * FROM {$this->table_name()}";
-        if ($where) {
-            $sql .= ' WHERE ' . implode(' AND ', $where);
-        }
-        $sql .= ' ORDER BY id DESC LIMIT %d';
-        $params[] = $limit;
-
-        $rows = $wpdb->get_results($wpdb->prepare($sql, ...$params), ARRAY_A);
-        return array_map([$this, 'prepare_job_record'], $rows ?: []);
+        return [$where ? 'WHERE ' . implode(' AND ', $where) : '', $params];
     }
 
     private function job_filters_from_request(): array
@@ -1370,6 +1825,14 @@ final class Kuchnia_Twist_Publisher
             'search'       => sanitize_text_field(wp_unslash($_GET['job_search'] ?? '')),
             'status_group' => $this->normalize_job_filter(wp_unslash($_GET['job_status'] ?? 'all')),
             'content_type' => $this->normalize_content_type_filter(wp_unslash($_GET['job_type'] ?? '')),
+        ];
+    }
+
+    private function job_pagination_from_request(): array
+    {
+        return [
+            'page'     => max(1, absint($_GET['job_page'] ?? 1)),
+            'per_page' => $this->normalize_job_per_page(wp_unslash($_GET['job_per_page'] ?? 24)),
         ];
     }
 
@@ -1393,6 +1856,17 @@ final class Kuchnia_Twist_Publisher
     {
         $value = sanitize_key((string) $value);
         return array_key_exists($value, $this->content_types()) ? $value : '';
+    }
+
+    private function job_per_page_options(): array
+    {
+        return [12, 24, 50, 100];
+    }
+
+    private function normalize_job_per_page($value): int
+    {
+        $value = absint($value);
+        return in_array($value, $this->job_per_page_options(), true) ? $value : 24;
     }
 
     private function job_statuses_for_group(string $group): array
@@ -1419,6 +1893,22 @@ final class Kuchnia_Twist_Publisher
         return add_query_arg($query, admin_url('admin.php'));
     }
 
+    private function export_jobs_url(array $filters): string
+    {
+        return wp_nonce_url(
+            add_query_arg(
+                [
+                    'action'     => 'kuchnia_twist_export_jobs',
+                    'job_search' => $filters['search'] !== '' ? $filters['search'] : null,
+                    'job_status' => $filters['status_group'] !== 'all' ? $filters['status_group'] : null,
+                    'job_type'   => $filters['content_type'] !== '' ? $filters['content_type'] : null,
+                ],
+                admin_url('admin-post.php')
+            ),
+            'kuchnia_twist_export_jobs'
+        );
+    }
+
     private function job_filter_count(string $filter, array $counts): int
     {
         return [
@@ -1427,6 +1917,223 @@ final class Kuchnia_Twist_Publisher
             'active'     => (int) (($counts['queued'] ?? 0) + ($counts['running'] ?? 0)),
             'completed'  => (int) ($counts['completed'] ?? 0),
         ][$filter] ?? 0;
+    }
+
+    private function job_results_summary(array $job_page): string
+    {
+        if ((int) $job_page['total'] <= 0) {
+            return __('No jobs found.', 'kuchnia-twist');
+        }
+
+        return sprintf(
+            __('Showing %1$d-%2$d of %3$d jobs', 'kuchnia-twist'),
+            (int) $job_page['from'],
+            (int) $job_page['to'],
+            (int) $job_page['total']
+        );
+    }
+
+    private function render_jobs_pagination(array $job_page, array $filters): void
+    {
+        if ((int) $job_page['total_pages'] <= 1) {
+            return;
+        }
+
+        $current = (int) $job_page['page'];
+        $total   = (int) $job_page['total_pages'];
+        $base    = [
+            'job_status'   => $filters['status_group'] !== 'all' ? $filters['status_group'] : null,
+            'job_search'   => $filters['search'] !== '' ? $filters['search'] : null,
+            'job_type'     => $filters['content_type'] !== '' ? $filters['content_type'] : null,
+            'job_per_page' => $job_page['per_page'],
+        ];
+        ?>
+        <nav class="kt-pagination" aria-label="<?php esc_attr_e('Job list pagination', 'kuchnia-twist'); ?>">
+            <span class="kt-pagination__summary"><?php echo esc_html(sprintf(__('Page %1$d of %2$d', 'kuchnia-twist'), $current, $total)); ?></span>
+            <div class="kt-pagination__actions">
+                <?php if ($current > 1) : ?>
+                    <a class="button" href="<?php echo esc_url($this->publisher_page_url(array_merge($base, ['job_page' => $current - 1]))); ?>"><?php esc_html_e('Previous', 'kuchnia-twist'); ?></a>
+                <?php endif; ?>
+                <?php if ($current < $total) : ?>
+                    <a class="button" href="<?php echo esc_url($this->publisher_page_url(array_merge($base, ['job_page' => $current + 1]))); ?>"><?php esc_html_e('Next', 'kuchnia-twist'); ?></a>
+                <?php endif; ?>
+            </div>
+        </nav>
+        <?php
+    }
+
+    private function default_worker_status(): array
+    {
+        return [
+            'worker_version'        => '',
+            'enabled'               => false,
+            'run_once'              => false,
+            'poll_seconds'          => 0,
+            'startup_delay_seconds' => 0,
+            'config_ok'             => false,
+            'last_seen_at'          => '',
+            'last_loop_result'      => '',
+            'last_job_id'           => 0,
+            'last_job_status'       => '',
+            'last_error'            => '',
+        ];
+    }
+
+    private function get_worker_status(): array
+    {
+        return wp_parse_args(get_option(self::WORKER_STATUS_KEY, []), $this->default_worker_status());
+    }
+
+    private function system_status_snapshot(array $settings): array
+    {
+        $worker_status     = $this->get_worker_status();
+        $worker_secret_set = $this->get_worker_secret() !== '';
+        $openai_ready      = trim((string) (getenv('OPENAI_API_KEY') ?: $settings['openai_api_key'])) !== '';
+        $facebook_ready    = trim((string) $settings['facebook_page_id']) !== '' && trim((string) $settings['facebook_page_access_token']) !== '';
+        $poll_seconds      = max(0, (int) ($worker_status['poll_seconds'] ?? 0));
+        $stale_after       = max(90, $poll_seconds * 3);
+        $last_seen_at      = (string) ($worker_status['last_seen_at'] ?? '');
+        $last_seen_unix    = $last_seen_at !== '' ? strtotime($last_seen_at . ' UTC') : 0;
+        $now_unix          = current_time('timestamp', true);
+        $heartbeat_age     = $last_seen_unix > 0 ? max(0, $now_unix - $last_seen_unix) : PHP_INT_MAX;
+        $worker_stale      = $last_seen_unix <= 0 || $heartbeat_age > $stale_after;
+        $worker_enabled    = !empty($worker_status['enabled']);
+        $worker_config_ok  = $worker_secret_set && !empty($worker_status['config_ok']);
+        $worker_version    = sanitize_text_field((string) ($worker_status['worker_version'] ?? ''));
+        $last_error        = sanitize_text_field((string) ($worker_status['last_error'] ?? ''));
+        $last_loop_result  = sanitize_key((string) ($worker_status['last_loop_result'] ?? ''));
+
+        if ($last_seen_unix > 0) {
+            $heartbeat_text = sprintf(
+                __('Last seen %1$s ago.', 'kuchnia-twist'),
+                human_time_diff($last_seen_unix, $now_unix)
+            );
+        } else {
+            $heartbeat_text = __('No worker heartbeat received yet.', 'kuchnia-twist');
+        }
+
+        if ($worker_version !== '') {
+            $heartbeat_text .= ' ' . sprintf(__('Version %s.', 'kuchnia-twist'), $worker_version);
+        }
+
+        if ($worker_enabled) {
+            $worker_loop_text = !empty($worker_status['run_once'])
+                ? __('Worker is in run-once mode and will idle after the current pass.', 'kuchnia-twist')
+                : sprintf(
+                    __('Polling every %1$ss after a %2$ss startup delay.', 'kuchnia-twist'),
+                    max(1, $poll_seconds),
+                    max(0, (int) ($worker_status['startup_delay_seconds'] ?? 0))
+                );
+        } else {
+            $worker_loop_text = __('AUTOPOST_ENABLED is off in the worker container.', 'kuchnia-twist');
+        }
+
+        if ($last_loop_result !== '') {
+            $worker_loop_text .= ' ' . sprintf(
+                __('Last loop: %s.', 'kuchnia-twist'),
+                $this->format_human_label($last_loop_result)
+            );
+        }
+
+        if (!$worker_secret_set) {
+            $worker_config_text = __('CONTENT_PIPELINE_SHARED_SECRET is missing in the WordPress container.', 'kuchnia-twist');
+        } elseif ($worker_config_ok) {
+            $worker_config_text = __('Worker reported a valid internal URL and shared secret configuration.', 'kuchnia-twist');
+        } else {
+            $worker_config_text = __('The worker has not confirmed valid internal callback configuration yet.', 'kuchnia-twist');
+        }
+
+        if ($last_error !== '') {
+            $worker_config_text .= ' ' . sprintf(__('Last error: %s', 'kuchnia-twist'), $last_error);
+        }
+
+        $openai_text = $openai_ready
+            ? __('An OpenAI API key is available from the environment or plugin settings.', 'kuchnia-twist')
+            : __('Add OPENAI_API_KEY in Coolify or the plugin settings before background generation can run.', 'kuchnia-twist');
+
+        $facebook_text = $facebook_ready
+            ? __('Facebook Page ID and access token are configured.', 'kuchnia-twist')
+            : __('Facebook Page ID or access token is missing. Blog publication can still succeed and stop at partial failure for Facebook.', 'kuchnia-twist');
+
+        return [
+            'worker_status'         => $worker_status,
+            'worker_version'        => $worker_version,
+            'worker_enabled'        => $worker_enabled,
+            'worker_config_ok'      => $worker_config_ok,
+            'worker_stale'          => $worker_stale,
+            'worker_heartbeat_text' => $heartbeat_text,
+            'last_seen_label'       => $last_seen_at !== '' ? $this->format_admin_datetime($last_seen_at) : __('Never', 'kuchnia-twist'),
+            'worker_loop_text'      => $worker_loop_text,
+            'worker_config_text'    => $worker_config_text,
+            'worker_last_error'     => $last_error,
+            'last_loop_label'       => $last_loop_result !== '' ? $this->format_human_label($last_loop_result) : __('Unknown', 'kuchnia-twist'),
+            'last_job_id'           => max(0, (int) ($worker_status['last_job_id'] ?? 0)),
+            'last_job_status'       => sanitize_key((string) ($worker_status['last_job_status'] ?? '')),
+            'stale_after_seconds'   => $stale_after,
+            'stale_after_label'     => sprintf(_n('%d second', '%d seconds', $stale_after, 'kuchnia-twist'), $stale_after),
+            'openai_ready'          => $openai_ready,
+            'openai_text'           => $openai_text,
+            'facebook_ready'        => $facebook_ready,
+            'facebook_text'         => $facebook_text,
+        ];
+    }
+
+    private function render_system_alerts(array $system_status): void
+    {
+        $alerts = [];
+
+        if ($system_status['worker_stale']) {
+            $alerts[] = [
+                'class'   => 'is-warning',
+                'title'   => __('Worker heartbeat is stale', 'kuchnia-twist'),
+                'message' => __('The autopost container has not checked in recently, so queued jobs may sit idle until it comes back.', 'kuchnia-twist'),
+                'detail'  => $system_status['worker_heartbeat_text'],
+            ];
+        }
+
+        if (!$system_status['worker_config_ok']) {
+            $alerts[] = [
+                'class'   => 'is-warning',
+                'title'   => __('Worker configuration needs attention', 'kuchnia-twist'),
+                'message' => __('The worker has not confirmed a valid internal callback configuration yet.', 'kuchnia-twist'),
+                'detail'  => $system_status['worker_config_text'],
+            ];
+        }
+
+        if (!$system_status['openai_ready']) {
+            $alerts[] = [
+                'class'   => 'is-warning',
+                'title'   => __('OpenAI is missing', 'kuchnia-twist'),
+                'message' => __('Queueing still works, but background generation will fail until an API key is available.', 'kuchnia-twist'),
+                'detail'  => $system_status['openai_text'],
+            ];
+        }
+
+        if (!$system_status['facebook_ready']) {
+            $alerts[] = [
+                'class'   => 'is-warning',
+                'title'   => __('Facebook publishing is not fully configured', 'kuchnia-twist'),
+                'message' => __('The blog article can still go live, but Facebook publishing may stop at partial failure.', 'kuchnia-twist'),
+                'detail'  => $system_status['facebook_text'],
+            ];
+        }
+
+        if (!$alerts) {
+            return;
+        }
+        ?>
+        <div class="kt-alert-list" role="status" aria-live="polite">
+            <?php foreach ($alerts as $alert) : ?>
+                <article class="kt-alert <?php echo esc_attr($alert['class']); ?>">
+                    <strong><?php echo esc_html($alert['title']); ?></strong>
+                    <p><?php echo esc_html($alert['message']); ?></p>
+                    <?php if (!empty($alert['detail'])) : ?>
+                        <span><?php echo esc_html($alert['detail']); ?></span>
+                    <?php endif; ?>
+                </article>
+            <?php endforeach; ?>
+        </div>
+        <?php
     }
 
     private function get_dashboard_counts(): array
@@ -1466,6 +2173,134 @@ final class Kuchnia_Twist_Publisher
         }
 
         return $counts;
+    }
+
+    private function get_job_events(int $job_id, int $limit = 12): array
+    {
+        global $wpdb;
+
+        if ($job_id <= 0) {
+            return [];
+        }
+
+        $limit = max(1, min(20, $limit));
+        $rows  = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM {$this->events_table_name()} WHERE job_id = %d ORDER BY id DESC LIMIT %d",
+                $job_id,
+                $limit
+            ),
+            ARRAY_A
+        );
+
+        return array_map(function (array $row): array {
+            return [
+                'id'         => (int) $row['id'],
+                'job_id'     => (int) $row['job_id'],
+                'event_type' => sanitize_key((string) ($row['event_type'] ?? '')),
+                'status'     => sanitize_key((string) ($row['status'] ?? '')),
+                'stage'      => sanitize_key((string) ($row['stage'] ?? '')),
+                'message'    => sanitize_text_field((string) ($row['message'] ?? '')),
+                'context'    => $this->decode_json($row['context_json'] ?? ''),
+                'created_at' => (string) ($row['created_at'] ?? ''),
+            ];
+        }, $rows ?: []);
+    }
+
+    private function get_job_event_stats(int $job_id): array
+    {
+        global $wpdb;
+
+        if ($job_id <= 0) {
+            return [
+                'attempts' => 0,
+                'retries'  => 0,
+                'latest'   => '',
+            ];
+        }
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT event_type, COUNT(*) AS total, MAX(created_at) AS latest_at
+                FROM {$this->events_table_name()}
+                WHERE job_id = %d
+                GROUP BY event_type",
+                $job_id
+            ),
+            ARRAY_A
+        );
+
+        $stats = [
+            'attempts' => 0,
+            'retries'  => 0,
+            'latest'   => '',
+        ];
+
+        foreach ($rows ?: [] as $row) {
+            $event_type = sanitize_key((string) ($row['event_type'] ?? ''));
+            $total      = (int) ($row['total'] ?? 0);
+
+            if ($event_type === 'job_claimed') {
+                $stats['attempts'] = $total;
+            } elseif ($event_type === 'retry_queued') {
+                $stats['retries'] = $total;
+            }
+
+            $latest_at = (string) ($row['latest_at'] ?? '');
+            if ($latest_at !== '' && ($stats['latest'] === '' || strtotime($latest_at . ' UTC') > strtotime($stats['latest'] . ' UTC'))) {
+                $stats['latest'] = $latest_at;
+            }
+        }
+
+        return $stats;
+    }
+
+    private function add_job_event(int $job_id, string $event_type, string $status, string $stage, string $message, array $context = []): void
+    {
+        if ($job_id <= 0) {
+            return;
+        }
+
+        global $wpdb;
+        $clean_context = $this->compact_event_context($context);
+
+        $wpdb->insert($this->events_table_name(), [
+            'job_id'       => $job_id,
+            'event_type'   => sanitize_key($event_type),
+            'status'       => sanitize_key($status),
+            'stage'        => sanitize_key($stage),
+            'message'      => sanitize_textarea_field($message),
+            'context_json' => $clean_context ? wp_json_encode($clean_context) : null,
+            'created_at'   => current_time('mysql', true),
+        ], ['%d', '%s', '%s', '%s', '%s', '%s', '%s']);
+    }
+
+    private function compact_event_context(array $context): array
+    {
+        $clean = [];
+
+        foreach ($context as $key => $value) {
+            $normalized_key = sanitize_key((string) $key);
+            if ($normalized_key === '') {
+                continue;
+            }
+
+            if (is_bool($value)) {
+                $clean[$normalized_key] = $value;
+                continue;
+            }
+
+            if (is_int($value) || is_float($value)) {
+                $clean[$normalized_key] = $value;
+                continue;
+            }
+
+            if (is_string($value) && trim($value) !== '') {
+                $clean[$normalized_key] = sanitize_text_field(wp_html_excerpt($value, 180, '...'));
+            }
+        }
+
+        return $clean;
     }
 
     private function get_job(int $job_id): ?array
@@ -1775,8 +2610,10 @@ final class Kuchnia_Twist_Publisher
         echo '<div class="' . esc_attr($class) . '"><p>' . esc_html($messages[$notice_key]) . '</p></div>';
     }
 
-    private function render_job_summary(array $job): void
+    private function render_job_summary(array $job, array $system_status = []): void
     {
+        $events = $this->get_job_events((int) $job['id'], 12);
+        $event_stats = $this->get_job_event_stats((int) $job['id']);
         ?>
         <div class="kt-summary">
             <div class="kt-summary__hero">
@@ -1795,6 +2632,16 @@ final class Kuchnia_Twist_Publisher
                     <?php endif; ?>
                 </div>
             </div>
+
+            <?php if (!empty($system_status['worker_stale'])) : ?>
+                <section class="kt-detail-block kt-detail-block--warning">
+                    <h4><?php esc_html_e('Worker Status', 'kuchnia-twist'); ?></h4>
+                    <p><?php esc_html_e('The autopost worker heartbeat is stale, so background progress may pause until the container checks in again.', 'kuchnia-twist'); ?></p>
+                    <span class="kt-detail-note"><?php echo esc_html($system_status['worker_heartbeat_text'] ?? ''); ?></span>
+                </section>
+            <?php endif; ?>
+
+            <?php $this->render_job_stage_rail($job); ?>
 
             <div class="kt-chip-row">
                 <?php $this->render_job_asset_badges($job); ?>
@@ -1817,6 +2664,26 @@ final class Kuchnia_Twist_Publisher
                     <dt><?php esc_html_e('Queued By', 'kuchnia-twist'); ?></dt>
                     <dd><?php echo esc_html($this->job_author_label($job)); ?></dd>
                 </div>
+                <div>
+                    <dt><?php esc_html_e('Attempts', 'kuchnia-twist'); ?></dt>
+                    <dd><?php echo esc_html((string) ($event_stats['attempts'] ?: 0)); ?></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e('Retries', 'kuchnia-twist'); ?></dt>
+                    <dd><?php echo esc_html((string) ($event_stats['retries'] ?: 0)); ?></dd>
+                </div>
+                <?php if (!empty($job['last_attempt_at'])) : ?>
+                    <div>
+                        <dt><?php esc_html_e('Last Attempt', 'kuchnia-twist'); ?></dt>
+                        <dd><?php echo esc_html($this->format_admin_datetime((string) $job['last_attempt_at'])); ?></dd>
+                    </div>
+                <?php endif; ?>
+                <?php if (!empty($event_stats['latest'])) : ?>
+                    <div>
+                        <dt><?php esc_html_e('Latest Event', 'kuchnia-twist'); ?></dt>
+                        <dd><?php echo esc_html($this->format_admin_datetime((string) $event_stats['latest'])); ?></dd>
+                    </div>
+                <?php endif; ?>
                 <?php if (!empty($job['title_override'])) : ?>
                     <div>
                         <dt><?php esc_html_e('Title Override', 'kuchnia-twist'); ?></dt>
@@ -1970,8 +2837,129 @@ final class Kuchnia_Twist_Publisher
                     <textarea id="kt-group-share-kit-<?php echo (int) $job['id']; ?>" rows="6" readonly><?php echo esc_textarea($job['group_share_kit']); ?></textarea>
                 </section>
             <?php endif; ?>
+
+            <?php if ($events) : ?>
+                <section class="kt-detail-block">
+                    <div class="kt-detail-block__head">
+                        <h4><?php esc_html_e('Ops Timeline', 'kuchnia-twist'); ?></h4>
+                        <span class="kt-stage-pill"><?php echo esc_html(sprintf(_n('Last %d event', 'Last %d events', count($events), 'kuchnia-twist'), count($events))); ?></span>
+                    </div>
+                    <div class="kt-event-list">
+                        <?php foreach ($events as $event) : ?>
+                            <article class="kt-event">
+                                <div class="kt-event__top">
+                                    <strong><?php echo esc_html($this->format_human_label($event['event_type'])); ?></strong>
+                                    <span><?php echo esc_html($this->format_admin_datetime($event['created_at'])); ?></span>
+                                </div>
+                                <div class="kt-chip-row">
+                                    <?php if (!empty($event['status'])) : ?>
+                                        <span class="kt-status kt-status--<?php echo esc_attr($event['status']); ?>"><?php echo esc_html($this->format_human_label($event['status'])); ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($event['stage']) && $event['stage'] !== $event['status']) : ?>
+                                        <span class="kt-stage-pill"><?php echo esc_html($this->format_human_label($event['stage'])); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if (!empty($event['message'])) : ?>
+                                    <p><?php echo esc_html($event['message']); ?></p>
+                                <?php endif; ?>
+                                <?php if (!empty($event['context']) && is_array($event['context'])) : ?>
+                                    <div class="kt-context-chips">
+                                        <?php foreach ($event['context'] as $key => $value) : ?>
+                                            <?php if ($value === '' || $value === null) { continue; } ?>
+                                            <span class="kt-context-chip">
+                                                <?php
+                                                echo esc_html(
+                                                    sprintf(
+                                                        '%s: %s',
+                                                        $this->format_human_label((string) $key),
+                                                        is_bool($value) ? ($value ? __('Yes', 'kuchnia-twist') : __('No', 'kuchnia-twist')) : (string) $value
+                                                    )
+                                                );
+                                                ?>
+                                            </span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+            <?php endif; ?>
         </div>
         <?php
+    }
+
+    private function render_job_stage_rail(array $job): void
+    {
+        $steps = $this->job_stage_items($job);
+        if (!$steps) {
+            return;
+        }
+        ?>
+        <section class="kt-stage-rail" aria-label="<?php esc_attr_e('Job progress', 'kuchnia-twist'); ?>">
+            <?php foreach ($steps as $step) : ?>
+                <div class="kt-stage-step is-<?php echo esc_attr($step['state']); ?>">
+                    <span class="kt-stage-step__dot" aria-hidden="true"></span>
+                    <strong><?php echo esc_html($step['label']); ?></strong>
+                </div>
+            <?php endforeach; ?>
+        </section>
+        <?php
+    }
+
+    private function job_stage_items(array $job): array
+    {
+        $sequence = [
+            'queued'             => __('Queued', 'kuchnia-twist'),
+            'generating'         => __('Generating', 'kuchnia-twist'),
+            'publishing_blog'    => __('WordPress', 'kuchnia-twist'),
+            'publishing_facebook'=> __('Facebook', 'kuchnia-twist'),
+        ];
+
+        $stage         = sanitize_key((string) ($job['stage'] ?? $job['status'] ?? 'queued'));
+        $status        = sanitize_key((string) ($job['status'] ?? 'queued'));
+        $current_index = array_search($stage, array_keys($sequence), true);
+        $current_index = $current_index === false ? 0 : (int) $current_index;
+        $items         = [];
+        $keys          = array_keys($sequence);
+
+        foreach ($sequence as $key => $label) {
+            $index = array_search($key, $keys, true);
+            $index = $index === false ? 0 : (int) $index;
+            $state = 'pending';
+
+            if ($status === 'completed') {
+                $state = 'complete';
+            } elseif (in_array($status, ['failed', 'partial_failure'], true)) {
+                if ($index < $current_index) {
+                    $state = 'complete';
+                } elseif ($index === $current_index) {
+                    $state = 'problem';
+                }
+            } else {
+                if ($index < $current_index) {
+                    $state = 'complete';
+                } elseif ($index === $current_index) {
+                    $state = 'current';
+                }
+            }
+
+            $items[] = [
+                'key'   => $key,
+                'label' => $label,
+                'state' => $state,
+            ];
+        }
+
+        $items[] = [
+            'key'   => 'outcome',
+            'label' => $status === 'completed'
+                ? __('Completed', 'kuchnia-twist')
+                : (in_array($status, ['failed', 'partial_failure'], true) ? __('Needs attention', 'kuchnia-twist') : __('In progress', 'kuchnia-twist')),
+            'state' => $status === 'completed' ? 'complete' : (in_array($status, ['failed', 'partial_failure'], true) ? 'problem' : 'current'),
+        ];
+
+        return $items;
     }
 
     private function render_job_asset_badges(array $job): void
@@ -2171,5 +3159,11 @@ final class Kuchnia_Twist_Publisher
     {
         global $wpdb;
         return $wpdb->prefix . 'kuchnia_twist_jobs';
+    }
+
+    private function events_table_name(): string
+    {
+        global $wpdb;
+        return $wpdb->prefix . 'kuchnia_twist_job_events';
     }
 }

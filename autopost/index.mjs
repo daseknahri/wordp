@@ -3,6 +3,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 const SECOND_MS = 1000;
 const IDLE_MS = 60 * 60 * SECOND_MS;
+const WORKER_VERSION = "1.3.0";
 
 const config = {
   enabled: toBool(process.env.AUTOPOST_ENABLED, false),
@@ -23,39 +24,64 @@ const config = {
 
 async function main() {
   log("worker booting");
+  await sendHeartbeatBestEffort({ last_loop_result: "booting" });
 
   if (config.startupDelaySeconds > 0) {
     log(`waiting ${config.startupDelaySeconds}s before first check`);
     await sleep(config.startupDelaySeconds * SECOND_MS);
+    await sendHeartbeatBestEffort({ last_loop_result: "startup_delay_complete" });
   }
 
   if (!config.enabled) {
     log("AUTOPOST_ENABLED is off; worker will stay idle");
+    await sendHeartbeatBestEffort({ last_loop_result: "disabled" });
     await idleLoop();
     return;
   }
 
-  if (!config.internalWordPressUrl || !config.sharedSecret) {
-    log("missing worker configuration; set AUTOPOST_WORDPRESS_INTERNAL_URL and CONTENT_PIPELINE_SHARED_SECRET");
+  if (!hasWorkerConfig()) {
+    const message = "missing worker configuration; set AUTOPOST_WORDPRESS_INTERNAL_URL and CONTENT_PIPELINE_SHARED_SECRET";
+    log(message);
+    await sendHeartbeatBestEffort({
+      config_ok: false,
+      last_loop_result: "invalid_config",
+      last_error: message,
+    });
     await idleLoop();
     return;
   }
 
   do {
-    let foundJob = false;
+    let loopState = idleHeartbeatState();
 
     try {
-      foundJob = await processNextJob();
+      loopState = await processNextJob();
     } catch (error) {
-      log(`run failed: ${formatError(error)}`);
+      const message = formatError(error);
+      log(`run failed: ${message}`);
+      loopState = {
+        foundJob: false,
+        last_loop_result: "loop_error",
+        last_job_id: 0,
+        last_job_status: "",
+        last_error: message,
+      };
     }
 
+    await sendHeartbeatBestEffort(loopState);
+
     if (config.runOnce) {
-      if (foundJob) {
+      if (loopState.foundJob) {
         log("AUTOPOST_RUN_ONCE finished; worker will stay idle until the next deploy");
       } else {
         log("AUTOPOST_RUN_ONCE found no queued jobs; worker will stay idle until the next deploy");
       }
+      await sendHeartbeatBestEffort({
+        last_loop_result: loopState.foundJob ? "run_once_complete" : "run_once_no_job",
+        last_job_id: loopState.last_job_id || 0,
+        last_job_status: loopState.last_job_status || "",
+        last_error: loopState.last_error || "",
+      });
       await idleLoop();
       return;
     }
@@ -70,11 +96,10 @@ async function processNextJob() {
   });
 
   if (!claimed?.job) {
-    return false;
+    return idleHeartbeatState();
   }
 
-  await processJob(claimed.job, mergeSettings(claimed.settings || {}));
-  return true;
+  return processJob(claimed.job, mergeSettings(claimed.settings || {}));
 }
 
 async function processJob(job, settings) {
@@ -126,7 +151,7 @@ async function processJob(job, settings) {
       });
 
       log(`completed ${jobLabel} by adding the missing first comment`);
-      return;
+      return completedHeartbeatState(job.id, "completed");
     }
 
     if (retryTarget === "full" || !generated.title || !generated.content_html) {
@@ -198,6 +223,7 @@ async function processJob(job, settings) {
     });
 
     log(`completed ${jobLabel}; Facebook post ${facebookPostId}`);
+    return completedHeartbeatState(job.id, "completed");
   } catch (error) {
     const message = formatError(error);
     const status = postId ? "partial_failure" : "failed";
@@ -214,6 +240,13 @@ async function processJob(job, settings) {
     });
 
     log(`${jobLabel} failed: ${message}`);
+    return {
+      foundJob: true,
+      last_loop_result: "job_failed",
+      last_job_id: toInt(job.id),
+      last_job_status: status,
+      last_error: message,
+    };
   }
 }
 
@@ -326,6 +359,58 @@ async function updateJobProgress(jobId, payload) {
     method: "POST",
     body: payload,
   });
+}
+
+async function sendHeartbeatBestEffort(overrides = {}) {
+  if (!hasWorkerConfig()) {
+    return;
+  }
+
+  try {
+    await wpRequest("/wp-json/kuchnia-twist/v1/worker/heartbeat", {
+      method: "POST",
+      body: {
+        worker_version: WORKER_VERSION,
+        enabled: config.enabled,
+        run_once: config.runOnce,
+        poll_seconds: config.pollSeconds,
+        startup_delay_seconds: config.startupDelaySeconds,
+        config_ok: hasWorkerConfig(),
+        last_seen_at: new Date().toISOString(),
+        last_loop_result: "",
+        last_job_id: 0,
+        last_job_status: "",
+        last_error: "",
+        ...overrides,
+      },
+    });
+  } catch (error) {
+    log(`heartbeat failed: ${formatError(error)}`);
+  }
+}
+
+function hasWorkerConfig() {
+  return Boolean(config.internalWordPressUrl && config.sharedSecret);
+}
+
+function idleHeartbeatState() {
+  return {
+    foundJob: false,
+    last_loop_result: "idle",
+    last_job_id: 0,
+    last_job_status: "",
+    last_error: "",
+  };
+}
+
+function completedHeartbeatState(jobId, status) {
+  return {
+    foundJob: true,
+    last_loop_result: "completed",
+    last_job_id: toInt(jobId),
+    last_job_status: status,
+    last_error: "",
+  };
 }
 
 async function generatePackage(job, settings) {
@@ -960,7 +1045,12 @@ function log(message) {
   console.log(`[autopost] ${new Date().toISOString()} ${message}`);
 }
 
-main().catch((error) => {
-  log(`fatal error: ${formatError(error)}`);
+main().catch(async (error) => {
+  const message = formatError(error);
+  await sendHeartbeatBestEffort({
+    last_loop_result: "fatal_error",
+    last_error: message,
+  });
+  log(`fatal error: ${message}`);
   process.exit(1);
 });
