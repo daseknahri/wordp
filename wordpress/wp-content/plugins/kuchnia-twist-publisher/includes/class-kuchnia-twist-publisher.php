@@ -150,112 +150,226 @@ final class Kuchnia_Twist_Publisher
             wp_die(esc_html__('You do not have permission to access this page.', 'kuchnia-twist'));
         }
 
-        $settings   = $this->get_settings();
-        $topics     = $this->parse_topics($settings['topics_text']);
-        $jobs       = $this->get_jobs(12);
-        $selected   = isset($_GET['job_id']) ? $this->get_job((int) $_GET['job_id']) : ($jobs[0] ?? null);
-        $notice_key = isset($_GET['kt_notice']) ? sanitize_key(wp_unslash($_GET['kt_notice'])) : '';
+        $settings    = $this->get_settings();
+        $topics      = $this->parse_topics($settings['topics_text']);
+        $job_filters = $this->job_filters_from_request();
+        $jobs        = $this->get_jobs(24, $job_filters);
+        $selected_id = isset($_GET['job_id']) ? (int) $_GET['job_id'] : 0;
+        $selected    = $this->resolve_selected_job($jobs, $selected_id);
+        $counts      = $this->get_dashboard_counts();
+        $notice_key  = isset($_GET['kt_notice']) ? sanitize_key(wp_unslash($_GET['kt_notice'])) : '';
         $manual_only = $settings['image_generation_mode'] === 'manual_only';
         ?>
         <div class="wrap kt-admin">
-            <h1><?php esc_html_e('Kuchnia Twist Publisher', 'kuchnia-twist'); ?></h1>
+            <div class="kt-page-head">
+                <div>
+                    <h1><?php esc_html_e('Publisher', 'kuchnia-twist'); ?></h1>
+                    <p><?php esc_html_e('Queue articles, watch the pipeline, and jump back into anything that needs attention.', 'kuchnia-twist'); ?></p>
+                </div>
+                <div class="kt-head-actions">
+                    <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=kuchnia-twist-settings')); ?>"><?php esc_html_e('Open Settings', 'kuchnia-twist'); ?></a>
+                </div>
+            </div>
             <?php $this->render_notice($notice_key); ?>
+            <section class="kt-summary-strip">
+                <article class="kt-stat">
+                    <span class="kt-stat__label"><?php esc_html_e('Queued', 'kuchnia-twist'); ?></span>
+                    <strong class="kt-stat__value"><?php echo esc_html((string) $counts['queued']); ?></strong>
+                </article>
+                <article class="kt-stat">
+                    <span class="kt-stat__label"><?php esc_html_e('Running', 'kuchnia-twist'); ?></span>
+                    <strong class="kt-stat__value"><?php echo esc_html((string) $counts['running']); ?></strong>
+                </article>
+                <article class="kt-stat">
+                    <span class="kt-stat__label"><?php esc_html_e('Needs Attention', 'kuchnia-twist'); ?></span>
+                    <strong class="kt-stat__value"><?php echo esc_html((string) $counts['needs_attention']); ?></strong>
+                </article>
+                <article class="kt-stat">
+                    <span class="kt-stat__label"><?php esc_html_e('Completed', 'kuchnia-twist'); ?></span>
+                    <strong class="kt-stat__value"><?php echo esc_html((string) $counts['completed']); ?></strong>
+                </article>
+            </section>
+
             <div class="kt-admin-grid">
-                <section class="kt-card">
-                    <h2><?php esc_html_e('Generate & Publish', 'kuchnia-twist'); ?></h2>
-                    <p><?php echo $manual_only ? esc_html__('Launch mode is using real uploaded images only. Add a final title plus both blog and Facebook images before queuing a job.', 'kuchnia-twist') : esc_html__('Select a topic, optionally override the title or images, and let the queue handle the article plus Facebook flow.', 'kuchnia-twist'); ?></p>
-                    <?php if ($manual_only) : ?>
-                        <div class="kt-callout">
-                            <strong><?php esc_html_e('Launch checklist', 'kuchnia-twist'); ?></strong>
-                            <p><?php esc_html_e('Each queued article should carry its final title, a landscape blog hero image, and a square Facebook image so the public site stays fully real-image during this launch phase.', 'kuchnia-twist'); ?></p>
+                <section class="kt-card kt-card--composer">
+                    <div class="kt-card-head">
+                        <div>
+                            <h2><?php esc_html_e('Create Job', 'kuchnia-twist'); ?></h2>
+                            <p><?php esc_html_e('Build one publish-ready queue item.', 'kuchnia-twist'); ?></p>
                         </div>
-                    <?php endif; ?>
+                        <span class="kt-mode-pill <?php echo esc_attr($manual_only ? 'is-manual' : 'is-flex'); ?>">
+                            <?php echo $manual_only ? esc_html__('Manual only', 'kuchnia-twist') : esc_html__('AI fallback', 'kuchnia-twist'); ?>
+                        </span>
+                    </div>
+                    <div class="kt-requirements" aria-label="<?php esc_attr_e('Queue requirements', 'kuchnia-twist'); ?>">
+                        <?php if ($manual_only) : ?>
+                            <span class="kt-requirement-pill"><?php esc_html_e('Title required', 'kuchnia-twist'); ?></span>
+                            <span class="kt-requirement-pill"><?php esc_html_e('Blog image required', 'kuchnia-twist'); ?></span>
+                            <span class="kt-requirement-pill"><?php esc_html_e('Facebook image required', 'kuchnia-twist'); ?></span>
+                        <?php else : ?>
+                            <span class="kt-requirement-pill"><?php esc_html_e('Topic required', 'kuchnia-twist'); ?></span>
+                            <span class="kt-requirement-pill"><?php esc_html_e('Images optional', 'kuchnia-twist'); ?></span>
+                            <span class="kt-requirement-pill"><?php esc_html_e('Queue publishes both channels', 'kuchnia-twist'); ?></span>
+                        <?php endif; ?>
+                    </div>
                     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" class="kt-form">
                         <?php wp_nonce_field('kuchnia_twist_create_job'); ?>
                         <input type="hidden" name="action" value="kuchnia_twist_create_job">
-                        <label>
-                            <span><?php esc_html_e('Topic', 'kuchnia-twist'); ?></span>
-                            <select name="topic" required>
-                                <?php foreach ($topics as $topic) : ?>
-                                    <option value="<?php echo esc_attr($topic); ?>"><?php echo esc_html($topic); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </label>
-                        <label>
-                            <span><?php esc_html_e('Content Type', 'kuchnia-twist'); ?></span>
-                            <select name="content_type" required>
-                                <?php foreach ($this->content_types() as $value => $label) : ?>
-                                    <option value="<?php echo esc_attr($value); ?>"><?php echo esc_html($label); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </label>
-                        <label>
-                            <span><?php echo $manual_only ? esc_html__('Final Launch Title', 'kuchnia-twist') : esc_html__('Optional Title Override', 'kuchnia-twist'); ?></span>
-                            <input type="text" name="title_override" <?php echo $manual_only ? 'required' : ''; ?> placeholder="<?php echo esc_attr($manual_only ? __('Required during manual-only launch mode', 'kuchnia-twist') : __('Leave empty to let AI generate it', 'kuchnia-twist')); ?>">
-                        </label>
-                        <label>
-                            <span><?php echo $manual_only ? esc_html__('Blog Hero Image', 'kuchnia-twist') : esc_html__('Optional Blog Hero Image', 'kuchnia-twist'); ?></span>
-                            <input type="file" name="blog_image" accept="image/*" <?php echo $manual_only ? 'required' : ''; ?>>
-                        </label>
-                        <label>
-                            <span><?php echo $manual_only ? esc_html__('Facebook Image', 'kuchnia-twist') : esc_html__('Optional Facebook Image', 'kuchnia-twist'); ?></span>
-                            <input type="file" name="facebook_image" accept="image/*" <?php echo $manual_only ? 'required' : ''; ?>>
-                        </label>
-                        <button type="submit" class="button button-primary button-hero"><?php esc_html_e('Generate & Publish', 'kuchnia-twist'); ?></button>
+                        <div class="kt-field-grid">
+                            <label>
+                                <span><?php esc_html_e('Topic', 'kuchnia-twist'); ?></span>
+                                <select name="topic" required>
+                                    <?php foreach ($topics as $topic) : ?>
+                                        <option value="<?php echo esc_attr($topic); ?>"><?php echo esc_html($topic); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </label>
+                            <label>
+                                <span><?php esc_html_e('Content Type', 'kuchnia-twist'); ?></span>
+                                <select name="content_type" required>
+                                    <?php foreach ($this->content_types() as $value => $label) : ?>
+                                        <option value="<?php echo esc_attr($value); ?>"><?php echo esc_html($label); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </label>
+                            <label class="kt-field-span-full">
+                                <span><?php echo $manual_only ? esc_html__('Final Title', 'kuchnia-twist') : esc_html__('Title Override', 'kuchnia-twist'); ?></span>
+                                <input type="text" name="title_override" <?php echo $manual_only ? 'required' : ''; ?> placeholder="<?php echo esc_attr($manual_only ? __('Required during manual-only launch mode', 'kuchnia-twist') : __('Leave empty to let AI generate it', 'kuchnia-twist')); ?>">
+                            </label>
+                        </div>
+                        <div class="kt-field-grid">
+                            <label>
+                                <span><?php esc_html_e('Blog Hero Image', 'kuchnia-twist'); ?></span>
+                                <input type="file" name="blog_image" accept="image/*" <?php echo $manual_only ? 'required' : ''; ?>>
+                            </label>
+                            <label>
+                                <span><?php esc_html_e('Facebook Image', 'kuchnia-twist'); ?></span>
+                                <input type="file" name="facebook_image" accept="image/*" <?php echo $manual_only ? 'required' : ''; ?>>
+                            </label>
+                        </div>
+                        <button type="submit" class="button button-primary button-hero"><?php esc_html_e('Queue Job', 'kuchnia-twist'); ?></button>
                     </form>
                 </section>
 
-                <section class="kt-card">
-                    <h2><?php esc_html_e('Status Panel', 'kuchnia-twist'); ?></h2>
+                <section class="kt-card kt-card--selected">
+                    <div class="kt-card-head">
+                        <div>
+                            <h2><?php esc_html_e('Selected Job', 'kuchnia-twist'); ?></h2>
+                            <p><?php esc_html_e('Live status, outputs, and the next useful action.', 'kuchnia-twist'); ?></p>
+                        </div>
+                    </div>
                     <?php if ($selected) : ?>
                         <?php $this->render_job_summary($selected); ?>
                     <?php else : ?>
-                        <p><?php esc_html_e('No jobs yet. Your first generated article will show its publishing state here.', 'kuchnia-twist'); ?></p>
+                        <div class="kt-empty-state">
+                            <h3><?php esc_html_e('No jobs yet', 'kuchnia-twist'); ?></h3>
+                            <p><?php esc_html_e('Your first queued article will appear here with status and output links.', 'kuchnia-twist'); ?></p>
+                        </div>
                     <?php endif; ?>
                 </section>
             </div>
 
-            <section class="kt-card">
-                <div class="kt-table-head">
-                    <h2><?php esc_html_e('Recent Jobs', 'kuchnia-twist'); ?></h2>
-                    <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=kuchnia-twist-settings')); ?>"><?php esc_html_e('Open Settings', 'kuchnia-twist'); ?></a>
+            <section class="kt-card kt-card--jobs">
+                <div class="kt-card-head">
+                    <div>
+                        <h2><?php esc_html_e('Recent Jobs', 'kuchnia-twist'); ?></h2>
+                        <p><?php echo esc_html(sprintf(_n('%d job shown', '%d jobs shown', count($jobs), 'kuchnia-twist'), count($jobs))); ?></p>
+                    </div>
                 </div>
-                <table class="widefat fixed striped">
-                    <thead>
-                    <tr>
-                        <th><?php esc_html_e('Topic', 'kuchnia-twist'); ?></th>
-                        <th><?php esc_html_e('Type', 'kuchnia-twist'); ?></th>
-                        <th><?php esc_html_e('Status', 'kuchnia-twist'); ?></th>
-                        <th><?php esc_html_e('Updated', 'kuchnia-twist'); ?></th>
-                        <th><?php esc_html_e('Actions', 'kuchnia-twist'); ?></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <?php if ($jobs) : ?>
+                <form method="get" class="kt-jobs-toolbar">
+                    <input type="hidden" name="page" value="kuchnia-twist-publisher">
+                    <label class="kt-toolbar-search">
+                        <span class="screen-reader-text"><?php esc_html_e('Search jobs', 'kuchnia-twist'); ?></span>
+                        <input type="search" name="job_search" value="<?php echo esc_attr($job_filters['search']); ?>" placeholder="<?php esc_attr_e('Search topic, title, or error', 'kuchnia-twist'); ?>">
+                    </label>
+                    <label class="kt-toolbar-select">
+                        <span class="screen-reader-text"><?php esc_html_e('Filter by content type', 'kuchnia-twist'); ?></span>
+                        <select name="job_type">
+                            <option value=""><?php esc_html_e('All types', 'kuchnia-twist'); ?></option>
+                            <?php foreach ($this->content_types() as $value => $label) : ?>
+                                <option value="<?php echo esc_attr($value); ?>" <?php selected($job_filters['content_type'], $value); ?>><?php echo esc_html($label); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <div class="kt-filter-pills" role="tablist" aria-label="<?php esc_attr_e('Job filters', 'kuchnia-twist'); ?>">
+                        <?php foreach ($this->job_filter_options() as $value => $label) : ?>
+                            <a
+                                class="kt-filter-pill<?php echo $job_filters['status_group'] === $value ? ' is-active' : ''; ?>"
+                                href="<?php echo esc_url($this->publisher_page_url([
+                                    'job_status' => $value === 'all' ? null : $value,
+                                    'job_search' => $job_filters['search'] !== '' ? $job_filters['search'] : null,
+                                    'job_type'   => $job_filters['content_type'] !== '' ? $job_filters['content_type'] : null,
+                                ])); ?>"
+                            >
+                                <span><?php echo esc_html($label); ?></span>
+                                <strong><?php echo esc_html((string) $this->job_filter_count($value, $counts)); ?></strong>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="kt-toolbar-actions">
+                        <button type="submit" class="button"><?php esc_html_e('Apply', 'kuchnia-twist'); ?></button>
+                        <?php if ($job_filters['search'] !== '' || $job_filters['status_group'] !== 'all' || $job_filters['content_type'] !== '') : ?>
+                            <a class="button button-link" href="<?php echo esc_url($this->publisher_page_url()); ?>"><?php esc_html_e('Clear', 'kuchnia-twist'); ?></a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+                <?php if ($jobs) : ?>
+                    <div class="kt-job-list" role="list">
                         <?php foreach ($jobs as $job) : ?>
-                            <tr>
-                                <td><?php echo esc_html($job['topic']); ?></td>
-                                <td><?php echo esc_html($this->content_types()[$job['content_type']] ?? $job['content_type']); ?></td>
-                                <td><span class="kt-status kt-status--<?php echo esc_attr($job['status']); ?>"><?php echo esc_html(ucwords(str_replace('_', ' ', $job['status']))); ?></span></td>
-                                <td><?php echo esc_html(mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $job['updated_at'])); ?></td>
-                                <td class="kt-actions">
-                                    <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=kuchnia-twist-publisher&job_id=' . $job['id'])); ?>"><?php esc_html_e('View', 'kuchnia-twist'); ?></a>
+                            <?php
+                            $job_url = $this->publisher_page_url([
+                                'job_id'     => (int) $job['id'],
+                                'job_status' => $job_filters['status_group'] !== 'all' ? $job_filters['status_group'] : null,
+                                'job_search' => $job_filters['search'] !== '' ? $job_filters['search'] : null,
+                                'job_type'   => $job_filters['content_type'] !== '' ? $job_filters['content_type'] : null,
+                            ]);
+                            ?>
+                            <article
+                                class="kt-job-row<?php echo ($selected && (int) $selected['id'] === (int) $job['id']) ? ' is-selected' : ''; ?>"
+                                data-href="<?php echo esc_url($job_url); ?>"
+                                tabindex="0"
+                                role="listitem"
+                            >
+                                <div class="kt-job-row__main">
+                                    <div class="kt-job-row__topline">
+                                        <h3><?php echo esc_html($job['topic']); ?></h3>
+                                        <span class="kt-status kt-status--<?php echo esc_attr($job['status']); ?>"><?php echo esc_html($this->format_human_label($job['status'])); ?></span>
+                                    </div>
+                                    <div class="kt-job-row__meta">
+                                        <span><?php echo esc_html($this->content_types()[$job['content_type']] ?? $job['content_type']); ?></span>
+                                        <span><?php echo esc_html(sprintf(__('Updated %s', 'kuchnia-twist'), $this->format_admin_datetime($job['updated_at']))); ?></span>
+                                        <?php if (!empty($job['title_override'])) : ?>
+                                            <span><?php echo esc_html(sprintf(__('Title: %s', 'kuchnia-twist'), $job['title_override'])); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="kt-chip-row">
+                                        <?php $this->render_job_asset_badges($job); ?>
+                                    </div>
+                                </div>
+                                <div class="kt-job-row__actions">
+                                    <a class="button button-small" href="<?php echo esc_url($job_url); ?>"><?php esc_html_e('View', 'kuchnia-twist'); ?></a>
                                     <?php if (!empty($job['permalink'])) : ?>
-                                        <a class="button" href="<?php echo esc_url($job['permalink']); ?>" target="_blank" rel="noreferrer"><?php esc_html_e('Post', 'kuchnia-twist'); ?></a>
+                                        <a class="button button-small" href="<?php echo esc_url($job['permalink']); ?>" target="_blank" rel="noreferrer"><?php esc_html_e('Post', 'kuchnia-twist'); ?></a>
                                     <?php endif; ?>
                                     <?php if (in_array($job['status'], ['failed', 'partial_failure'], true)) : ?>
-                                        <a class="button" href="<?php echo esc_url($this->retry_link($job)); ?>"><?php esc_html_e('Retry', 'kuchnia-twist'); ?></a>
+                                        <a class="button button-small" href="<?php echo esc_url($this->retry_link($job)); ?>"><?php esc_html_e('Retry', 'kuchnia-twist'); ?></a>
                                     <?php endif; ?>
-                                </td>
-                            </tr>
+                                </div>
+                            </article>
                         <?php endforeach; ?>
-                    <?php else : ?>
-                        <tr>
-                            <td colspan="5"><?php esc_html_e('No jobs have been queued yet.', 'kuchnia-twist'); ?></td>
-                        </tr>
-                    <?php endif; ?>
-                    </tbody>
-                </table>
+                    </div>
+                <?php else : ?>
+                    <div class="kt-empty-state">
+                        <h3><?php echo ($job_filters['search'] !== '' || $job_filters['status_group'] !== 'all' || $job_filters['content_type'] !== '') ? esc_html__('No matching jobs', 'kuchnia-twist') : esc_html__('No jobs queued', 'kuchnia-twist'); ?></h3>
+                        <p>
+                            <?php
+                            echo ($job_filters['search'] !== '' || $job_filters['status_group'] !== 'all' || $job_filters['content_type'] !== '')
+                                ? esc_html__('Try clearing the search or switching back to all jobs.', 'kuchnia-twist')
+                                : esc_html__('Create the first item from the composer and it will show up here immediately.', 'kuchnia-twist');
+                            ?>
+                        </p>
+                    </div>
+                <?php endif; ?>
             </section>
         </div>
         <?php
@@ -270,7 +384,12 @@ final class Kuchnia_Twist_Publisher
         $settings = $this->get_settings();
         ?>
         <div class="wrap kt-admin">
-            <h1><?php esc_html_e('Publishing Settings', 'kuchnia-twist'); ?></h1>
+            <div class="kt-page-head">
+                <div>
+                    <h1><?php esc_html_e('Publishing Settings', 'kuchnia-twist'); ?></h1>
+                    <p><?php esc_html_e('Editorial defaults, identity, distribution, and launch policy in one place.', 'kuchnia-twist'); ?></p>
+                </div>
+            </div>
             <?php if (isset($_GET['kt_saved'])) : ?>
                 <div class="notice notice-success"><p><?php esc_html_e('Settings saved.', 'kuchnia-twist'); ?></p></div>
             <?php endif; ?>
@@ -279,20 +398,34 @@ final class Kuchnia_Twist_Publisher
                 <input type="hidden" name="action" value="kuchnia_twist_save_settings">
 
                 <section class="kt-card">
-                    <h2><?php esc_html_e('Topic List & Voice', 'kuchnia-twist'); ?></h2>
-                    <label><span><?php esc_html_e('Topics (one per line)', 'kuchnia-twist'); ?></span><textarea name="topics_text" rows="8"><?php echo esc_textarea($settings['topics_text']); ?></textarea></label>
-                    <label><span><?php esc_html_e('Brand Voice', 'kuchnia-twist'); ?></span><textarea name="brand_voice" rows="4"><?php echo esc_textarea($settings['brand_voice']); ?></textarea></label>
-                    <label><span><?php esc_html_e('Article Prompt Guidance', 'kuchnia-twist'); ?></span><textarea name="article_prompt" rows="6"><?php echo esc_textarea($settings['article_prompt']); ?></textarea></label>
-                    <label><span><?php esc_html_e('Default CTA Text', 'kuchnia-twist'); ?></span><input type="text" name="default_cta" value="<?php echo esc_attr($settings['default_cta']); ?>"></label>
+                    <div class="kt-card-head">
+                        <div>
+                            <h2><?php esc_html_e('Editorial', 'kuchnia-twist'); ?></h2>
+                            <p><?php esc_html_e('Topics, voice, prompt guidance, and CTA defaults.', 'kuchnia-twist'); ?></p>
+                        </div>
+                    </div>
+                    <div class="kt-field-grid">
+                        <label class="kt-field-span-full"><span><?php esc_html_e('Topics (one per line)', 'kuchnia-twist'); ?></span><textarea name="topics_text" rows="8"><?php echo esc_textarea($settings['topics_text']); ?></textarea></label>
+                        <label class="kt-field-span-full"><span><?php esc_html_e('Brand Voice', 'kuchnia-twist'); ?></span><textarea name="brand_voice" rows="4"><?php echo esc_textarea($settings['brand_voice']); ?></textarea></label>
+                        <label class="kt-field-span-full"><span><?php esc_html_e('Article Prompt Guidance', 'kuchnia-twist'); ?></span><textarea name="article_prompt" rows="6"><?php echo esc_textarea($settings['article_prompt']); ?></textarea></label>
+                        <label class="kt-field-span-full"><span><?php esc_html_e('Default CTA Text', 'kuchnia-twist'); ?></span><input type="text" name="default_cta" value="<?php echo esc_attr($settings['default_cta']); ?>"></label>
+                    </div>
                 </section>
 
                 <section class="kt-card">
-                    <h2><?php esc_html_e('Editorial Identity', 'kuchnia-twist'); ?></h2>
-                    <label><span><?php esc_html_e('Editor Name', 'kuchnia-twist'); ?></span><input type="text" name="editor_name" value="<?php echo esc_attr($settings['editor_name']); ?>"></label>
-                    <label><span><?php esc_html_e('Editor Role', 'kuchnia-twist'); ?></span><input type="text" name="editor_role" value="<?php echo esc_attr($settings['editor_role']); ?>"></label>
-                    <label><span><?php esc_html_e('Editor Bio', 'kuchnia-twist'); ?></span><textarea name="editor_bio" rows="5"><?php echo esc_textarea($settings['editor_bio']); ?></textarea></label>
-                    <label><span><?php esc_html_e('Public Editorial Email', 'kuchnia-twist'); ?></span><input type="text" name="editor_public_email" value="<?php echo esc_attr($settings['editor_public_email']); ?>"></label>
-                    <label><span><?php esc_html_e('Business Email', 'kuchnia-twist'); ?></span><input type="text" name="editor_business_email" value="<?php echo esc_attr($settings['editor_business_email']); ?>"></label>
+                    <div class="kt-card-head">
+                        <div>
+                            <h2><?php esc_html_e('Identity', 'kuchnia-twist'); ?></h2>
+                            <p><?php esc_html_e('Name, role, portrait, and contact details shown across the publication.', 'kuchnia-twist'); ?></p>
+                        </div>
+                    </div>
+                    <div class="kt-field-grid">
+                        <label><span><?php esc_html_e('Editor Name', 'kuchnia-twist'); ?></span><input type="text" name="editor_name" value="<?php echo esc_attr($settings['editor_name']); ?>"></label>
+                        <label><span><?php esc_html_e('Editor Role', 'kuchnia-twist'); ?></span><input type="text" name="editor_role" value="<?php echo esc_attr($settings['editor_role']); ?>"></label>
+                        <label><span><?php esc_html_e('Public Editorial Email', 'kuchnia-twist'); ?></span><input type="text" name="editor_public_email" value="<?php echo esc_attr($settings['editor_public_email']); ?>"></label>
+                        <label><span><?php esc_html_e('Business Email', 'kuchnia-twist'); ?></span><input type="text" name="editor_business_email" value="<?php echo esc_attr($settings['editor_business_email']); ?>"></label>
+                        <label class="kt-field-span-full"><span><?php esc_html_e('Editor Bio', 'kuchnia-twist'); ?></span><textarea name="editor_bio" rows="5"><?php echo esc_textarea($settings['editor_bio']); ?></textarea></label>
+                    </div>
                     <div class="kt-media-field">
                         <span><?php esc_html_e('Editor Portrait', 'kuchnia-twist'); ?></span>
                         <input type="hidden" name="editor_photo_id" value="<?php echo (int) $settings['editor_photo_id']; ?>">
@@ -300,7 +433,7 @@ final class Kuchnia_Twist_Publisher
                             <?php if (!empty($settings['editor_photo_id'])) : ?>
                                 <?php echo wp_get_attachment_image((int) $settings['editor_photo_id'], 'thumbnail'); ?>
                             <?php else : ?>
-                                <p><?php esc_html_e('No portrait selected yet. The front end will fall back to the editor email avatar until one is added.', 'kuchnia-twist'); ?></p>
+                                <p><?php esc_html_e('No portrait selected.', 'kuchnia-twist'); ?></p>
                             <?php endif; ?>
                         </div>
                         <div class="kt-media-actions">
@@ -311,33 +444,59 @@ final class Kuchnia_Twist_Publisher
                 </section>
 
                 <section class="kt-card">
-                    <h2><?php esc_html_e('Social Growth Links', 'kuchnia-twist'); ?></h2>
-                    <label><span><?php esc_html_e('Follow Label', 'kuchnia-twist'); ?></span><input type="text" name="social_follow_label" value="<?php echo esc_attr($settings['social_follow_label']); ?>"></label>
-                    <label><span><?php esc_html_e('Instagram URL', 'kuchnia-twist'); ?></span><input type="url" name="social_instagram_url" value="<?php echo esc_attr($settings['social_instagram_url']); ?>" placeholder="https://instagram.com/yourprofile"></label>
-                    <label><span><?php esc_html_e('Facebook URL', 'kuchnia-twist'); ?></span><input type="url" name="social_facebook_url" value="<?php echo esc_attr($settings['social_facebook_url']); ?>" placeholder="https://facebook.com/yourpage"></label>
-                    <label><span><?php esc_html_e('Pinterest URL', 'kuchnia-twist'); ?></span><input type="url" name="social_pinterest_url" value="<?php echo esc_attr($settings['social_pinterest_url']); ?>" placeholder="https://pinterest.com/yourprofile"></label>
-                    <label><span><?php esc_html_e('TikTok URL', 'kuchnia-twist'); ?></span><input type="url" name="social_tiktok_url" value="<?php echo esc_attr($settings['social_tiktok_url']); ?>" placeholder="https://tiktok.com/@yourprofile"></label>
+                    <div class="kt-card-head">
+                        <div>
+                            <h2><?php esc_html_e('Social', 'kuchnia-twist'); ?></h2>
+                            <p><?php esc_html_e('Follow label and public profile links for the header, menu, and footer.', 'kuchnia-twist'); ?></p>
+                        </div>
+                    </div>
+                    <div class="kt-field-grid">
+                        <label class="kt-field-span-full"><span><?php esc_html_e('Follow Label', 'kuchnia-twist'); ?></span><input type="text" name="social_follow_label" value="<?php echo esc_attr($settings['social_follow_label']); ?>"></label>
+                        <label><span><?php esc_html_e('Instagram URL', 'kuchnia-twist'); ?></span><input type="url" name="social_instagram_url" value="<?php echo esc_attr($settings['social_instagram_url']); ?>" placeholder="https://instagram.com/yourprofile"></label>
+                        <label><span><?php esc_html_e('Facebook URL', 'kuchnia-twist'); ?></span><input type="url" name="social_facebook_url" value="<?php echo esc_attr($settings['social_facebook_url']); ?>" placeholder="https://facebook.com/yourpage"></label>
+                        <label><span><?php esc_html_e('Pinterest URL', 'kuchnia-twist'); ?></span><input type="url" name="social_pinterest_url" value="<?php echo esc_attr($settings['social_pinterest_url']); ?>" placeholder="https://pinterest.com/yourprofile"></label>
+                        <label><span><?php esc_html_e('TikTok URL', 'kuchnia-twist'); ?></span><input type="url" name="social_tiktok_url" value="<?php echo esc_attr($settings['social_tiktok_url']); ?>" placeholder="https://tiktok.com/@yourprofile"></label>
+                    </div>
                 </section>
 
                 <section class="kt-card">
-                    <h2><?php esc_html_e('OpenAI Settings', 'kuchnia-twist'); ?></h2>
-                    <label><span><?php esc_html_e('Text Model', 'kuchnia-twist'); ?></span><input type="text" name="openai_model" value="<?php echo esc_attr($settings['openai_model']); ?>"></label>
-                    <label><span><?php esc_html_e('Image Model', 'kuchnia-twist'); ?></span><input type="text" name="openai_image_model" value="<?php echo esc_attr($settings['openai_image_model']); ?>"></label>
-                    <label><span><?php esc_html_e('API Key', 'kuchnia-twist'); ?></span><input type="password" name="openai_api_key" value="<?php echo esc_attr($settings['openai_api_key']); ?>"></label>
-                    <label><span><?php esc_html_e('Image Style Guidance', 'kuchnia-twist'); ?></span><textarea name="image_style" rows="4"><?php echo esc_textarea($settings['image_style']); ?></textarea></label>
+                    <div class="kt-card-head">
+                        <div>
+                            <h2><?php esc_html_e('Generation', 'kuchnia-twist'); ?></h2>
+                            <p><?php esc_html_e('Text, image, and prompt controls used by the pipeline.', 'kuchnia-twist'); ?></p>
+                        </div>
+                    </div>
+                    <div class="kt-field-grid">
+                        <label><span><?php esc_html_e('Text Model', 'kuchnia-twist'); ?></span><input type="text" name="openai_model" value="<?php echo esc_attr($settings['openai_model']); ?>"></label>
+                        <label><span><?php esc_html_e('Image Model', 'kuchnia-twist'); ?></span><input type="text" name="openai_image_model" value="<?php echo esc_attr($settings['openai_image_model']); ?>"></label>
+                        <label class="kt-field-span-full"><span><?php esc_html_e('API Key', 'kuchnia-twist'); ?></span><input type="password" name="openai_api_key" value="<?php echo esc_attr($settings['openai_api_key']); ?>"></label>
+                        <label class="kt-field-span-full"><span><?php esc_html_e('Image Style Guidance', 'kuchnia-twist'); ?></span><textarea name="image_style" rows="4"><?php echo esc_textarea($settings['image_style']); ?></textarea></label>
+                    </div>
                 </section>
 
                 <section class="kt-card">
-                    <h2><?php esc_html_e('Facebook Settings', 'kuchnia-twist'); ?></h2>
-                    <label><span><?php esc_html_e('Graph API Version', 'kuchnia-twist'); ?></span><input type="text" name="facebook_graph_version" value="<?php echo esc_attr($settings['facebook_graph_version']); ?>"></label>
-                    <label><span><?php esc_html_e('Facebook Page ID', 'kuchnia-twist'); ?></span><input type="text" name="facebook_page_id" value="<?php echo esc_attr($settings['facebook_page_id']); ?>"></label>
-                    <label><span><?php esc_html_e('Facebook Page Access Token', 'kuchnia-twist'); ?></span><textarea name="facebook_page_access_token" rows="4"><?php echo esc_textarea($settings['facebook_page_access_token']); ?></textarea></label>
-                    <label><span><?php esc_html_e('UTM Source', 'kuchnia-twist'); ?></span><input type="text" name="utm_source" value="<?php echo esc_attr($settings['utm_source']); ?>"></label>
-                    <label><span><?php esc_html_e('UTM Campaign Prefix', 'kuchnia-twist'); ?></span><input type="text" name="utm_campaign_prefix" value="<?php echo esc_attr($settings['utm_campaign_prefix']); ?>"></label>
+                    <div class="kt-card-head">
+                        <div>
+                            <h2><?php esc_html_e('Distribution', 'kuchnia-twist'); ?></h2>
+                            <p><?php esc_html_e('Facebook publishing credentials and link tracking defaults.', 'kuchnia-twist'); ?></p>
+                        </div>
+                    </div>
+                    <div class="kt-field-grid">
+                        <label><span><?php esc_html_e('Graph API Version', 'kuchnia-twist'); ?></span><input type="text" name="facebook_graph_version" value="<?php echo esc_attr($settings['facebook_graph_version']); ?>"></label>
+                        <label><span><?php esc_html_e('Facebook Page ID', 'kuchnia-twist'); ?></span><input type="text" name="facebook_page_id" value="<?php echo esc_attr($settings['facebook_page_id']); ?>"></label>
+                        <label class="kt-field-span-full"><span><?php esc_html_e('Facebook Page Access Token', 'kuchnia-twist'); ?></span><textarea name="facebook_page_access_token" rows="4"><?php echo esc_textarea($settings['facebook_page_access_token']); ?></textarea></label>
+                        <label><span><?php esc_html_e('UTM Source', 'kuchnia-twist'); ?></span><input type="text" name="utm_source" value="<?php echo esc_attr($settings['utm_source']); ?>"></label>
+                        <label><span><?php esc_html_e('UTM Campaign Prefix', 'kuchnia-twist'); ?></span><input type="text" name="utm_campaign_prefix" value="<?php echo esc_attr($settings['utm_campaign_prefix']); ?>"></label>
+                    </div>
                 </section>
 
                 <section class="kt-card">
-                    <h2><?php esc_html_e('Launch Media Policy', 'kuchnia-twist'); ?></h2>
+                    <div class="kt-card-head">
+                        <div>
+                            <h2><?php esc_html_e('Launch Policy', 'kuchnia-twist'); ?></h2>
+                            <p><?php esc_html_e('Control whether publish jobs require real uploaded media.', 'kuchnia-twist'); ?></p>
+                        </div>
+                    </div>
                     <label>
                         <span><?php esc_html_e('Image Generation Mode', 'kuchnia-twist'); ?></span>
                         <select name="image_generation_mode">
@@ -345,16 +504,41 @@ final class Kuchnia_Twist_Publisher
                             <option value="ai_fallback" <?php selected($settings['image_generation_mode'], 'ai_fallback'); ?>><?php esc_html_e('AI fallback', 'kuchnia-twist'); ?></option>
                         </select>
                     </label>
-                    <p><?php esc_html_e('Use Manual only during launch so public posts rely on real uploaded photography. AI fallback can be enabled later if you intentionally want generated imagery for internal workflow support.', 'kuchnia-twist'); ?></p>
                 </section>
 
                 <section class="kt-card">
-                    <h2><?php esc_html_e('Environment Status', 'kuchnia-twist'); ?></h2>
-                    <p><?php echo $this->get_worker_secret() ? esc_html__('Worker secret is configured.', 'kuchnia-twist') : esc_html__('Worker secret is missing. Set CONTENT_PIPELINE_SHARED_SECRET in Coolify.', 'kuchnia-twist'); ?></p>
-                    <p><?php echo getenv('OPENAI_API_KEY') ? esc_html__('OpenAI API key is also available from the container environment.', 'kuchnia-twist') : esc_html__('OpenAI API key is not set in the WordPress container environment.', 'kuchnia-twist'); ?></p>
+                    <div class="kt-card-head">
+                        <div>
+                            <h2><?php esc_html_e('Environment', 'kuchnia-twist'); ?></h2>
+                            <p><?php esc_html_e('Quick runtime checks from the current WordPress container.', 'kuchnia-twist'); ?></p>
+                        </div>
+                    </div>
+                    <div class="kt-environment-list">
+                        <div class="kt-env-item">
+                            <div>
+                                <strong><?php esc_html_e('Worker secret', 'kuchnia-twist'); ?></strong>
+                                <p><?php esc_html_e('Required for the autopost worker callback.', 'kuchnia-twist'); ?></p>
+                            </div>
+                            <span class="kt-env-pill <?php echo $this->get_worker_secret() ? 'is-ready' : 'is-missing'; ?>">
+                                <?php echo $this->get_worker_secret() ? esc_html__('Present', 'kuchnia-twist') : esc_html__('Missing', 'kuchnia-twist'); ?>
+                            </span>
+                        </div>
+                        <div class="kt-env-item">
+                            <div>
+                                <strong><?php esc_html_e('OpenAI environment key', 'kuchnia-twist'); ?></strong>
+                                <p><?php esc_html_e('Optional fallback when the saved API key is empty.', 'kuchnia-twist'); ?></p>
+                            </div>
+                            <span class="kt-env-pill <?php echo getenv('OPENAI_API_KEY') ? 'is-ready' : 'is-missing'; ?>">
+                                <?php echo getenv('OPENAI_API_KEY') ? esc_html__('Present', 'kuchnia-twist') : esc_html__('Missing', 'kuchnia-twist'); ?>
+                            </span>
+                        </div>
+                    </div>
                 </section>
 
-                <p><button type="submit" class="button button-primary button-hero"><?php esc_html_e('Save Settings', 'kuchnia-twist'); ?></button></p>
+                <div class="kt-settings-save">
+                    <p><?php esc_html_e('Saving keeps the same option keys and launch rules already used by the worker and theme.', 'kuchnia-twist'); ?></p>
+                    <button type="submit" class="button button-primary button-hero"><?php esc_html_e('Save Settings', 'kuchnia-twist'); ?></button>
+                </div>
             </form>
         </div>
         <?php
@@ -1138,11 +1322,150 @@ final class Kuchnia_Twist_Publisher
         return (int) $attachment_id;
     }
 
-    private function get_jobs(int $limit = 10): array
+    private function get_jobs(int $limit = 10, array $filters = []): array
     {
         global $wpdb;
-        $rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$this->table_name()} ORDER BY id DESC LIMIT %d", $limit), ARRAY_A);
+
+        $where  = [];
+        $params = [];
+
+        $search = trim((string) ($filters['search'] ?? ''));
+        if ($search !== '') {
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            $where[] = '(topic LIKE %s OR title_override LIKE %s OR error_message LIKE %s)';
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $content_type = $this->normalize_content_type_filter($filters['content_type'] ?? '');
+        if ($content_type !== '') {
+            $where[] = 'content_type = %s';
+            $params[] = $content_type;
+        }
+
+        $statuses = $this->job_statuses_for_group((string) ($filters['status_group'] ?? 'all'));
+        if ($statuses) {
+            $placeholders = implode(', ', array_fill(0, count($statuses), '%s'));
+            $where[] = "status IN ({$placeholders})";
+            foreach ($statuses as $status) {
+                $params[] = $status;
+            }
+        }
+
+        $sql = "SELECT * FROM {$this->table_name()}";
+        if ($where) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+        $sql .= ' ORDER BY id DESC LIMIT %d';
+        $params[] = $limit;
+
+        $rows = $wpdb->get_results($wpdb->prepare($sql, ...$params), ARRAY_A);
         return array_map([$this, 'prepare_job_record'], $rows ?: []);
+    }
+
+    private function job_filters_from_request(): array
+    {
+        return [
+            'search'       => sanitize_text_field(wp_unslash($_GET['job_search'] ?? '')),
+            'status_group' => $this->normalize_job_filter(wp_unslash($_GET['job_status'] ?? 'all')),
+            'content_type' => $this->normalize_content_type_filter(wp_unslash($_GET['job_type'] ?? '')),
+        ];
+    }
+
+    private function job_filter_options(): array
+    {
+        return [
+            'all'        => __('All', 'kuchnia-twist'),
+            'attention'  => __('Needs Attention', 'kuchnia-twist'),
+            'active'     => __('Active', 'kuchnia-twist'),
+            'completed'  => __('Completed', 'kuchnia-twist'),
+        ];
+    }
+
+    private function normalize_job_filter($value): string
+    {
+        $value = sanitize_key((string) $value);
+        return array_key_exists($value, $this->job_filter_options()) ? $value : 'all';
+    }
+
+    private function normalize_content_type_filter($value): string
+    {
+        $value = sanitize_key((string) $value);
+        return array_key_exists($value, $this->content_types()) ? $value : '';
+    }
+
+    private function job_statuses_for_group(string $group): array
+    {
+        return [
+            'all'       => [],
+            'attention' => ['failed', 'partial_failure'],
+            'active'    => ['queued', 'generating', 'publishing_blog', 'publishing_facebook'],
+            'completed' => ['completed'],
+        ][$group] ?? [];
+    }
+
+    private function publisher_page_url(array $args = []): string
+    {
+        $base = ['page' => 'kuchnia-twist-publisher'];
+        $query = array_merge($base, $args);
+
+        foreach ($query as $key => $value) {
+            if ($value === null || $value === '') {
+                unset($query[$key]);
+            }
+        }
+
+        return add_query_arg($query, admin_url('admin.php'));
+    }
+
+    private function job_filter_count(string $filter, array $counts): int
+    {
+        return [
+            'all'        => (int) array_sum($counts),
+            'attention'  => (int) ($counts['needs_attention'] ?? 0),
+            'active'     => (int) (($counts['queued'] ?? 0) + ($counts['running'] ?? 0)),
+            'completed'  => (int) ($counts['completed'] ?? 0),
+        ][$filter] ?? 0;
+    }
+
+    private function get_dashboard_counts(): array
+    {
+        global $wpdb;
+
+        $counts = [
+            'queued'          => 0,
+            'running'         => 0,
+            'needs_attention' => 0,
+            'completed'       => 0,
+        ];
+
+        $rows = $wpdb->get_results("SELECT status, COUNT(*) AS total FROM {$this->table_name()} GROUP BY status", ARRAY_A);
+        foreach ($rows ?: [] as $row) {
+            $status = sanitize_key($row['status'] ?? '');
+            $total  = (int) ($row['total'] ?? 0);
+
+            if ($status === 'queued') {
+                $counts['queued'] += $total;
+                continue;
+            }
+
+            if (in_array($status, ['generating', 'publishing_blog', 'publishing_facebook'], true)) {
+                $counts['running'] += $total;
+                continue;
+            }
+
+            if (in_array($status, ['failed', 'partial_failure'], true)) {
+                $counts['needs_attention'] += $total;
+                continue;
+            }
+
+            if ($status === 'completed') {
+                $counts['completed'] += $total;
+            }
+        }
+
+        return $counts;
     }
 
     private function get_job(int $job_id): ?array
@@ -1150,6 +1473,41 @@ final class Kuchnia_Twist_Publisher
         global $wpdb;
         $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$this->table_name()} WHERE id = %d", $job_id), ARRAY_A);
         return $row ? $this->prepare_job_record($row) : null;
+    }
+
+    private function resolve_selected_job(array $jobs, int $job_id = 0): ?array
+    {
+        if ($job_id > 0) {
+            $explicit = $this->get_job($job_id);
+            if ($explicit) {
+                return $explicit;
+            }
+        }
+
+        $priority_groups = [
+            ['failed', 'partial_failure'],
+            ['queued', 'generating', 'publishing_blog', 'publishing_facebook'],
+        ];
+
+        foreach ($priority_groups as $group) {
+            $match = $this->find_first_job_by_status($jobs, $group);
+            if ($match) {
+                return $match;
+            }
+        }
+
+        return $jobs[0] ?? null;
+    }
+
+    private function find_first_job_by_status(array $jobs, array $statuses): ?array
+    {
+        foreach ($jobs as $job) {
+            if (in_array($job['status'], $statuses, true)) {
+                return $job;
+            }
+        }
+
+        return null;
     }
 
     private function prepare_job_record(array $row): array
@@ -1421,18 +1779,315 @@ final class Kuchnia_Twist_Publisher
     {
         ?>
         <div class="kt-summary">
-            <div><strong><?php esc_html_e('Topic:', 'kuchnia-twist'); ?></strong> <?php echo esc_html($job['topic']); ?></div>
-            <div><strong><?php esc_html_e('Status:', 'kuchnia-twist'); ?></strong> <?php echo esc_html($job['status']); ?></div>
-            <div><strong><?php esc_html_e('Stage:', 'kuchnia-twist'); ?></strong> <?php echo esc_html($job['stage']); ?></div>
-            <div><strong><?php esc_html_e('Content Type:', 'kuchnia-twist'); ?></strong> <?php echo esc_html($this->content_types()[$job['content_type']] ?? $job['content_type']); ?></div>
-            <?php if (!empty($job['permalink'])) : ?><div><strong><?php esc_html_e('Blog Post:', 'kuchnia-twist'); ?></strong> <a href="<?php echo esc_url($job['permalink']); ?>" target="_blank" rel="noreferrer"><?php esc_html_e('Open article', 'kuchnia-twist'); ?></a></div><?php endif; ?>
-            <?php if (!empty($job['facebook_post_id'])) : ?><div><strong><?php esc_html_e('Facebook Post ID:', 'kuchnia-twist'); ?></strong> <?php echo esc_html($job['facebook_post_id']); ?></div><?php endif; ?>
-            <?php if (!empty($job['facebook_comment_id'])) : ?><div><strong><?php esc_html_e('First Comment ID:', 'kuchnia-twist'); ?></strong> <?php echo esc_html($job['facebook_comment_id']); ?></div><?php endif; ?>
-            <?php if (!empty($job['error_message'])) : ?><div class="kt-error"><strong><?php esc_html_e('Latest Error:', 'kuchnia-twist'); ?></strong> <?php echo esc_html($job['error_message']); ?></div><?php endif; ?>
-            <?php if (!empty($job['facebook_caption'])) : ?><label><span><?php esc_html_e('Facebook Caption', 'kuchnia-twist'); ?></span><textarea rows="5" readonly><?php echo esc_textarea($job['facebook_caption']); ?></textarea></label><?php endif; ?>
-            <?php if (!empty($job['group_share_kit'])) : ?><label><span><?php esc_html_e('Group Share Kit', 'kuchnia-twist'); ?></span><textarea rows="6" readonly><?php echo esc_textarea($job['group_share_kit']); ?></textarea></label><?php endif; ?>
+            <div class="kt-summary__hero">
+                <div>
+                    <p class="kt-summary__eyebrow"><?php echo esc_html(sprintf(__('Job #%d', 'kuchnia-twist'), (int) $job['id'])); ?></p>
+                    <h3><?php echo esc_html($job['topic']); ?></h3>
+                    <div class="kt-summary__meta">
+                        <span><?php echo esc_html($this->content_types()[$job['content_type']] ?? $job['content_type']); ?></span>
+                        <span><?php echo esc_html(sprintf(__('Updated %s', 'kuchnia-twist'), $this->format_admin_datetime($job['updated_at']))); ?></span>
+                    </div>
+                </div>
+                <div class="kt-summary__status">
+                    <span class="kt-status kt-status--<?php echo esc_attr($job['status']); ?>"><?php echo esc_html($this->format_human_label($job['status'])); ?></span>
+                    <?php if (!empty($job['stage'])) : ?>
+                        <span class="kt-stage-pill"><?php echo esc_html($this->format_human_label($job['stage'])); ?></span>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="kt-chip-row">
+                <?php $this->render_job_asset_badges($job); ?>
+            </div>
+
+            <dl class="kt-keyfacts">
+                <div>
+                    <dt><?php esc_html_e('Content Type', 'kuchnia-twist'); ?></dt>
+                    <dd><?php echo esc_html($this->content_types()[$job['content_type']] ?? $job['content_type']); ?></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e('Created', 'kuchnia-twist'); ?></dt>
+                    <dd><?php echo esc_html($this->format_admin_datetime($job['created_at'] ?? '')); ?></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e('Updated', 'kuchnia-twist'); ?></dt>
+                    <dd><?php echo esc_html($this->format_admin_datetime($job['updated_at'])); ?></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e('Queued By', 'kuchnia-twist'); ?></dt>
+                    <dd><?php echo esc_html($this->job_author_label($job)); ?></dd>
+                </div>
+                <?php if (!empty($job['title_override'])) : ?>
+                    <div>
+                        <dt><?php esc_html_e('Title Override', 'kuchnia-twist'); ?></dt>
+                        <dd><?php echo esc_html($job['title_override']); ?></dd>
+                    </div>
+                <?php endif; ?>
+                <?php if (!empty($job['retry_target'])) : ?>
+                    <div>
+                        <dt><?php esc_html_e('Retry Target', 'kuchnia-twist'); ?></dt>
+                        <dd><?php echo esc_html($this->format_human_label($job['retry_target'])); ?></dd>
+                    </div>
+                <?php endif; ?>
+            </dl>
+
+            <section class="kt-detail-block">
+                <h4><?php esc_html_e('Request Snapshot', 'kuchnia-twist'); ?></h4>
+                <div class="kt-summary-list">
+                    <div>
+                        <span><?php esc_html_e('Requested title', 'kuchnia-twist'); ?></span>
+                        <strong><?php echo esc_html($this->job_requested_title($job)); ?></strong>
+                    </div>
+                    <div>
+                        <span><?php esc_html_e('Hero image supplied', 'kuchnia-twist'); ?></span>
+                        <strong><?php echo !empty($job['blog_image_id']) ? esc_html__('Yes', 'kuchnia-twist') : esc_html__('No', 'kuchnia-twist'); ?></strong>
+                    </div>
+                    <div>
+                        <span><?php esc_html_e('Facebook image supplied', 'kuchnia-twist'); ?></span>
+                        <strong><?php echo !empty($job['facebook_image_id']) ? esc_html__('Yes', 'kuchnia-twist') : esc_html__('No', 'kuchnia-twist'); ?></strong>
+                    </div>
+                    <div>
+                        <span><?php esc_html_e('Site label', 'kuchnia-twist'); ?></span>
+                        <strong><?php echo esc_html($this->job_site_label($job)); ?></strong>
+                    </div>
+                </div>
+            </section>
+
+            <?php $generated_snapshot = $this->job_generated_snapshot($job); ?>
+            <?php if ($generated_snapshot) : ?>
+                <section class="kt-detail-block">
+                    <h4><?php esc_html_e('Generated Snapshot', 'kuchnia-twist'); ?></h4>
+                    <div class="kt-summary-list">
+                        <?php if (!empty($generated_snapshot['title'])) : ?>
+                            <div>
+                                <span><?php esc_html_e('Generated title', 'kuchnia-twist'); ?></span>
+                                <strong><?php echo esc_html($generated_snapshot['title']); ?></strong>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($generated_snapshot['slug'])) : ?>
+                            <div>
+                                <span><?php esc_html_e('Slug', 'kuchnia-twist'); ?></span>
+                                <strong><?php echo esc_html($generated_snapshot['slug']); ?></strong>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($generated_snapshot['word_count'])) : ?>
+                            <div>
+                                <span><?php esc_html_e('Body words', 'kuchnia-twist'); ?></span>
+                                <strong><?php echo esc_html((string) $generated_snapshot['word_count']); ?></strong>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php if (!empty($generated_snapshot['excerpt'])) : ?>
+                        <div class="kt-generated-copy">
+                            <label for="kt-generated-excerpt-<?php echo (int) $job['id']; ?>"><?php esc_html_e('Excerpt', 'kuchnia-twist'); ?></label>
+                            <textarea id="kt-generated-excerpt-<?php echo (int) $job['id']; ?>" rows="3" readonly><?php echo esc_textarea($generated_snapshot['excerpt']); ?></textarea>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (!empty($generated_snapshot['seo_description'])) : ?>
+                        <div class="kt-generated-copy">
+                            <label for="kt-generated-seo-<?php echo (int) $job['id']; ?>"><?php esc_html_e('SEO Description', 'kuchnia-twist'); ?></label>
+                            <textarea id="kt-generated-seo-<?php echo (int) $job['id']; ?>" rows="3" readonly><?php echo esc_textarea($generated_snapshot['seo_description']); ?></textarea>
+                        </div>
+                    <?php endif; ?>
+                </section>
+            <?php endif; ?>
+
+            <?php if (!empty($job['permalink']) || !empty($job['facebook_post_id']) || !empty($job['facebook_comment_id'])) : ?>
+                <section class="kt-detail-block">
+                    <h4><?php esc_html_e('Outputs', 'kuchnia-twist'); ?></h4>
+                    <div class="kt-summary-list">
+                        <?php if (!empty($job['permalink'])) : ?>
+                            <div>
+                                <span><?php esc_html_e('Article', 'kuchnia-twist'); ?></span>
+                                <a href="<?php echo esc_url($job['permalink']); ?>" target="_blank" rel="noreferrer"><?php esc_html_e('Open article', 'kuchnia-twist'); ?></a>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($job['facebook_post_id'])) : ?>
+                            <div>
+                                <span><?php esc_html_e('Facebook post ID', 'kuchnia-twist'); ?></span>
+                                <strong><?php echo esc_html($job['facebook_post_id']); ?></strong>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($job['facebook_comment_id'])) : ?>
+                            <div>
+                                <span><?php esc_html_e('First comment ID', 'kuchnia-twist'); ?></span>
+                                <strong><?php echo esc_html($job['facebook_comment_id']); ?></strong>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </section>
+            <?php endif; ?>
+
+            <?php if ($this->job_has_media($job)) : ?>
+                <section class="kt-detail-block">
+                    <h4><?php esc_html_e('Media', 'kuchnia-twist'); ?></h4>
+                    <div class="kt-media-grid">
+                        <?php $this->render_job_media_cards($job); ?>
+                    </div>
+                </section>
+            <?php endif; ?>
+
+            <?php if (!empty($job['error_message'])) : ?>
+                <section class="kt-detail-block kt-detail-block--error">
+                    <h4><?php esc_html_e('Error', 'kuchnia-twist'); ?></h4>
+                    <p class="kt-error"><?php echo esc_html($job['error_message']); ?></p>
+                </section>
+            <?php endif; ?>
+
+            <?php if (!empty($job['permalink']) || in_array($job['status'], ['failed', 'partial_failure'], true)) : ?>
+                <section class="kt-detail-block">
+                    <h4><?php esc_html_e('Actions', 'kuchnia-twist'); ?></h4>
+                    <div class="kt-inline-actions">
+                        <?php if (!empty($job['post_id'])) : ?>
+                            <a class="button" href="<?php echo esc_url(get_edit_post_link((int) $job['post_id'])); ?>"><?php esc_html_e('Edit Post', 'kuchnia-twist'); ?></a>
+                        <?php endif; ?>
+                        <?php if (!empty($job['permalink'])) : ?>
+                            <a class="button button-secondary" href="<?php echo esc_url($job['permalink']); ?>" target="_blank" rel="noreferrer"><?php esc_html_e('Open Article', 'kuchnia-twist'); ?></a>
+                        <?php endif; ?>
+                        <?php if (in_array($job['status'], ['failed', 'partial_failure'], true)) : ?>
+                            <a class="button button-primary" href="<?php echo esc_url($this->retry_link($job)); ?>"><?php esc_html_e('Retry Job', 'kuchnia-twist'); ?></a>
+                        <?php endif; ?>
+                    </div>
+                </section>
+            <?php endif; ?>
+
+            <?php if (!empty($job['facebook_caption'])) : ?>
+                <section class="kt-detail-block">
+                    <div class="kt-detail-block__head">
+                        <label for="kt-facebook-caption-<?php echo (int) $job['id']; ?>"><?php esc_html_e('Facebook Caption', 'kuchnia-twist'); ?></label>
+                        <button type="button" class="button button-small kt-copy-button" data-copy-target="#kt-facebook-caption-<?php echo (int) $job['id']; ?>"><?php esc_html_e('Copy', 'kuchnia-twist'); ?></button>
+                    </div>
+                    <textarea id="kt-facebook-caption-<?php echo (int) $job['id']; ?>" rows="5" readonly><?php echo esc_textarea($job['facebook_caption']); ?></textarea>
+                </section>
+            <?php endif; ?>
+
+            <?php if (!empty($job['group_share_kit'])) : ?>
+                <section class="kt-detail-block">
+                    <div class="kt-detail-block__head">
+                        <label for="kt-group-share-kit-<?php echo (int) $job['id']; ?>"><?php esc_html_e('Group Share Kit', 'kuchnia-twist'); ?></label>
+                        <button type="button" class="button button-small kt-copy-button" data-copy-target="#kt-group-share-kit-<?php echo (int) $job['id']; ?>"><?php esc_html_e('Copy', 'kuchnia-twist'); ?></button>
+                    </div>
+                    <textarea id="kt-group-share-kit-<?php echo (int) $job['id']; ?>" rows="6" readonly><?php echo esc_textarea($job['group_share_kit']); ?></textarea>
+                </section>
+            <?php endif; ?>
         </div>
         <?php
+    }
+
+    private function render_job_asset_badges(array $job): void
+    {
+        $assets = [
+            'blog_image_id'         => __('Hero attached', 'kuchnia-twist'),
+            'facebook_image_id'     => __('Facebook image attached', 'kuchnia-twist'),
+            'featured_image_id'     => __('Featured image ready', 'kuchnia-twist'),
+            'facebook_image_result_id' => __('Facebook result ready', 'kuchnia-twist'),
+        ];
+
+        foreach ($assets as $key => $label) {
+            if (!empty($job[$key])) {
+                echo '<span class="kt-asset-pill">' . esc_html($label) . '</span>';
+            }
+        }
+    }
+
+    private function job_has_media(array $job): bool
+    {
+        foreach (['blog_image', 'facebook_image', 'featured_image', 'facebook_image_result'] as $key) {
+            if (!empty($job[$key]['url'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function render_job_media_cards(array $job): void
+    {
+        $items = [
+            'blog_image'           => __('Queued Hero', 'kuchnia-twist'),
+            'facebook_image'       => __('Queued Facebook Image', 'kuchnia-twist'),
+            'featured_image'       => __('Published Featured Image', 'kuchnia-twist'),
+            'facebook_image_result'=> __('Published Facebook Result', 'kuchnia-twist'),
+        ];
+
+        foreach ($items as $key => $label) {
+            $media = $job[$key] ?? [];
+            if (empty($media['url'])) {
+                continue;
+            }
+            ?>
+            <article class="kt-media-card">
+                <img src="<?php echo esc_url($media['url']); ?>" alt="">
+                <div class="kt-media-card__body">
+                    <strong><?php echo esc_html($label); ?></strong>
+                    <?php if (!empty($media['title'])) : ?>
+                        <span><?php echo esc_html($media['title']); ?></span>
+                    <?php endif; ?>
+                </div>
+            </article>
+            <?php
+        }
+    }
+
+    private function job_author_label(array $job): string
+    {
+        if (!empty($job['created_by'])) {
+            $user = get_userdata((int) $job['created_by']);
+            if ($user instanceof WP_User && $user->display_name !== '') {
+                return $user->display_name;
+            }
+        }
+
+        return __('Unknown', 'kuchnia-twist');
+    }
+
+    private function job_requested_title(array $job): string
+    {
+        $request = is_array($job['request_payload'] ?? null) ? $job['request_payload'] : [];
+        $title = sanitize_text_field((string) ($request['title_override'] ?? $job['title_override'] ?? ''));
+
+        return $title !== '' ? $title : __('AI generated title', 'kuchnia-twist');
+    }
+
+    private function job_site_label(array $job): string
+    {
+        $request = is_array($job['request_payload'] ?? null) ? $job['request_payload'] : [];
+        $site = sanitize_text_field((string) ($request['site_name'] ?? ''));
+
+        return $site !== '' ? $site : get_bloginfo('name');
+    }
+
+    private function job_generated_snapshot(array $job): array
+    {
+        $generated = is_array($job['generated_payload'] ?? null) ? $job['generated_payload'] : [];
+        if (!$generated) {
+            return [];
+        }
+
+        $content_html = (string) ($generated['content_html'] ?? '');
+        $word_count = $content_html !== '' ? str_word_count(wp_strip_all_tags($content_html)) : 0;
+
+        return array_filter([
+            'title'           => sanitize_text_field((string) ($generated['title'] ?? '')),
+            'slug'            => sanitize_title((string) ($generated['slug'] ?? '')),
+            'excerpt'         => sanitize_text_field((string) ($generated['excerpt'] ?? '')),
+            'seo_description' => sanitize_text_field((string) ($generated['seo_description'] ?? '')),
+            'word_count'      => $word_count,
+        ]);
+    }
+
+    private function format_admin_datetime(string $datetime): string
+    {
+        if ($datetime === '') {
+            return __('Unknown', 'kuchnia-twist');
+        }
+
+        return mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $datetime);
+    }
+
+    private function format_human_label(string $value): string
+    {
+        return ucwords(str_replace('_', ' ', $value));
     }
 
     private function retry_link(array $job): string

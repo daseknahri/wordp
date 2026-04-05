@@ -92,7 +92,7 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
         <?php endif; ?>
     </div>
 
-    <div class="editorial-module__layout editorial-module__layout--feature">
+    <div class="editorial-module__layout editorial-module__layout--feature<?php echo empty($recipe_stack) ? ' editorial-module__layout--single' : ''; ?>">
         <?php if ($recipe_lead) : ?>
             <article class="feature-story">
                 <a class="feature-story__media" href="<?php echo esc_url(get_permalink($recipe_lead)); ?>">
@@ -114,24 +114,26 @@ $story_stack       = $story_lead ? array_slice($stories_posts, 1) : [];
             </article>
         <?php endif; ?>
 
-        <div class="story-stack">
-            <?php foreach ($recipe_stack as $post_item) : ?>
-                <article class="compact-story">
-                    <a class="compact-story__media" href="<?php echo esc_url(get_permalink($post_item)); ?>">
-                        <?php if (has_post_thumbnail($post_item)) : ?>
-                            <?php echo get_the_post_thumbnail($post_item, 'kuchnia-twist-card'); ?>
-                        <?php else : ?>
-                            <?php kuchnia_twist_render_media_placeholder('recipes', __('Recipe image', 'kuchnia-twist')); ?>
-                        <?php endif; ?>
-                    </a>
-                    <div class="compact-story__body">
-                        <span class="eyebrow"><?php esc_html_e('Recipe', 'kuchnia-twist'); ?></span>
-                        <h3><a href="<?php echo esc_url(get_permalink($post_item)); ?>"><?php echo esc_html(get_the_title($post_item)); ?></a></h3>
-                        <p><?php echo esc_html(get_the_excerpt($post_item)); ?></p>
-                    </div>
-                </article>
-            <?php endforeach; ?>
-        </div>
+        <?php if ($recipe_stack) : ?>
+            <div class="story-stack">
+                <?php foreach ($recipe_stack as $post_item) : ?>
+                    <article class="compact-story">
+                        <a class="compact-story__media" href="<?php echo esc_url(get_permalink($post_item)); ?>">
+                            <?php if (has_post_thumbnail($post_item)) : ?>
+                                <?php echo get_the_post_thumbnail($post_item, 'kuchnia-twist-card'); ?>
+                            <?php else : ?>
+                                <?php kuchnia_twist_render_media_placeholder('recipes', __('Recipe image', 'kuchnia-twist')); ?>
+                            <?php endif; ?>
+                        </a>
+                        <div class="compact-story__body">
+                            <span class="eyebrow"><?php esc_html_e('Recipe', 'kuchnia-twist'); ?></span>
+                            <h3><a href="<?php echo esc_url(get_permalink($post_item)); ?>"><?php echo esc_html(get_the_title($post_item)); ?></a></h3>
+                            <p><?php echo esc_html(get_the_excerpt($post_item)); ?></p>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
     </div>
 </section>
 

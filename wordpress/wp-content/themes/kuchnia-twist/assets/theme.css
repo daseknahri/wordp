@@ -115,7 +115,8 @@ summary:focus-visible {
 }
 
 .site-shell {
-  overflow: clip;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 .site-header {
@@ -840,6 +841,14 @@ summary:focus-visible {
 
 .editorial-module__layout--feature {
   align-items: stretch;
+}
+
+.editorial-module__layout--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.editorial-module__layout--single .feature-story {
+  max-width: 860px;
 }
 
 .feature-story {
@@ -1817,6 +1826,10 @@ summary:focus-visible {
   .editorial-module__layout--feature,
   .editorial-module__layout {
     grid-template-columns: minmax(0, 1.18fr) minmax(320px, 0.82fr);
+  }
+
+  .editorial-module__layout--single {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .feature-story {
