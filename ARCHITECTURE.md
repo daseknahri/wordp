@@ -36,6 +36,7 @@ It now also owns:
 
 - worker heartbeat status
 - per-job ops events
+- minimal recipe idea backlog state
 - filtered job export from wp-admin
 - seeded launch-page refresh tracking via stored seed hashes
 
@@ -62,7 +63,6 @@ Responsibility:
 - publish the WordPress article when the slot is due
 - publish the Facebook Page post
 - add the first comment with the tracked link
-- save the manual group-share kit
 - send worker heartbeat snapshots back to WordPress
 
 The worker is the execution engine. It should stay stateless except for short-lived runtime state.
@@ -118,9 +118,10 @@ This is intentionally compact. It should store short operational context only, n
 The publisher screen is now an operator console:
 
 - system status strip for worker/OpenAI/Facebook readiness
+- recipe idea bank with idea, queued, scheduled, published, and archived states
 - paginated job list with search and filters
-- selected job detail with snapshots, outputs, media, and retry actions
-- selected job detail with prompt version, publication profile, preset, and validator summary
+- selected job detail with snapshots, outputs, media, retry actions, quality score, and failed checks
+- selected job detail with prompt version, publication profile, preset, validator summary, and per-variant hook angles
 - per-job ops timeline
 - filtered CSV export for reporting/debugging
 
@@ -132,9 +133,13 @@ The active AI lane is now recipe-only and is centered around one master prompt p
 
 - `publication_profile`
   - brand voice
-  - do / don't guidance
-  - banned-claim guidance
-  - shared-link policy
+  - one consolidated guardrails field
+- `recipe backlog`
+  - dish name
+  - status
+  - optional preferred angle
+  - optional operator note
+  - linked job / post ids
 - `recipe_master_prompt`
   - title
   - slug
@@ -146,14 +151,24 @@ The active AI lane is now recipe-only and is centered around one master prompt p
   - social pack with one variant per selected Facebook page
 - `recipe helpers`
   - recipe article guidance
-  - Facebook caption guidance
-  - group-share guidance
+  - Facebook variant guidance
   - image style brief
+- `image handling`
+  - uploaded first, generate only missing slot(s)
+  - manual only
 - `facebook page library`
   - label
   - page id
   - page access token
   - active toggle
+- `quality gate`
+  - article depth and structure
+  - internal links
+  - recipe completeness
+  - selected-page coverage
+  - social variant uniqueness
+  - image readiness
+  - blocking threshold before publish
 - `cadence`
   - generate now
   - publish daily
@@ -161,8 +176,7 @@ The active AI lane is now recipe-only and is centered around one master prompt p
 - `models`
   - primary text model
   - image model
-  - repair enabled
-  - repair attempts
+  - one internal repair pass
 
 WordPress stores the operator-facing guidance and the selected target pages for each job. The worker owns the runtime prompt contract, produces the social pack, and fans out one unique variant per selected page.
 

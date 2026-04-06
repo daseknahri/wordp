@@ -187,6 +187,23 @@
     updateFacebookSelectionState();
   });
 
+  $(document).on("change", "[data-recipe-idea-select]", function () {
+    const select = $(this);
+    const option = select.find("option:selected");
+    const dishInput = $(select.attr("data-target-input") || "");
+    const angleInput = $(select.attr("data-angle-input") || "");
+    const dishName = option.attr("data-dish-name") || "";
+    const preferredAngle = option.attr("data-preferred-angle") || "";
+
+    if (dishInput.length && dishName) {
+      dishInput.val(dishName);
+    }
+
+    if (angleInput.length) {
+      angleInput.val(preferredAngle);
+    }
+  });
+
   syncFacebookPageRows();
   updateFacebookSelectionState();
 

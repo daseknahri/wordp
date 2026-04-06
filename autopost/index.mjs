@@ -3,8 +3,41 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 const SECOND_MS = 1000;
 const IDLE_MS = 60 * 60 * SECOND_MS;
-const WORKER_VERSION = "1.5.0";
-const PROMPT_VERSION = "recipe-master-v1";
+const WORKER_VERSION = "1.6.0";
+const PROMPT_VERSION = "recipe-master-v3";
+const QUALITY_SCORE_THRESHOLD = 75;
+const RECIPE_HOOK_ANGLES = [
+  {
+    key: "quick_dinner",
+    label: "Quick Dinner",
+    instruction: "Lead with speed, weeknight relief, and a realistic payoff for busy cooks.",
+  },
+  {
+    key: "comfort_food",
+    label: "Comfort Food",
+    instruction: "Lean into warmth, coziness, craveability, and repeat-cook appeal.",
+  },
+  {
+    key: "budget_friendly",
+    label: "Budget Friendly",
+    instruction: "Emphasize value, pantry practicality, and generous payoff without sounding cheap.",
+  },
+  {
+    key: "beginner_friendly",
+    label: "Beginner Friendly",
+    instruction: "Make the recipe feel approachable, confidence-building, and easy to follow.",
+  },
+  {
+    key: "crowd_pleaser",
+    label: "Crowd Pleaser",
+    instruction: "Frame the dish as dependable, family-friendly, and easy to serve again.",
+  },
+  {
+    key: "better_than_takeout",
+    label: "Better Than Takeout",
+    instruction: "Focus on restaurant-style payoff with simpler home-kitchen control.",
+  },
+];
 
 const config = {
   enabled: toBool(process.env.AUTOPOST_ENABLED, false),
@@ -122,6 +155,7 @@ async function processJob(job, settings, claimMode = "generate") {
   let facebookImage = firstAttachment(job.facebook_image_result, job.facebook_image, featuredImage);
   let socialPack = normalizeSocialPack(generated.social_pack);
   let selectedPages = resolveSelectedFacebookPages(job, settings);
+  let preferredAngle = resolvePreferredAngle(job);
   let distribution = seedLegacyFacebookDistribution(
     normalizeFacebookDistribution(generated.facebook_distribution),
     selectedPages,
@@ -139,6 +173,7 @@ async function processJob(job, settings, claimMode = "generate") {
       groupShareKit = generated.group_share_kit;
       socialPack = normalizeSocialPack(generated.social_pack);
       selectedPages = resolveSelectedFacebookPages(job, settings);
+      preferredAngle = resolvePreferredAngle(job);
       distribution = seedLegacyFacebookDistribution(
         normalizeFacebookDistribution(generated.facebook_distribution),
         selectedPages,
@@ -150,6 +185,25 @@ async function processJob(job, settings, claimMode = "generate") {
         featuredImage,
         facebookImage,
       }));
+
+      socialPack = ensureSocialPackCoverage(socialPack, selectedPages, generated, settings, preferredAngle);
+      const qualitySummary = buildQualitySummary(job, { ...generated, social_pack: socialPack }, settings, {
+        selectedPages,
+        featuredImage,
+        facebookImage,
+      });
+      generated = mergeValidatorSummary(
+        {
+          ...generated,
+          social_pack: socialPack,
+        },
+        {
+          ...qualitySummary,
+          target_pages: qualitySummary.quality_checks?.target_pages || selectedPages.length,
+          social_variants: qualitySummary.quality_checks?.social_variants || socialPack.length,
+        },
+      );
+      facebookCaption = generated.facebook_caption;
 
       const scheduled = await updateJobProgress(job.id, {
         status: "scheduled",
@@ -177,6 +231,7 @@ async function processJob(job, settings, claimMode = "generate") {
       groupShareKit = generated.group_share_kit;
       socialPack = normalizeSocialPack(generated.social_pack);
       selectedPages = resolveSelectedFacebookPages(job, settings);
+      preferredAngle = resolvePreferredAngle(job);
       distribution = seedLegacyFacebookDistribution(
         normalizeFacebookDistribution(generated.facebook_distribution),
         selectedPages,
@@ -189,6 +244,26 @@ async function processJob(job, settings, claimMode = "generate") {
       featuredImage,
       facebookImage,
     }));
+
+    socialPack = ensureSocialPackCoverage(socialPack, selectedPages, generated, settings, preferredAngle);
+    const qualitySummary = buildQualitySummary(job, { ...generated, social_pack: socialPack }, settings, {
+      selectedPages,
+      featuredImage,
+      facebookImage,
+    });
+    generated = mergeValidatorSummary(
+      {
+        ...generated,
+        social_pack: socialPack,
+      },
+      {
+        ...qualitySummary,
+        target_pages: qualitySummary.quality_checks?.target_pages || selectedPages.length,
+        social_variants: qualitySummary.quality_checks?.social_variants || socialPack.length,
+      },
+    );
+    facebookCaption = generated.facebook_caption;
+    assertQualityGate(qualitySummary);
 
     if (!postId || retryTarget === "publish" || retryTarget === "full") {
       stage = "publishing_blog";
@@ -210,10 +285,9 @@ async function processJob(job, settings, claimMode = "generate") {
       stage,
     });
 
-    const groupShareUrl = buildTrackedUrl(permalink, settings, generated, "facebook_group_manual");
     selectedPages = resolveSelectedFacebookPages(job, settings);
     assertFacebookConfigured(selectedPages);
-    socialPack = ensureSocialPackCoverage(socialPack, selectedPages, generated, settings);
+    socialPack = ensureSocialPackCoverage(socialPack, selectedPages, generated, settings, preferredAngle);
     distribution = seedLegacyFacebookDistribution(
       normalizeFacebookDistribution(generated.facebook_distribution),
       selectedPages,
@@ -237,8 +311,6 @@ async function processJob(job, settings, claimMode = "generate") {
     facebookPostId = firstSuccess?.post_id || "";
     facebookCommentId = firstSuccess?.comment_id || "";
     facebookCaption = firstSuccess?.caption || socialPack[0]?.caption || buildFallbackFacebookCaption(generated, settings.defaultCta);
-
-    groupShareKit = finalizeGroupShareKit(groupShareKit, groupShareUrl);
     generated = {
       ...generated,
       social_pack: socialPack,
@@ -246,7 +318,6 @@ async function processJob(job, settings, claimMode = "generate") {
       facebook_urls: {
         ...(generated.facebook_urls || {}),
         facebook_comment: firstSuccess?.comment_url || "",
-        facebook_group_manual: groupShareUrl,
         facebook_post: firstSuccess?.post_url || "",
       },
     };
@@ -319,26 +390,17 @@ async function ensureJobImages(job, settings, generated, current) {
   let featuredImage = current.featuredImage;
   let facebookImage = current.facebookImage;
   const manualOnly = (settings.imageGenerationMode || "manual_only") === "manual_only";
+  const uploadedFirst = !manualOnly;
 
   if (manualOnly && (!featuredImage?.id || !facebookImage?.id)) {
-    throw new Error("Manual-only launch mode requires both a real uploaded blog image and a real uploaded Facebook image.");
+    throw new Error("Manual-only image handling requires both a real uploaded blog image and a real uploaded Facebook image.");
   }
 
-  if (featuredImage?.id && !facebookImage?.id) {
-    facebookImage = featuredImage;
-  }
-
-  if (facebookImage?.id && !featuredImage?.id) {
-    featuredImage = facebookImage;
-  }
-
-  if (!featuredImage?.id && !facebookImage?.id) {
-    if (manualOnly) {
-      throw new Error("Manual-only launch mode blocked AI image generation because no uploaded images were provided.");
-    }
-
+  if (uploadedFirst && (!featuredImage?.id || !facebookImage?.id)) {
     ensureOpenAiConfigured(settings);
+  }
 
+  if (!featuredImage?.id && uploadedFirst) {
     log(`generating blog hero image for job #${job.id}`);
     featuredImage = await generateAndUploadImage(job.id, settings, generated, {
       slot: "blog",
@@ -346,7 +408,9 @@ async function ensureJobImages(job, settings, generated, current) {
       size: "1536x1024",
       variantHint: "Landscape hero image for the blog article header.",
     });
+  }
 
+  if (!facebookImage?.id && uploadedFirst) {
     log(`generating Facebook image for job #${job.id}`);
     facebookImage = await generateAndUploadImage(job.id, settings, generated, {
       slot: "facebook",
@@ -493,7 +557,8 @@ async function generatePackage(job, settings) {
     const packageResult = await generateRecipeMasterPackage(job, settings);
     const selectedPages = resolveSelectedFacebookPages(job, settings);
     const masterPromptSocialPack = normalizeSocialPack(packageResult.social_pack);
-    const socialPack = ensureSocialPackCoverage(packageResult.social_pack, selectedPages, packageResult, settings);
+    const preferredAngle = resolvePreferredAngle(job);
+    const socialPack = ensureSocialPackCoverage(packageResult.social_pack, selectedPages, packageResult, settings, preferredAngle);
     const distributionSource =
       masterPromptSocialPack.length === 0
         ? "local_fallback"
@@ -556,10 +621,157 @@ async function generatePackage(job, settings) {
   );
 }
 
+function buildQualitySummary(job, generated, settings, options = {}) {
+  const contentHtml = String(generated.content_html || "");
+  const selectedPages = Array.isArray(options.selectedPages) ? options.selectedPages : resolveSelectedFacebookPages(job, settings);
+  const socialPack = Array.isArray(generated.social_pack) ? generated.social_pack : [];
+  const fingerprints = socialPack.map((variant) => normalizeSocialFingerprint(variant)).filter(Boolean);
+  const uniqueFingerprints = new Set(fingerprints);
+  const recipe = isPlainObject(generated.recipe) ? generated.recipe : {};
+  const wordCount = cleanText(contentHtml.replace(/<[^>]+>/g, " ")).split(/\s+/).filter(Boolean).length;
+  const minimumWords = Number(job.content_type === "recipe" ? 1200 : 1100);
+  const h2Count = (contentHtml.match(/<h2\b/gi) || []).length;
+  const internalLinks = countInternalLinks(contentHtml);
+  const excerptWords = cleanText(generated.excerpt || "").split(/\s+/).filter(Boolean).length;
+  const seoWords = cleanText(generated.seo_description || "").split(/\s+/).filter(Boolean).length;
+  const recipeComplete = job.content_type !== "recipe" || (ensureStringArray(recipe.ingredients).length > 0 && ensureStringArray(recipe.instructions).length > 0);
+  const featuredImageReady = Boolean(options.featuredImage?.id || job.featured_image?.id || job.blog_image?.id);
+  const facebookImageReady = Boolean(options.facebookImage?.id || job.facebook_image_result?.id || job.facebook_image?.id || options.featuredImage?.id || job.featured_image?.id || job.blog_image?.id);
+  const imageReady = settings.imageGenerationMode === "manual_only"
+    ? featuredImageReady && facebookImageReady
+    : featuredImageReady && facebookImageReady;
+  const duplicateRisk = Boolean(options.duplicateRisk);
+
+  const failedChecks = [];
+  if (!cleanText(generated.title || "") || !cleanText(generated.slug || "") || !cleanText(contentHtml.replace(/<[^>]+>/g, " "))) {
+    failedChecks.push("missing_core_fields");
+  }
+  if (job.content_type === "recipe" && !recipeComplete) {
+    failedChecks.push("missing_recipe");
+  }
+  if (settings.imageGenerationMode === "manual_only" && (!featuredImageReady || !facebookImageReady)) {
+    failedChecks.push("missing_manual_images");
+  }
+  if (duplicateRisk) {
+    failedChecks.push("duplicate_conflict");
+  }
+  if (selectedPages.length < 1) {
+    failedChecks.push("missing_target_pages");
+  }
+  if (wordCount < minimumWords) {
+    failedChecks.push("thin_content");
+  }
+  if (excerptWords < 12) {
+    failedChecks.push("weak_excerpt");
+  }
+  if (seoWords < 12) {
+    failedChecks.push("weak_seo");
+  }
+  if (h2Count < 2) {
+    failedChecks.push("weak_structure");
+  }
+  if (internalLinks < 3) {
+    failedChecks.push("missing_internal_links");
+  }
+  if (socialPack.length < Math.max(1, selectedPages.length)) {
+    failedChecks.push("social_pack_incomplete");
+  }
+  if (socialPack.length > 0 && uniqueFingerprints.size < Math.min(socialPack.length, Math.max(1, selectedPages.length))) {
+    failedChecks.push("social_pack_repetitive");
+  }
+  if (!imageReady) {
+    failedChecks.push("image_not_ready");
+  }
+
+  const penalties = {
+    missing_core_fields: 35,
+    missing_recipe: 25,
+    missing_manual_images: 20,
+    duplicate_conflict: 30,
+    missing_target_pages: 25,
+    thin_content: 15,
+    weak_excerpt: 8,
+    weak_seo: 8,
+    weak_structure: 10,
+    missing_internal_links: 9,
+    social_pack_incomplete: 12,
+    social_pack_repetitive: 10,
+    image_not_ready: 8,
+  };
+  let qualityScore = 100;
+  for (const failedCheck of failedChecks) {
+    qualityScore -= Number(penalties[failedCheck] || 0);
+  }
+  qualityScore = Math.max(0, qualityScore);
+
+  return {
+    quality_score: qualityScore,
+    failed_checks: Array.from(new Set(failedChecks)),
+    quality_checks: {
+      word_count: wordCount,
+      minimum_words: minimumWords,
+      h2_count: h2Count,
+      internal_links: internalLinks,
+      excerpt_words: excerptWords,
+      seo_words: seoWords,
+      recipe_complete: recipeComplete,
+      image_ready: imageReady,
+      target_pages: selectedPages.length,
+      social_variants: socialPack.length,
+      unique_social_variants: uniqueFingerprints.size,
+      duplicate_risk: duplicateRisk,
+    },
+  };
+}
+
+function mergeValidatorSummary(generated, updates) {
+  const contentMachine = isPlainObject(generated?.content_machine) ? generated.content_machine : {};
+  const validatorSummary = isPlainObject(contentMachine.validator_summary) ? contentMachine.validator_summary : {};
+
+  return {
+    ...generated,
+    content_machine: {
+      ...contentMachine,
+      validator_summary: {
+        ...validatorSummary,
+        ...updates,
+      },
+    },
+  };
+}
+
+function assertQualityGate(summary) {
+  const failedChecks = Array.isArray(summary?.failed_checks) ? summary.failed_checks : [];
+  if (!failedChecks.length && Number(summary?.quality_score || 0) >= QUALITY_SCORE_THRESHOLD) {
+    return;
+  }
+
+  const messages = {
+    missing_core_fields: "The generated package is missing a title, slug, or article body.",
+    missing_recipe: "The generated recipe is missing ingredients or instructions.",
+    missing_manual_images: "Manual-only mode requires both blog and Facebook images before publish.",
+    duplicate_conflict: "A duplicate title or slug conflict blocked this recipe before publish.",
+    missing_target_pages: "At least one Facebook page must stay attached before publish.",
+    thin_content: "The generated article body was too thin for the quality gate.",
+    weak_excerpt: "The generated excerpt was too thin for the quality gate.",
+    weak_seo: "The generated SEO description was too thin for the quality gate.",
+    weak_structure: "The generated article needs more H2 structure before publish.",
+    missing_internal_links: "The generated article did not include enough internal links.",
+    social_pack_incomplete: "The generated social pack did not cover all selected Facebook pages.",
+    social_pack_repetitive: "The generated social pack was too repetitive across selected Facebook pages.",
+    image_not_ready: "The required image slots were not ready before publish.",
+  };
+
+  const primaryCheck = String(failedChecks[0] || "quality_gate_failed");
+  const primaryMessage = messages[primaryCheck] || "The generated recipe package did not meet the quality gate for publish.";
+  throw new Error(`${primaryMessage} Quality score: ${Number(summary?.quality_score || 0)}.`);
+}
+
 async function generateRecipeMasterPackage(job, settings) {
   const models = settings.contentMachine.models || {};
   const repairAttemptsAllowed = models.repair_enabled ? Math.max(0, Number(models.repair_attempts || 0)) : 0;
   const selectedPages = resolveSelectedFacebookPages(job, settings);
+  const preferredAngle = resolvePreferredAngle(job);
   let lastValidationError = "";
 
   for (let attempt = 0; attempt <= repairAttemptsAllowed; attempt += 1) {
@@ -568,7 +780,7 @@ async function generateRecipeMasterPackage(job, settings) {
         {
           role: "system",
           content:
-            "You are the recipe publishing engine for a premium food publication. Return strict JSON only with no markdown fences. The JSON must contain: title, slug, excerpt, seo_description, content_html, recipe, image_prompt, image_alt, group_share_kit, and social_pack. social_pack must be an array of objects with hook, caption, and cta_hint. Never include the article URL inside captions because the tracked link will be posted in the first comment.",
+            "You are the recipe publishing engine for a premium food publication. Return strict JSON only with no markdown fences. The JSON must contain: title, slug, excerpt, seo_description, content_html, recipe, image_prompt, image_alt, and social_pack. social_pack must be an array of objects with hook, caption, and cta_hint. Never include the article URL inside captions because the tracked link will be posted in the first comment.",
         },
         {
           role: "user",
@@ -582,7 +794,7 @@ async function generateRecipeMasterPackage(job, settings) {
 
       const normalized = normalizeGeneratedPayload(parseJsonObject(content), job);
       const validated = validateGeneratedPayload(normalized, job);
-      const socialPack = ensureSocialPackCoverage(validated.social_pack, selectedPages, validated, settings);
+      const socialPack = ensureSocialPackCoverage(validated.social_pack, selectedPages, validated, settings, preferredAngle);
 
       return {
         ...validated,
@@ -752,7 +964,7 @@ function mergeSettings(raw) {
     articlePrompt: contentMachine.channelPresets.article.guidance || raw.article_prompt || "Write substantial, original food articles with a premium editorial tone.",
     defaultCta: raw.default_cta || contentMachine.defaultCta || "Read the full article on the blog.",
     imageStyle: contentMachine.channelPresets.image.guidance || raw.image_style || "Natural food photography, premium editorial light, no text overlays.",
-    imageGenerationMode: raw.image_generation_mode || "manual_only",
+    imageGenerationMode: raw.image_generation_mode || "uploaded_first_generate_missing",
     facebookGraphVersion: raw.facebook_graph_version || "v22.0",
     facebookPageId: raw.facebook_page_id || "",
     facebookPageAccessToken: raw.facebook_page_access_token || "",
@@ -824,7 +1036,7 @@ async function generateDistributionPack(job, settings, article) {
     {
       role: "system",
       content:
-        "You are writing distribution copy for a premium food publication. Return strict JSON only with no markdown fences. The JSON must contain: facebook_caption, group_share_kit, image_prompt, and image_alt. Never include links in facebook_caption or group_share_kit.",
+        "You are writing distribution copy for a premium food publication. Return strict JSON only with no markdown fences. The JSON must contain: facebook_caption, image_prompt, and image_alt. Never include links in facebook_caption.",
     },
     {
       role: "user",
@@ -839,7 +1051,6 @@ async function generateDistributionPack(job, settings, article) {
   const parsed = parseJsonObject(content);
   return {
     facebook_caption: cleanMultilineText(parsed.facebook_caption || parsed.facebookCaption),
-    group_share_kit: cleanMultilineText(parsed.group_share_kit || parsed.groupShareKit),
     image_prompt: cleanMultilineText(parsed.image_prompt || parsed.imagePrompt),
     image_alt: cleanText(parsed.image_alt || parsed.imageAlt),
   };
@@ -868,13 +1079,17 @@ function resolveContentMachine(raw) {
       id: String(publicationProfile.id || "default"),
       name: String(publicationProfile.name || raw.site_name || config.fallbackSiteName),
       voice_brief: cleanText(publicationProfile.voice_brief || raw.brand_voice || config.fallbackBrandVoice),
-      do_guidance: cleanMultilineText(publicationProfile.do_guidance || ""),
-      dont_guidance: cleanMultilineText(publicationProfile.dont_guidance || raw.article_prompt || ""),
-      banned_claims: cleanMultilineText(publicationProfile.banned_claims || ""),
-      shared_link_policy: cleanMultilineText(publicationProfile.shared_link_policy || "Include at least three internal Kuchnia Twist links inside the article body."),
+      guardrails: cleanMultilineText(
+        publicationProfile.guardrails ||
+          raw.global_guardrails ||
+          [publicationProfile.do_guidance, publicationProfile.dont_guidance, publicationProfile.banned_claims]
+            .filter(Boolean)
+            .join("\n") ||
+          "No fake personal stories. No filler SEO intros. No spammy clickbait. No medical or nutrition claims beyond ordinary kitchen guidance. Keep paragraphs short, specific, and human.",
+      ),
     },
     contentPresets: {
-      recipe: normalizePreset(contentPresets.recipe, "Write a recipe-led article with strong sensory writing and practical kitchen guidance.", 1200),
+      recipe: normalizePreset(contentPresets.recipe, "Create dependable, craveable, and realistic home-cooking recipes with believable timings, coherent ingredient amounts, and repeatable results.", 1200),
       food_fact: normalizePreset(contentPresets.food_fact, "Write a fact-led article that answers the question directly, corrects confusion, and gives a practical takeaway.", 1100),
       food_story: normalizePreset(contentPresets.food_story, "Write a publication-voice kitchen essay with a clear observation and a reflective close.", 1100),
     },
@@ -891,9 +1106,6 @@ function resolveContentMachine(raw) {
       },
       facebook_caption: {
         guidance: cleanMultilineText(channelPresets.facebook_caption?.guidance || "Short, hook-led Facebook caption with no link."),
-      },
-      group_share_kit: {
-        guidance: cleanMultilineText(channelPresets.group_share_kit?.guidance || "Useful manual-share copy for food groups with no link."),
       },
       image: {
         guidance: cleanMultilineText(channelPresets.image?.guidance || raw.image_style || "Natural food photography, premium editorial light, no text overlays."),
@@ -973,6 +1185,38 @@ function normalizePreset(value, fallbackGuidance, fallbackMinWords) {
   };
 }
 
+function normalizeAngleKey(value) {
+  const key = cleanText(value || "").replace(/\s+/g, "_").toLowerCase();
+  return RECIPE_HOOK_ANGLES.some((angle) => angle.key === key) ? key : "";
+}
+
+function resolvePreferredAngle(job) {
+  return normalizeAngleKey(job?.request_payload?.preferred_angle || "");
+}
+
+function buildAngleSequence(count, preferredAngle = "") {
+  const normalizedPreferred = normalizeAngleKey(preferredAngle);
+  const keys = RECIPE_HOOK_ANGLES.map((angle) => angle.key);
+  const ordered = normalizedPreferred
+    ? [normalizedPreferred, ...keys.filter((key) => key !== normalizedPreferred)]
+    : [...keys];
+
+  return Array.from({ length: Math.max(1, count) }, (_, index) => ordered[index % ordered.length]);
+}
+
+function angleDefinition(angleKey) {
+  const normalized = normalizeAngleKey(angleKey);
+  return RECIPE_HOOK_ANGLES.find((angle) => angle.key === normalized) || null;
+}
+
+function normalizeSocialFingerprint(variant) {
+  return [cleanText(variant?.hook || ""), cleanMultilineText(variant?.caption || "")]
+    .join(" ")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
 function resolvePublicationProfile(settings) {
   return settings.contentMachine.publicationProfile || {};
 }
@@ -1014,10 +1258,7 @@ function buildCoreArticlePrompt(job, settings, repairNote = "") {
     `Topic: ${job.topic}`,
     `Content type: ${job.content_type}`,
     `Voice brief: ${profile.voice_brief || settings.brandVoice}`,
-    `Do guidance: ${profile.do_guidance || "Be specific, useful, and calm."}`,
-    `Do not guidance: ${profile.dont_guidance || "Avoid filler and generic SEO phrasing."}`,
-    `Banned claims: ${profile.banned_claims || "Avoid unsupported health and expert claims."}`,
-    `Shared link policy: ${profile.shared_link_policy || "Include at least three internal links."}`,
+    `Global guardrails: ${profile.guardrails || "No fake personal stories, no filler SEO intros, no spammy clickbait, and no unsupported health or nutrition claims."}`,
     `Article body guidance: ${settings.contentMachine.channelPresets.article.guidance}`,
     `Content preset guidance: ${preset.guidance || ""}`,
     `Length target: ${preset.min_words || config.minWords}-${config.maxWords} words for the main article body.`,
@@ -1062,6 +1303,8 @@ function buildRecipeMasterPrompt(job, settings, selectedPages, repairNote = "") 
   const preset = resolveContentPreset(settings, "recipe");
   const selectedLabels = selectedPages.map((page) => page.label).filter(Boolean);
   const socialPackCount = Math.max(1, selectedLabels.length || 1);
+  const preferredAngle = resolvePreferredAngle(job);
+  const angleSequence = buildAngleSequence(socialPackCount, preferredAngle);
   const internalLinkLibrary = internalLinkTargetsForJob({ ...job, content_type: "recipe" })
     .map((item) => `- ${item.label}: [kuchnia_twist_link slug="${item.slug}"]${item.label}[/kuchnia_twist_link]`)
     .join("\n");
@@ -1073,16 +1316,19 @@ function buildRecipeMasterPrompt(job, settings, selectedPages, repairNote = "") 
     `Publication profile: ${profile.name || settings.siteName}`,
     `Dish name: ${job.topic}`,
     `Voice brief: ${profile.voice_brief || settings.brandVoice}`,
-    `Recipe master prompt: ${masterPrompt}`,
+    `Global guardrails: ${profile.guardrails || "No fake personal stories, no filler SEO intros, no spammy clickbait, and no unsupported health or nutrition claims."}`,
+    `Recipe master direction: ${masterPrompt}`,
     `Recipe preset guidance: ${preset.guidance || ""}`,
     `Recipe article guidance: ${settings.contentMachine.channelPresets.article.guidance}`,
-    `Facebook caption guidance: ${settings.contentMachine.channelPresets.facebook_caption.guidance}`,
-    `Group share guidance: ${settings.contentMachine.channelPresets.group_share_kit.guidance}`,
+    `Facebook variant guidance: ${settings.contentMachine.channelPresets.facebook_caption.guidance}`,
     `Image style guidance: ${settings.contentMachine.channelPresets.image.guidance}`,
-    `Shared link policy: ${profile.shared_link_policy || "Include at least three internal links."}`,
     job.title_override ? `Use this exact article title: ${job.title_override}` : "Generate the best article title yourself.",
     `Create exactly ${socialPackCount} social variants in social_pack.`,
     selectedLabels.length ? `Target Facebook pages: ${selectedLabels.join(" | ")}` : "Target Facebook pages: Primary Facebook page",
+    preferredAngle ? `Use ${preferredAngle} as the first social angle, then rotate the remaining angles distinctly.` : "Auto-rotate distinct Facebook angles across the selected pages.",
+    "Social angle library:",
+    ...RECIPE_HOOK_ANGLES.map((angle) => `- ${angle.key}: ${angle.instruction}`),
+    `Use these angle keys in order when possible: ${angleSequence.join(", ")}`,
     "Recipe output rules:",
     "- Write an original, practical recipe article with a vivid opening and clear kitchen value.",
     "- content_html must begin with an introduction paragraph and use H2 sections.",
@@ -1092,8 +1338,8 @@ function buildRecipeMasterPrompt(job, settings, selectedPages, repairNote = "") 
     "- seo_description should stay under 155 characters.",
     "- Include at least three internal Kuchnia Twist links inside content_html.",
     "- social_pack captions must stay short, hook-led, and must not include the article URL.",
+    "- Every social_pack item must include angle_key, hook, caption, and cta_hint.",
     "- Each social_pack item must feel different in angle so multiple pages are not posting clones.",
-    "- group_share_kit should be a concise manual share text with [LINK] placeholder support.",
     "Preferred internal link library:",
     internalLinkLibrary,
     repairNote ? `Previous attempt failed validation: ${repairNote}` : "",
@@ -1106,7 +1352,6 @@ function buildRecipeMasterPrompt(job, settings, selectedPages, repairNote = "") 
     '  "content_html": "string",',
     '  "image_prompt": "string",',
     '  "image_alt": "string",',
-    '  "group_share_kit": "string",',
     '  "recipe": {',
     '    "prep_time": "string",',
     '    "cook_time": "string",',
@@ -1115,7 +1360,7 @@ function buildRecipeMasterPrompt(job, settings, selectedPages, repairNote = "") 
     '    "ingredients": ["string"],',
     '    "instructions": ["string"]',
     "  },",
-    '  "social_pack": [{"hook":"string","caption":"string","cta_hint":"string"}]',
+    '  "social_pack": [{"angle_key":"string","hook":"string","caption":"string","cta_hint":"string"}]',
     "}",
   ]
     .filter(Boolean)
@@ -1135,17 +1380,16 @@ function buildDerivativePrompt(job, settings, article) {
     `Publication profile: ${profile.name || settings.siteName}`,
     `Content type: ${job.content_type}`,
     `Voice brief: ${profile.voice_brief || settings.brandVoice}`,
+    `Global guardrails: ${profile.guardrails || "No fake personal stories, no filler SEO intros, no spammy clickbait, and no unsupported health or nutrition claims."}`,
     `Preset guidance: ${preset.guidance || ""}`,
     `Facebook caption guidance: ${settings.contentMachine.channelPresets.facebook_caption.guidance}`,
-    `Group share guidance: ${settings.contentMachine.channelPresets.group_share_kit.guidance}`,
     `Image style guidance: ${settings.contentMachine.channelPresets.image.guidance}`,
     `Article title: ${article.title}`,
     `Excerpt: ${article.excerpt}`,
     headings.length ? `H2 sections: ${headings.join(" | ")}` : "",
     `Article summary: ${articleSummary}`,
-    "Return only these JSON keys: facebook_caption, group_share_kit, image_prompt, image_alt.",
+    "Return only these JSON keys: facebook_caption, image_prompt, image_alt.",
     "facebook_caption must stay short, hook-led, and never include a link.",
-    "group_share_kit must feel natural for manual posting into food groups and never include a link.",
     "image_prompt must describe a realistic premium food photo with no text overlays.",
   ]
     .filter(Boolean)
@@ -1200,6 +1444,7 @@ function normalizeSocialPack(value) {
       const hook = cleanText(item.hook || item.headline || "");
       const caption = cleanMultilineText(item.caption || item.body || "");
       const ctaHint = cleanText(item.cta_hint || item.ctaHint || "");
+      const angleKey = normalizeAngleKey(item.angle_key || item.angleKey || "");
 
       if (!hook && !caption) {
         return null;
@@ -1207,6 +1452,7 @@ function normalizeSocialPack(value) {
 
       return {
         id: cleanText(item.id || `variant-${index + 1}`),
+        angle_key: angleKey,
         hook,
         caption,
         cta_hint: ctaHint,
@@ -1215,21 +1461,43 @@ function normalizeSocialPack(value) {
     .filter(Boolean);
 }
 
-function buildFallbackSocialPack(article, pages, settings) {
+function buildFallbackSocialPack(article, pages, settings, preferredAngle = "") {
   const count = Math.max(1, pages.length || 1);
-  const angles = [
-    (title) => ({ hook: `This ${title} is weeknight comfort without the fuss.`, caption: `${title} with a creamy, practical finish you can actually pull off on a busy evening.` }),
-    (title) => ({ hook: `The best part of ${title}? The texture.`, caption: `${title} that balances crisp edges, soft centers, and a finish worth saving for later.` }),
-    (title) => ({ hook: `If dinner needs to be easier, start with ${title}.`, caption: `${title} built for home cooks who want flavor, clear steps, and no wasted ingredients.` }),
-    (title) => ({ hook: `${title} is the kind of recipe people ask for twice.`, caption: `${title} with enough detail to make it reliable, not just pretty on the plate.` }),
-    (title) => ({ hook: `Save this ${title} for the next time you need a dependable win.`, caption: `${title} with practical notes, a strong method, and the kind of payoff that makes repeat cooking easy.` }),
-  ];
+  const angles = buildAngleSequence(count, preferredAngle);
+  const templates = {
+    quick_dinner: (title) => ({
+      hook: `${title} is the kind of dinner that saves a busy night.`,
+      caption: `${title} built for real weeknights: strong payoff, clear steps, and no unnecessary drag.`,
+    }),
+    comfort_food: (title) => ({
+      hook: `This ${title} hits the comfort-food craving fast.`,
+      caption: `${title} with the cozy texture and rich payoff that makes it worth repeating.`,
+    }),
+    budget_friendly: (title) => ({
+      hook: `${title} feels generous without making dinner harder.`,
+      caption: `${title} that keeps the ingredient list practical while still delivering real flavor.`,
+    }),
+    beginner_friendly: (title) => ({
+      hook: `${title} is a solid place to start if you want a sure win.`,
+      caption: `${title} with approachable steps, useful detail, and a result that still feels impressive.`,
+    }),
+    crowd_pleaser: (title) => ({
+      hook: `${title} is the kind of recipe nobody argues with.`,
+      caption: `${title} made to please a table, feed a family, and stay easy enough for a repeat cook.`,
+    }),
+    better_than_takeout: (title) => ({
+      hook: `${title} is how you skip takeout without feeling like you settled.`,
+      caption: `${title} with bold payoff, better control, and a home-kitchen method that actually works.`,
+    }),
+  };
 
   return Array.from({ length: count }, (_, index) => {
     const page = pages[index] || null;
-    const variant = angles[index % angles.length](article.title);
+    const angleKey = angles[index] || RECIPE_HOOK_ANGLES[index % RECIPE_HOOK_ANGLES.length].key;
+    const variant = (templates[angleKey] || templates.quick_dinner)(article.title);
     return {
       id: `variant-${index + 1}`,
+      angle_key: angleKey,
       hook: variant.hook,
       caption: variant.caption,
       cta_hint: page?.label ? `Use on ${page.label}` : "General recipe post",
@@ -1237,13 +1505,31 @@ function buildFallbackSocialPack(article, pages, settings) {
   });
 }
 
-function ensureSocialPackCoverage(value, pages, article, settings) {
+function ensureSocialPackCoverage(value, pages, article, settings, preferredAngle = "") {
   const desiredCount = Math.max(1, Array.isArray(pages) ? pages.length : 0);
   const normalized = normalizeSocialPack(value);
-  const fallback = buildFallbackSocialPack(article, pages, settings);
+  const fallback = buildFallbackSocialPack(article, pages, settings, preferredAngle);
+  const angleSequence = buildAngleSequence(desiredCount, preferredAngle);
+  const usedFingerprints = new Set();
 
   return Array.from({ length: desiredCount }, (_, index) => {
-    return normalized[index] || fallback[index] || fallback[fallback.length - 1];
+    const base = normalized[index] || fallback[index] || fallback[fallback.length - 1];
+    let variant = {
+      ...base,
+      angle_key: normalizeAngleKey(base?.angle_key || angleSequence[index]) || angleSequence[index],
+      cta_hint: cleanText(base?.cta_hint || ""),
+    };
+
+    const fingerprint = normalizeSocialFingerprint(variant);
+    if (!fingerprint || usedFingerprints.has(fingerprint)) {
+      variant = {
+        ...(fallback[index] || fallback[fallback.length - 1]),
+        angle_key: angleSequence[index],
+      };
+    }
+
+    usedFingerprints.add(normalizeSocialFingerprint(variant));
+    return variant;
   }).filter(Boolean);
 }
 
@@ -1261,6 +1547,7 @@ function normalizeFacebookDistribution(value) {
           {
             page_id: cleanText(page.page_id || pageId),
             label: cleanText(page.label || ""),
+            angle_key: normalizeAngleKey(page.angle_key || page.angleKey || ""),
             hook: cleanText(page.hook || ""),
             caption: cleanMultilineText(page.caption || ""),
             cta_hint: cleanText(page.cta_hint || page.ctaHint || ""),
@@ -1297,6 +1584,7 @@ function seedLegacyFacebookDistribution(distribution, pages, job, facebookCaptio
   normalized.pages[page.page_id] = {
     page_id: page.page_id,
     label: cleanText(page.label || ""),
+    angle_key: "",
     hook: "",
     caption: cleanMultilineText(facebookCaption || ""),
     cta_hint: "",
@@ -1314,7 +1602,6 @@ function seedLegacyFacebookDistribution(distribution, pages, job, facebookCaptio
 function buildLocalDistributionPack(article, settings) {
   return {
     facebook_caption: buildFallbackFacebookCaption(article, settings.defaultCta),
-    group_share_kit: `${article.title}\n\n${article.excerpt}\n\nShare the full article if it feels useful for your kitchen.`,
     image_prompt: [
       settings.contentMachine.channelPresets.image.guidance || settings.imageStyle,
       `Feature the dish or idea from "${article.title}" in an appetizing, realistic editorial composition.`,
@@ -1395,9 +1682,7 @@ function normalizeGeneratedPayload(raw, job) {
   const facebookCaption =
     cleanMultilineText(source.facebook_caption || source.facebookCaption) ||
     buildFallbackFacebookCaption({ title, excerpt }, "Read the full article on the blog.");
-  const groupShareKit =
-    cleanMultilineText(source.group_share_kit || source.groupShareKit) ||
-    `${title}\n\n${excerpt}\n\nCurious what you think about this one.`;
+  const groupShareKit = cleanMultilineText(source.group_share_kit || source.groupShareKit);
   const imagePrompt =
     cleanMultilineText(source.image_prompt || source.imagePrompt) ||
     `Editorial food photography of ${title}, premium magazine lighting, appetizing detail, natural styling, no text overlay.`;
@@ -1532,15 +1817,6 @@ function buildFacebookPostMessage(variant, fallbackCaption) {
   return hook || caption;
 }
 
-function finalizeGroupShareKit(text, trackedUrl) {
-  const cleaned = cleanMultilineText(text).replace(/\[LINK\]/gi, trackedUrl).trim();
-  if (!cleaned) {
-    return `Thought this article might be useful here.\n\nRead more: ${trackedUrl}`;
-  }
-
-  return cleaned.includes(trackedUrl) ? cleaned : `${cleaned}\n\nRead more: ${trackedUrl}`;
-}
-
 function buildFallbackFacebookCaption(generated, defaultCta) {
   return `${generated.title}\n\n${generated.excerpt}\n\n${cleanText(defaultCta) || "Read the full article on the blog."}`.trim();
 }
@@ -1591,6 +1867,7 @@ async function publishFacebookDistribution({ settings, generated, permalink, pag
       ...existing,
       page_id: page.page_id,
       label: pageLabel,
+      angle_key: normalizeAngleKey(variant.angle_key || existing.angle_key || existing.angleKey || ""),
       hook: cleanText(variant.hook || existing.hook || ""),
       caption: cleanMultilineText(variant.caption || existing.caption || ""),
       cta_hint: cleanText(variant.cta_hint || existing.cta_hint || ""),

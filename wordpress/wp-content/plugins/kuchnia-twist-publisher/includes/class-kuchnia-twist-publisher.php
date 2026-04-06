@@ -6,8 +6,9 @@ require_once __DIR__ . '/launch-content.php';
 
 final class Kuchnia_Twist_Publisher
 {
-    private const VERSION = '1.5.0';
-    private const CONTENT_MACHINE_VERSION = 'recipe-master-v1';
+    private const VERSION = '1.6.0';
+    private const CONTENT_MACHINE_VERSION = 'recipe-master-v3';
+    private const QUALITY_SCORE_THRESHOLD = 75;
     private const OPTION_KEY = 'kuchnia_twist_settings';
     private const VERSION_KEY = 'kuchnia_twist_publisher_version';
     private const THEME_BOOTSTRAP_KEY = 'kuchnia_twist_theme_bootstrapped';
@@ -37,6 +38,8 @@ final class Kuchnia_Twist_Publisher
         add_action('admin_menu', [$this, 'register_admin_pages']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
         add_action('admin_post_kuchnia_twist_create_job', [$this, 'handle_create_job']);
+        add_action('admin_post_kuchnia_twist_add_recipe_idea', [$this, 'handle_add_recipe_idea']);
+        add_action('admin_post_kuchnia_twist_archive_recipe_idea', [$this, 'handle_archive_recipe_idea']);
         add_action('admin_post_kuchnia_twist_save_settings', [$this, 'handle_save_settings']);
         add_action('admin_post_kuchnia_twist_retry_job', [$this, 'handle_retry_job']);
         add_action('admin_post_kuchnia_twist_publish_now', [$this, 'handle_publish_now']);
@@ -163,23 +166,30 @@ final class Kuchnia_Twist_Publisher
             wp_die(esc_html__('You do not have permission to access this page.', 'kuchnia-twist'));
         }
 
-        $settings      = $this->get_settings();
-        $topics        = $this->parse_topics($settings['topics_text']);
-        $facebook_pages = $this->facebook_pages($settings, true, true);
-        $job_filters   = $this->job_filters_from_request();
-        $pagination    = $this->job_pagination_from_request();
-        $job_page      = $this->get_jobs_page($job_filters, $pagination['page'], $pagination['per_page']);
-        $jobs          = $job_page['items'];
-        $selected_id   = isset($_GET['job_id']) ? (int) $_GET['job_id'] : 0;
-        $selected      = $this->resolve_selected_job($jobs, $selected_id);
-        $counts        = $this->get_dashboard_counts();
-        $notice_key    = isset($_GET['kt_notice']) ? sanitize_key(wp_unslash($_GET['kt_notice'])) : '';
-        $manual_only   = $settings['image_generation_mode'] === 'manual_only';
-        $system_status = $this->system_status_snapshot($settings);
-        $export_url    = $this->export_jobs_url($job_filters);
-        $worker_last_job = !empty($system_status['last_job_id']) ? $this->get_job((int) $system_status['last_job_id']) : null;
+        $settings           = $this->get_settings();
+        $recipe_ideas       = $this->get_recipe_ideas();
+        $topic_suggestions  = $recipe_ideas ? wp_list_pluck($recipe_ideas, 'dish_name') : $this->parse_topics($settings['topics_text']);
+        $facebook_pages     = $this->facebook_pages($settings, true, true);
+        $job_filters        = $this->job_filters_from_request();
+        $pagination         = $this->job_pagination_from_request();
+        $job_page           = $this->get_jobs_page($job_filters, $pagination['page'], $pagination['per_page']);
+        $jobs               = $job_page['items'];
+        $selected_id        = isset($_GET['job_id']) ? (int) $_GET['job_id'] : 0;
+        $selected           = $this->resolve_selected_job($jobs, $selected_id);
+        $counts             = $this->get_dashboard_counts();
+        $idea_counts        = $this->get_recipe_idea_counts();
+        $notice_key         = isset($_GET['kt_notice']) ? sanitize_key(wp_unslash($_GET['kt_notice'])) : '';
+        $manual_only        = $settings['image_generation_mode'] === 'manual_only';
+        $system_status      = $this->system_status_snapshot($settings);
+        $export_url         = $this->export_jobs_url($job_filters);
+        $worker_last_job    = !empty($system_status['last_job_id']) ? $this->get_job((int) $system_status['last_job_id']) : null;
         $next_scheduled_job = $this->next_scheduled_job();
-        $ready_waiting = $this->count_ready_waiting_jobs();
+        $ready_waiting      = $this->count_ready_waiting_jobs();
+        $prefill_idea_id    = isset($_GET['recipe_idea_id']) ? (int) $_GET['recipe_idea_id'] : 0;
+        $prefill_idea       = $prefill_idea_id > 0 ? $this->get_recipe_idea($prefill_idea_id) : null;
+        $prefill_dish_name  = $prefill_idea ? (string) ($prefill_idea['dish_name'] ?? '') : '';
+        $prefill_angle      = $prefill_idea ? (string) ($prefill_idea['preferred_angle'] ?? '') : '';
+        $angle_presets      = $this->hook_angle_presets();
         $auto_refresh_seconds = ($counts['queued'] + $counts['running']) > 0 ? 20 : 0;
         ?>
         <div class="wrap kt-admin"<?php echo $auto_refresh_seconds > 0 ? ' data-auto-refresh-seconds="' . esc_attr((string) $auto_refresh_seconds) . '"' : ''; ?>>
@@ -213,6 +223,29 @@ final class Kuchnia_Twist_Publisher
                 <article class="kt-stat">
                     <span class="kt-stat__label"><?php esc_html_e('Completed', 'kuchnia-twist'); ?></span>
                     <strong class="kt-stat__value"><?php echo esc_html((string) $counts['completed']); ?></strong>
+                </article>
+            </section>
+
+            <section class="kt-summary-strip">
+                <article class="kt-stat">
+                    <span class="kt-stat__label"><?php esc_html_e('Ideas', 'kuchnia-twist'); ?></span>
+                    <strong class="kt-stat__value"><?php echo esc_html((string) ($idea_counts['idea'] ?? 0)); ?></strong>
+                </article>
+                <article class="kt-stat">
+                    <span class="kt-stat__label"><?php esc_html_e('Queued Ideas', 'kuchnia-twist'); ?></span>
+                    <strong class="kt-stat__value"><?php echo esc_html((string) ($idea_counts['queued'] ?? 0)); ?></strong>
+                </article>
+                <article class="kt-stat">
+                    <span class="kt-stat__label"><?php esc_html_e('Scheduled Ideas', 'kuchnia-twist'); ?></span>
+                    <strong class="kt-stat__value"><?php echo esc_html((string) ($idea_counts['scheduled'] ?? 0)); ?></strong>
+                </article>
+                <article class="kt-stat">
+                    <span class="kt-stat__label"><?php esc_html_e('Published Ideas', 'kuchnia-twist'); ?></span>
+                    <strong class="kt-stat__value"><?php echo esc_html((string) ($idea_counts['published'] ?? 0)); ?></strong>
+                </article>
+                <article class="kt-stat">
+                    <span class="kt-stat__label"><?php esc_html_e('Archived Ideas', 'kuchnia-twist'); ?></span>
+                    <strong class="kt-stat__value"><?php echo esc_html((string) ($idea_counts['archived'] ?? 0)); ?></strong>
                 </article>
             </section>
 
@@ -304,15 +337,89 @@ final class Kuchnia_Twist_Publisher
                 <?php endif; ?>
             </section>
 
+            <section class="kt-card">
+                <div class="kt-card-head">
+                    <div>
+                        <h2><?php esc_html_e('Recipe Idea Bank', 'kuchnia-twist'); ?></h2>
+                        <p><?php esc_html_e('Keep a lightweight recipe backlog here, then push the strongest ideas into the recipe machine.', 'kuchnia-twist'); ?></p>
+                    </div>
+                </div>
+                <div class="kt-admin-grid kt-admin-grid--ideas">
+                    <div>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="kt-form">
+                            <?php wp_nonce_field('kuchnia_twist_add_recipe_idea'); ?>
+                            <input type="hidden" name="action" value="kuchnia_twist_add_recipe_idea">
+                            <div class="kt-field-grid">
+                                <label class="kt-field-span-full">
+                                    <span><?php esc_html_e('Dish Name', 'kuchnia-twist'); ?></span>
+                                    <input type="text" name="dish_name" required placeholder="<?php esc_attr_e('For example: Creamy Garlic Chicken Pasta', 'kuchnia-twist'); ?>">
+                                </label>
+                                <label>
+                                    <span><?php esc_html_e('Preferred Angle', 'kuchnia-twist'); ?></span>
+                                    <select name="preferred_angle">
+                                        <option value=""><?php esc_html_e('Auto rotate', 'kuchnia-twist'); ?></option>
+                                        <?php foreach ($angle_presets as $angle_key => $angle) : ?>
+                                            <option value="<?php echo esc_attr($angle_key); ?>"><?php echo esc_html($angle['label']); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </label>
+                                <label class="kt-field-span-full">
+                                    <span><?php esc_html_e('Operator Note', 'kuchnia-twist'); ?></span>
+                                    <textarea name="operator_note" rows="3" placeholder="<?php esc_attr_e('Optional note about the angle, season, or why this recipe matters.', 'kuchnia-twist'); ?>"></textarea>
+                                </label>
+                            </div>
+                            <button type="submit" class="button button-secondary"><?php esc_html_e('Add Recipe Idea', 'kuchnia-twist'); ?></button>
+                        </form>
+                    </div>
+                    <div>
+                        <?php if ($recipe_ideas) : ?>
+                            <div class="kt-event-list">
+                                <?php foreach (array_slice($recipe_ideas, 0, 10) as $idea) : ?>
+                                    <article class="kt-event">
+                                        <div class="kt-event__top">
+                                            <strong><?php echo esc_html($idea['dish_name']); ?></strong>
+                                            <span><?php echo esc_html($this->format_admin_datetime((string) $idea['updated_at'])); ?></span>
+                                        </div>
+                                        <div class="kt-chip-row">
+                                            <span class="kt-status kt-status--<?php echo esc_attr($idea['status']); ?>"><?php echo esc_html($this->format_human_label($idea['status'])); ?></span>
+                                            <?php if (!empty($idea['preferred_angle'])) : ?>
+                                                <span class="kt-stage-pill"><?php echo esc_html($this->hook_angle_label((string) $idea['preferred_angle'])); ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <?php if (!empty($idea['operator_note'])) : ?>
+                                            <p><?php echo esc_html($idea['operator_note']); ?></p>
+                                        <?php endif; ?>
+                                        <div class="kt-inline-actions">
+                                            <a class="button button-small" href="<?php echo esc_url($this->publisher_page_url(['recipe_idea_id' => (int) $idea['id']])); ?>#kt-create-job"><?php esc_html_e('Use In Composer', 'kuchnia-twist'); ?></a>
+                                            <?php if (!empty($idea['linked_job_id'])) : ?>
+                                                <a class="button button-small" href="<?php echo esc_url($this->publisher_page_url(['job_id' => (int) $idea['linked_job_id']])); ?>"><?php esc_html_e('Open Job', 'kuchnia-twist'); ?></a>
+                                            <?php endif; ?>
+                                            <?php if (in_array((string) $idea['status'], ['idea', 'published'], true)) : ?>
+                                                <a class="button button-small" href="<?php echo esc_url($this->archive_recipe_idea_link($idea)); ?>"><?php esc_html_e('Archive', 'kuchnia-twist'); ?></a>
+                                            <?php endif; ?>
+                                        </div>
+                                    </article>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else : ?>
+                            <div class="kt-empty-state">
+                                <h3><?php esc_html_e('No recipe ideas yet', 'kuchnia-twist'); ?></h3>
+                                <p><?php esc_html_e('Add a few dish names here and the backlog will start feeding the recipe composer.', 'kuchnia-twist'); ?></p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </section>
+
             <div class="kt-admin-grid">
-                <section class="kt-card kt-card--composer">
+                <section class="kt-card kt-card--composer" id="kt-create-job">
                     <div class="kt-card-head">
                         <div>
                             <h2><?php esc_html_e('Create Job', 'kuchnia-twist'); ?></h2>
                             <p><?php esc_html_e('Build one publish-ready recipe queue item from a dish name.', 'kuchnia-twist'); ?></p>
                         </div>
                         <span class="kt-mode-pill <?php echo esc_attr($manual_only ? 'is-manual' : 'is-flex'); ?>">
-                            <?php echo $manual_only ? esc_html__('Manual only', 'kuchnia-twist') : esc_html__('AI fallback', 'kuchnia-twist'); ?>
+                            <?php echo $manual_only ? esc_html__('Manual only', 'kuchnia-twist') : esc_html__('Uploaded first', 'kuchnia-twist'); ?>
                         </span>
                     </div>
                     <?php if (!empty($settings['daily_publish_time'])) : ?>
@@ -326,7 +433,7 @@ final class Kuchnia_Twist_Publisher
                             <span class="kt-requirement-pill"><?php esc_html_e('Select at least one page', 'kuchnia-twist'); ?></span>
                         <?php else : ?>
                             <span class="kt-requirement-pill"><?php esc_html_e('Dish name required', 'kuchnia-twist'); ?></span>
-                            <span class="kt-requirement-pill"><?php esc_html_e('Images optional', 'kuchnia-twist'); ?></span>
+                            <span class="kt-requirement-pill"><?php esc_html_e('Generate only missing images', 'kuchnia-twist'); ?></span>
                             <span class="kt-requirement-pill"><?php esc_html_e('Select at least one page', 'kuchnia-twist'); ?></span>
                             <span class="kt-requirement-pill"><?php esc_html_e('Generate now, publish daily', 'kuchnia-twist'); ?></span>
                         <?php endif; ?>
@@ -337,11 +444,37 @@ final class Kuchnia_Twist_Publisher
                         <input type="hidden" name="content_type" value="recipe">
                         <div class="kt-field-grid">
                             <label class="kt-field-span-full">
+                                <span><?php esc_html_e('Recipe Idea', 'kuchnia-twist'); ?></span>
+                                <select name="recipe_idea_id" data-recipe-idea-select data-target-input="input[name='dish_name']" data-angle-input="select[name='preferred_angle']">
+                                    <option value=""><?php esc_html_e('Freeform recipe or choose from the idea bank', 'kuchnia-twist'); ?></option>
+                                    <?php foreach ($recipe_ideas as $idea) : ?>
+                                        <?php if ((string) ($idea['status'] ?? '') === 'archived') { continue; } ?>
+                                        <option
+                                            value="<?php echo esc_attr((string) $idea['id']); ?>"
+                                            data-dish-name="<?php echo esc_attr((string) $idea['dish_name']); ?>"
+                                            data-preferred-angle="<?php echo esc_attr((string) ($idea['preferred_angle'] ?? '')); ?>"
+                                            <?php selected($prefill_idea_id, (int) $idea['id']); ?>
+                                        >
+                                            <?php
+                                            echo esc_html(
+                                                sprintf(
+                                                    '%1$s (%2$s)',
+                                                    (string) $idea['dish_name'],
+                                                    $this->format_human_label((string) ($idea['status'] ?? 'idea'))
+                                                )
+                                            );
+                                            ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <small><?php esc_html_e('Pick an existing idea to prefill the composer, or leave this empty for a one-off recipe.', 'kuchnia-twist'); ?></small>
+                            </label>
+                            <label class="kt-field-span-full">
                                 <span><?php esc_html_e('Dish Name', 'kuchnia-twist'); ?></span>
-                                <input type="text" name="dish_name" list="kt-recipe-ideas" required placeholder="<?php esc_attr_e('For example: Creamy Tuscan Chicken Pasta', 'kuchnia-twist'); ?>">
-                                <?php if ($topics) : ?>
+                                <input type="text" name="dish_name" list="kt-recipe-ideas" required value="<?php echo esc_attr($prefill_dish_name); ?>" placeholder="<?php esc_attr_e('For example: Creamy Tuscan Chicken Pasta', 'kuchnia-twist'); ?>">
+                                <?php if ($topic_suggestions) : ?>
                                     <datalist id="kt-recipe-ideas">
-                                        <?php foreach ($topics as $topic) : ?>
+                                        <?php foreach ($topic_suggestions as $topic) : ?>
                                             <option value="<?php echo esc_attr($topic); ?>"></option>
                                         <?php endforeach; ?>
                                     </datalist>
@@ -350,6 +483,15 @@ final class Kuchnia_Twist_Publisher
                             <label class="kt-field-span-full">
                                 <span><?php esc_html_e('Final Title Override', 'kuchnia-twist'); ?></span>
                                 <input type="text" name="title_override" placeholder="<?php esc_attr_e('Optional. Leave empty to let the recipe master prompt decide.', 'kuchnia-twist'); ?>">
+                            </label>
+                            <label>
+                                <span><?php esc_html_e('Preferred Hook Angle', 'kuchnia-twist'); ?></span>
+                                <select name="preferred_angle">
+                                    <option value=""><?php esc_html_e('Auto rotate across pages', 'kuchnia-twist'); ?></option>
+                                    <?php foreach ($angle_presets as $angle_key => $angle) : ?>
+                                        <option value="<?php echo esc_attr($angle_key); ?>" <?php selected($prefill_angle, $angle_key); ?>><?php echo esc_html($angle['label']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </label>
                         </div>
                         <div class="kt-field-grid">
@@ -600,7 +742,7 @@ final class Kuchnia_Twist_Publisher
             <div class="kt-page-head">
                 <div>
                     <h1><?php esc_html_e('Publishing Settings', 'kuchnia-twist'); ?></h1>
-                    <p><?php esc_html_e('Recipe master prompt, Facebook page library, cadence, and identity settings in one place.', 'kuchnia-twist'); ?></p>
+                    <p><?php esc_html_e('Keep the recipe machine lean: one idea bank, three short guidance sections, uploaded-first images, and multi-page Facebook distribution.', 'kuchnia-twist'); ?></p>
                 </div>
             </div>
             <?php if (isset($_GET['kt_saved'])) : ?>
@@ -614,7 +756,7 @@ final class Kuchnia_Twist_Publisher
                     <div class="kt-card-head">
                         <div>
                             <h2><?php esc_html_e('Content Machine Overview', 'kuchnia-twist'); ?></h2>
-                            <p><?php esc_html_e('The active AI lane is now recipes: one master prompt, one daily release rhythm, and multi-page Facebook distribution.', 'kuchnia-twist'); ?></p>
+                            <p><?php esc_html_e('The active AI lane is recipes only: one master recipe package, one daily release rhythm, and one Facebook variant per selected page.', 'kuchnia-twist'); ?></p>
                         </div>
                         <span class="kt-mode-pill"><?php echo esc_html(self::CONTENT_MACHINE_VERSION); ?></span>
                     </div>
@@ -642,32 +784,19 @@ final class Kuchnia_Twist_Publisher
                             <strong><?php esc_html_e('Generate now, publish daily', 'kuchnia-twist'); ?></strong>
                         </div>
                     </div>
-                    <div class="kt-field-grid">
-                        <label class="kt-field-span-full"><span><?php esc_html_e('Publication Profile Name', 'kuchnia-twist'); ?></span><input type="text" name="publication_profile_name" value="<?php echo esc_attr($settings['publication_profile_name']); ?>"></label>
-                        <label class="kt-field-span-full"><span><?php esc_html_e('Recipe Idea Bank (one per line)', 'kuchnia-twist'); ?></span><textarea name="topics_text" rows="8"><?php echo esc_textarea($settings['topics_text']); ?></textarea></label>
-                        <label class="kt-field-span-full">
-                            <span><?php esc_html_e('Image Generation Mode', 'kuchnia-twist'); ?></span>
-                            <select name="image_generation_mode">
-                                <option value="manual_only" <?php selected($settings['image_generation_mode'], 'manual_only'); ?>><?php esc_html_e('Manual only', 'kuchnia-twist'); ?></option>
-                                <option value="ai_fallback" <?php selected($settings['image_generation_mode'], 'ai_fallback'); ?>><?php esc_html_e('AI fallback', 'kuchnia-twist'); ?></option>
-                            </select>
-                        </label>
-                    </div>
+                    <p class="kt-system-note"><?php esc_html_e('Recipe ideas are now managed from the Publisher screen. The older textarea topic bank is kept only as a migration source for one upgrade cycle.', 'kuchnia-twist'); ?></p>
                 </section>
 
                 <section class="kt-card">
                     <div class="kt-card-head">
                         <div>
                             <h2><?php esc_html_e('Global Voice', 'kuchnia-twist'); ?></h2>
-                            <p><?php esc_html_e('Short publication-wide guidance that every content preset inherits.', 'kuchnia-twist'); ?></p>
+                            <p><?php esc_html_e('Permanent recipe-brand tone and non-negotiables that every article and Facebook variant inherits.', 'kuchnia-twist'); ?></p>
                         </div>
                     </div>
                     <div class="kt-field-grid">
                         <label class="kt-field-span-full"><span><?php esc_html_e('Voice Brief', 'kuchnia-twist'); ?></span><textarea name="brand_voice" rows="4"><?php echo esc_textarea($settings['brand_voice']); ?></textarea></label>
-                        <label class="kt-field-span-full"><span><?php esc_html_e('Do Guidance', 'kuchnia-twist'); ?></span><textarea name="editorial_do_guidance" rows="4"><?php echo esc_textarea($settings['editorial_do_guidance']); ?></textarea></label>
-                        <label class="kt-field-span-full"><span><?php esc_html_e('Do Not Guidance', 'kuchnia-twist'); ?></span><textarea name="editorial_dont_guidance" rows="4"><?php echo esc_textarea($settings['editorial_dont_guidance']); ?></textarea></label>
-                        <label class="kt-field-span-full"><span><?php esc_html_e('Banned-Claim Guidance', 'kuchnia-twist'); ?></span><textarea name="banned_claim_guidance" rows="3"><?php echo esc_textarea($settings['banned_claim_guidance']); ?></textarea></label>
-                        <label class="kt-field-span-full"><span><?php esc_html_e('Shared Link Policy', 'kuchnia-twist'); ?></span><textarea name="shared_link_policy" rows="3"><?php echo esc_textarea($settings['shared_link_policy']); ?></textarea></label>
+                        <label class="kt-field-span-full"><span><?php esc_html_e('Global Guardrails', 'kuchnia-twist'); ?></span><textarea name="global_guardrails" rows="5"><?php echo esc_textarea($settings['global_guardrails']); ?></textarea></label>
                         <label class="kt-field-span-full"><span><?php esc_html_e('Default CTA Text', 'kuchnia-twist'); ?></span><input type="text" name="default_cta" value="<?php echo esc_attr($settings['default_cta']); ?>"></label>
                     </div>
                 </section>
@@ -676,12 +805,11 @@ final class Kuchnia_Twist_Publisher
                     <div class="kt-card-head">
                         <div>
                             <h2><?php esc_html_e('Recipe Content Machine', 'kuchnia-twist'); ?></h2>
-                            <p><?php esc_html_e('One master prompt plus a few recipe-specific helpers. Food Facts and Food Stories stay live on the site but are paused for new generation.', 'kuchnia-twist'); ?></p>
+                            <p><?php esc_html_e('Keep the recipe package code-owned and use short guidance fields to steer article quality, structure, and realism.', 'kuchnia-twist'); ?></p>
                         </div>
                     </div>
                     <div class="kt-field-grid">
-                        <label class="kt-field-span-full"><span><?php esc_html_e('Recipe Master Prompt', 'kuchnia-twist'); ?></span><textarea name="recipe_master_prompt" rows="8"><?php echo esc_textarea($settings['recipe_master_prompt']); ?></textarea></label>
-                        <label class="kt-field-span-full"><span><?php esc_html_e('Recipe Preset Guidance', 'kuchnia-twist'); ?></span><textarea name="recipe_preset_guidance" rows="5"><?php echo esc_textarea($settings['recipe_preset_guidance']); ?></textarea></label>
+                        <label class="kt-field-span-full"><span><?php esc_html_e('Recipe Master Direction', 'kuchnia-twist'); ?></span><textarea name="recipe_master_prompt" rows="8"><?php echo esc_textarea($settings['recipe_master_prompt']); ?></textarea></label>
                         <label class="kt-field-span-full"><span><?php esc_html_e('Recipe Article Guidance', 'kuchnia-twist'); ?></span><textarea name="article_prompt" rows="5"><?php echo esc_textarea($settings['article_prompt']); ?></textarea></label>
                     </div>
                 </section>
@@ -690,12 +818,29 @@ final class Kuchnia_Twist_Publisher
                     <div class="kt-card-head">
                         <div>
                             <h2><?php esc_html_e('Recipe Social Rules', 'kuchnia-twist'); ?></h2>
-                            <p><?php esc_html_e('Guide how the master prompt writes hooks, captions, share text, and image direction for recipe distribution.', 'kuchnia-twist'); ?></p>
+                            <p><?php esc_html_e('Guide only the Facebook hooks and captions. The number of variants is derived from the active selected pages.', 'kuchnia-twist'); ?></p>
                         </div>
                     </div>
                     <div class="kt-field-grid">
-                        <label class="kt-field-span-full"><span><?php esc_html_e('Facebook Caption Guidance', 'kuchnia-twist'); ?></span><textarea name="facebook_caption_guidance" rows="3"><?php echo esc_textarea($settings['facebook_caption_guidance']); ?></textarea></label>
-                        <label class="kt-field-span-full"><span><?php esc_html_e('Group Share Guidance', 'kuchnia-twist'); ?></span><textarea name="group_share_guidance" rows="3"><?php echo esc_textarea($settings['group_share_guidance']); ?></textarea></label>
+                        <label class="kt-field-span-full"><span><?php esc_html_e('Facebook Variant Guidance', 'kuchnia-twist'); ?></span><textarea name="facebook_caption_guidance" rows="4"><?php echo esc_textarea($settings['facebook_caption_guidance']); ?></textarea></label>
+                    </div>
+                </section>
+
+                <section class="kt-card">
+                    <div class="kt-card-head">
+                        <div>
+                            <h2><?php esc_html_e('Images', 'kuchnia-twist'); ?></h2>
+                            <p><?php esc_html_e('Use uploaded assets first and only generate the missing slot when needed. Keep one shared food-photography style brief.', 'kuchnia-twist'); ?></p>
+                        </div>
+                    </div>
+                    <div class="kt-field-grid">
+                        <label class="kt-field-span-full">
+                            <span><?php esc_html_e('Image Handling', 'kuchnia-twist'); ?></span>
+                            <select name="image_generation_mode">
+                                <option value="uploaded_first_generate_missing" <?php selected($settings['image_generation_mode'], 'uploaded_first_generate_missing'); ?>><?php esc_html_e('Uploaded First', 'kuchnia-twist'); ?></option>
+                                <option value="manual_only" <?php selected($settings['image_generation_mode'], 'manual_only'); ?>><?php esc_html_e('Manual Only', 'kuchnia-twist'); ?></option>
+                            </select>
+                        </label>
                         <label class="kt-field-span-full"><span><?php esc_html_e('Image Style Brief', 'kuchnia-twist'); ?></span><textarea name="image_style" rows="4"><?php echo esc_textarea($settings['image_style']); ?></textarea></label>
                     </div>
                 </section>
@@ -723,20 +868,12 @@ final class Kuchnia_Twist_Publisher
                     <div class="kt-card-head">
                         <div>
                             <h2><?php esc_html_e('Models', 'kuchnia-twist'); ?></h2>
-                            <p><?php esc_html_e('Primary generation models and one-step repair controls.', 'kuchnia-twist'); ?></p>
+                            <p><?php esc_html_e('Keep the text and image models visible. Repair behavior stays on internally with one quiet retry pass.', 'kuchnia-twist'); ?></p>
                         </div>
                     </div>
                     <div class="kt-field-grid">
                         <label><span><?php esc_html_e('Text Model', 'kuchnia-twist'); ?></span><input type="text" name="openai_model" value="<?php echo esc_attr($settings['openai_model']); ?>"></label>
                         <label><span><?php esc_html_e('Image Model', 'kuchnia-twist'); ?></span><input type="text" name="openai_image_model" value="<?php echo esc_attr($settings['openai_image_model']); ?>"></label>
-                        <label>
-                            <span><?php esc_html_e('Repair Pass Enabled', 'kuchnia-twist'); ?></span>
-                            <select name="repair_enabled">
-                                <option value="1" <?php selected((string) $settings['repair_enabled'], '1'); ?>><?php esc_html_e('Enabled', 'kuchnia-twist'); ?></option>
-                                <option value="0" <?php selected((string) $settings['repair_enabled'], '0'); ?>><?php esc_html_e('Disabled', 'kuchnia-twist'); ?></option>
-                            </select>
-                        </label>
-                        <label><span><?php esc_html_e('Repair Attempts', 'kuchnia-twist'); ?></span><input type="number" min="0" max="2" name="repair_attempts" value="<?php echo esc_attr((string) $settings['repair_attempts']); ?>"></label>
                         <label class="kt-field-span-full"><span><?php esc_html_e('API Key', 'kuchnia-twist'); ?></span><input type="password" name="openai_api_key" value="<?php echo esc_attr($settings['openai_api_key']); ?>"></label>
                     </div>
                 </section>
@@ -935,10 +1072,13 @@ final class Kuchnia_Twist_Publisher
 
         check_admin_referer('kuchnia_twist_create_job');
 
-        $settings      = $this->get_settings();
-        $topic         = sanitize_text_field(wp_unslash($_POST['dish_name'] ?? ''));
-        $content_type  = 'recipe';
-        $title         = sanitize_text_field(wp_unslash($_POST['title_override'] ?? ''));
+        $settings        = $this->get_settings();
+        $content_type    = 'recipe';
+        $recipe_idea_id  = absint($_POST['recipe_idea_id'] ?? 0);
+        $recipe_idea     = $recipe_idea_id > 0 ? $this->get_recipe_idea($recipe_idea_id) : null;
+        $topic           = sanitize_text_field(wp_unslash($_POST['dish_name'] ?? ''));
+        $title           = sanitize_text_field(wp_unslash($_POST['title_override'] ?? ''));
+        $preferred_angle = $this->normalize_hook_angle_key((string) wp_unslash($_POST['preferred_angle'] ?? ''));
         $selected_page_ids = array_values(array_filter(array_map(
             static fn ($value): string => sanitize_text_field((string) wp_unslash($value)),
             (array) ($_POST['selected_facebook_pages'] ?? [])
@@ -953,6 +1093,19 @@ final class Kuchnia_Twist_Publisher
             if (isset($available_page_map[$page_id])) {
                 $selected_pages[] = $available_page_map[$page_id];
             }
+        }
+
+        if ($recipe_idea_id > 0 && !$recipe_idea) {
+            wp_safe_redirect(admin_url('admin.php?page=kuchnia-twist-publisher&kt_notice=idea_missing'));
+            exit;
+        }
+
+        if ($recipe_idea && $topic === '') {
+            $topic = (string) ($recipe_idea['dish_name'] ?? '');
+        }
+
+        if ($preferred_angle === '' && $recipe_idea) {
+            $preferred_angle = $this->normalize_hook_angle_key((string) ($recipe_idea['preferred_angle'] ?? ''));
         }
 
         if ($topic === '') {
@@ -1023,6 +1176,9 @@ final class Kuchnia_Twist_Publisher
             'topic'             => $topic,
             'content_type'      => $content_type,
             'title_override'    => $title,
+            'recipe_idea_id'    => $recipe_idea_id ?: 0,
+            'preferred_angle'   => $preferred_angle,
+            'operator_note'     => $recipe_idea ? (string) ($recipe_idea['operator_note'] ?? '') : '',
             'blog_image_id'     => $blog_image_id,
             'facebook_image_id' => $facebook_image_id,
             'blog_image'        => $this->attachment_payload($blog_image_id),
@@ -1064,13 +1220,77 @@ final class Kuchnia_Twist_Publisher
                 'blog_image_id'       => $blog_image_id ?: 0,
                 'facebook_image_id'   => $facebook_image_id ?: 0,
                 'selected_pages'      => count($selected_pages),
+                'recipe_idea_id'      => $recipe_idea_id ?: 0,
+                'preferred_angle'     => $preferred_angle,
                 'prompt_version'      => self::CONTENT_MACHINE_VERSION,
                 'publication_profile' => (string) ($payload['content_machine']['publication_profile'] ?? ''),
                 'content_preset'      => (string) ($payload['content_machine']['content_preset'] ?? $content_type),
             ]
         );
 
+        if ($recipe_idea_id > 0) {
+            $this->update_recipe_idea($recipe_idea_id, [
+                'status'        => 'queued',
+                'linked_job_id' => $job_id,
+                'updated_at'    => $now,
+            ]);
+        }
+
         wp_safe_redirect(admin_url('admin.php?page=kuchnia-twist-publisher&job_id=' . $job_id . '&kt_notice=job_created'));
+        exit;
+    }
+
+    public function handle_add_recipe_idea(): void
+    {
+        if (!current_user_can('publish_posts')) {
+            wp_die(esc_html__('You do not have permission to perform this action.', 'kuchnia-twist'));
+        }
+
+        check_admin_referer('kuchnia_twist_add_recipe_idea');
+
+        $dish_name = sanitize_text_field(wp_unslash($_POST['dish_name'] ?? ''));
+        $preferred_angle = $this->normalize_hook_angle_key((string) wp_unslash($_POST['preferred_angle'] ?? ''));
+        $operator_note = sanitize_textarea_field((string) wp_unslash($_POST['operator_note'] ?? ''));
+
+        if ($dish_name === '') {
+            wp_safe_redirect(admin_url('admin.php?page=kuchnia-twist-publisher&kt_notice=invalid_job'));
+            exit;
+        }
+
+        $this->insert_recipe_idea([
+            'dish_name'        => $dish_name,
+            'preferred_angle'  => $preferred_angle,
+            'operator_note'    => $operator_note,
+            'status'           => 'idea',
+            'created_by'       => get_current_user_id(),
+        ]);
+
+        wp_safe_redirect(admin_url('admin.php?page=kuchnia-twist-publisher&kt_notice=idea_created'));
+        exit;
+    }
+
+    public function handle_archive_recipe_idea(): void
+    {
+        if (!current_user_can('publish_posts')) {
+            wp_die(esc_html__('You do not have permission to perform this action.', 'kuchnia-twist'));
+        }
+
+        check_admin_referer('kuchnia_twist_archive_recipe_idea');
+
+        $idea_id = absint($_GET['idea_id'] ?? 0);
+        $idea = $idea_id > 0 ? $this->get_recipe_idea($idea_id) : null;
+
+        if (!$idea) {
+            wp_safe_redirect(admin_url('admin.php?page=kuchnia-twist-publisher&kt_notice=idea_missing'));
+            exit;
+        }
+
+        $this->update_recipe_idea($idea_id, [
+            'status'     => 'archived',
+            'updated_at' => current_time('mysql', true),
+        ]);
+
+        wp_safe_redirect(admin_url('admin.php?page=kuchnia-twist-publisher&kt_notice=idea_archived'));
         exit;
     }
 
@@ -1097,19 +1317,11 @@ final class Kuchnia_Twist_Publisher
 
         $incoming = [
             'topics_text'                => trim((string) wp_unslash($_POST['topics_text'] ?? $current['topics_text'] ?? '')),
-            'publication_profile_name'   => sanitize_text_field(wp_unslash($_POST['publication_profile_name'] ?? $current['publication_profile_name'] ?? '')),
             'brand_voice'                => trim((string) wp_unslash($_POST['brand_voice'] ?? $current['brand_voice'] ?? '')),
-            'editorial_do_guidance'      => trim((string) wp_unslash($_POST['editorial_do_guidance'] ?? $current['editorial_do_guidance'] ?? '')),
-            'editorial_dont_guidance'    => trim((string) wp_unslash($_POST['editorial_dont_guidance'] ?? $current['editorial_dont_guidance'] ?? '')),
-            'banned_claim_guidance'      => trim((string) wp_unslash($_POST['banned_claim_guidance'] ?? $current['banned_claim_guidance'] ?? '')),
-            'shared_link_policy'         => trim((string) wp_unslash($_POST['shared_link_policy'] ?? $current['shared_link_policy'] ?? '')),
+            'global_guardrails'          => trim((string) wp_unslash($_POST['global_guardrails'] ?? $current['global_guardrails'] ?? '')),
             'recipe_master_prompt'       => trim((string) wp_unslash($_POST['recipe_master_prompt'] ?? $current['recipe_master_prompt'] ?? '')),
             'article_prompt'             => trim((string) wp_unslash($_POST['article_prompt'] ?? $current['article_prompt'] ?? '')),
-            'recipe_preset_guidance'     => trim((string) wp_unslash($_POST['recipe_preset_guidance'] ?? $current['recipe_preset_guidance'] ?? '')),
-            'food_fact_preset_guidance'  => trim((string) wp_unslash($_POST['food_fact_preset_guidance'] ?? $current['food_fact_preset_guidance'] ?? '')),
-            'food_story_preset_guidance' => trim((string) wp_unslash($_POST['food_story_preset_guidance'] ?? $current['food_story_preset_guidance'] ?? '')),
             'facebook_caption_guidance'  => trim((string) wp_unslash($_POST['facebook_caption_guidance'] ?? $current['facebook_caption_guidance'] ?? '')),
-            'group_share_guidance'       => trim((string) wp_unslash($_POST['group_share_guidance'] ?? $current['group_share_guidance'] ?? '')),
             'default_cta'                => sanitize_text_field(wp_unslash($_POST['default_cta'] ?? $current['default_cta'] ?? '')),
             'editor_name'                => sanitize_text_field(wp_unslash($_POST['editor_name'] ?? $current['editor_name'] ?? '')),
             'editor_role'                => sanitize_text_field(wp_unslash($_POST['editor_role'] ?? $current['editor_role'] ?? '')),
@@ -1126,10 +1338,8 @@ final class Kuchnia_Twist_Publisher
             'openai_image_model'         => sanitize_text_field(wp_unslash($_POST['openai_image_model'] ?? $current['openai_image_model'] ?? '')),
             'openai_api_key'             => trim((string) wp_unslash($_POST['openai_api_key'] ?? $current['openai_api_key'] ?? '')),
             'image_style'                => trim((string) wp_unslash($_POST['image_style'] ?? $current['image_style'] ?? '')),
-            'image_generation_mode'      => $this->sanitize_image_generation_mode(wp_unslash($_POST['image_generation_mode'] ?? $current['image_generation_mode'] ?? 'manual_only')),
+            'image_generation_mode'      => $this->sanitize_image_generation_mode(wp_unslash($_POST['image_generation_mode'] ?? $current['image_generation_mode'] ?? 'uploaded_first_generate_missing')),
             'daily_publish_time'         => $this->sanitize_publish_time((string) wp_unslash($_POST['daily_publish_time'] ?? $current['daily_publish_time'] ?? '09:00')),
-            'repair_enabled'             => !empty($_POST['repair_enabled']) && wp_unslash($_POST['repair_enabled']) !== '0' ? '1' : '0',
-            'repair_attempts'            => max(0, min(2, absint($_POST['repair_attempts'] ?? $current['repair_attempts'] ?? 1))),
             'facebook_graph_version'     => sanitize_text_field(wp_unslash($_POST['facebook_graph_version'] ?? $current['facebook_graph_version'] ?? '')),
             'facebook_pages'             => $pages,
             'facebook_page_id'           => $primary_page['page_id'] ?? '',
@@ -1204,6 +1414,8 @@ final class Kuchnia_Twist_Publisher
                 'content_preset'      => (string) ($machine_meta['content_preset'] ?? ''),
             ]
         );
+
+        $this->sync_recipe_idea_for_job_id($job_id);
 
         $redirect = wp_get_referer() ?: admin_url('admin.php?page=kuchnia-twist-publisher');
         $redirect = remove_query_arg(['_wpnonce', 'action'], $redirect);
@@ -1326,6 +1538,8 @@ final class Kuchnia_Twist_Publisher
             );
             $notice = 'job_schedule_canceled';
         }
+
+        $this->sync_recipe_idea_for_job_id($job_id);
 
         wp_safe_redirect($this->publisher_page_url([
             'job_id'     => $job_id,
@@ -1580,8 +1794,11 @@ final class Kuchnia_Twist_Publisher
                 'distribution'   => is_array($generated_payload['content_machine']['validator_summary'] ?? null) ? (string) ($generated_payload['content_machine']['validator_summary']['distribution_source'] ?? '') : '',
                 'target_pages'   => is_array($generated_payload['content_machine']['validator_summary'] ?? null) ? (string) ($generated_payload['content_machine']['validator_summary']['target_pages'] ?? '') : '',
                 'social_variants'=> is_array($generated_payload['content_machine']['validator_summary'] ?? null) ? (string) ($generated_payload['content_machine']['validator_summary']['social_variants'] ?? '') : '',
+                'quality_score'  => is_array($generated_payload['content_machine']['validator_summary'] ?? null) ? (string) ($generated_payload['content_machine']['validator_summary']['quality_score'] ?? '') : '',
             ])
         );
+
+        $this->sync_recipe_idea_for_job_id((int) $job['id']);
 
         return rest_ensure_response([
             'ok'  => true,
@@ -1744,6 +1961,8 @@ final class Kuchnia_Twist_Publisher
             ]
         );
 
+        $this->sync_recipe_idea_for_job_id((int) $job['id']);
+
         return rest_ensure_response([
             'post_id'    => $post_id,
             'permalink'  => get_permalink($post_id),
@@ -1807,6 +2026,8 @@ final class Kuchnia_Twist_Publisher
                 'facebook_completed'  => $distribution_completed > 0 ? (string) $distribution_completed : '',
             ]
         );
+
+        $this->sync_recipe_idea_for_job_id((int) $job['id']);
 
         return rest_ensure_response(['ok' => true]);
     }
@@ -1872,6 +2093,8 @@ final class Kuchnia_Twist_Publisher
             ]
         );
 
+        $this->sync_recipe_idea_for_job_id((int) $job['id']);
+
         return rest_ensure_response(['ok' => true]);
     }
 
@@ -1921,6 +2144,7 @@ final class Kuchnia_Twist_Publisher
         global $wpdb;
         $table             = $this->table_name();
         $events_table      = $this->events_table_name();
+        $ideas_table       = $this->ideas_table_name();
         $charset_collate   = $wpdb->get_charset_collate();
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -1975,9 +2199,31 @@ final class Kuchnia_Twist_Publisher
             ) {$charset_collate};"
         );
 
+        dbDelta(
+            "CREATE TABLE {$ideas_table} (
+                id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                dish_name varchar(191) NOT NULL,
+                preferred_angle varchar(64) NOT NULL DEFAULT '',
+                operator_note text NULL,
+                status varchar(32) NOT NULL DEFAULT 'idea',
+                linked_job_id bigint(20) unsigned NULL,
+                linked_post_id bigint(20) unsigned NULL,
+                created_by bigint(20) unsigned NULL,
+                created_at datetime NOT NULL,
+                updated_at datetime NOT NULL,
+                PRIMARY KEY  (id),
+                KEY status_updated (status, updated_at),
+                KEY linked_job (linked_job_id),
+                KEY linked_post (linked_post_id)
+            ) {$charset_collate};"
+        );
+
         update_option(self::OPTION_KEY, wp_parse_args(get_option(self::OPTION_KEY, []), $this->default_settings()));
         update_option(self::WORKER_STATUS_KEY, wp_parse_args(get_option(self::WORKER_STATUS_KEY, []), $this->default_worker_status()));
         update_option(self::VERSION_KEY, self::VERSION, false);
+
+        $settings = $this->get_settings();
+        $this->seed_recipe_ideas_from_topics_text((string) ($settings['topics_text'] ?? ''));
 
         $this->ensure_site_identity();
         $this->ensure_category('recipe');
@@ -3077,28 +3323,25 @@ final class Kuchnia_Twist_Publisher
         return [
             'prompt_version' => self::CONTENT_MACHINE_VERSION,
             'publication_profile' => [
-                'id'                 => 'default',
-                'name'               => $settings['publication_profile_name'] !== '' ? $settings['publication_profile_name'] : get_bloginfo('name'),
-                'voice_brief'        => $settings['brand_voice'],
-                'do_guidance'        => $settings['editorial_do_guidance'],
-                'dont_guidance'      => $settings['editorial_dont_guidance'],
-                'banned_claims'      => $settings['banned_claim_guidance'],
-                'shared_link_policy' => $settings['shared_link_policy'],
+                'id'          => 'default',
+                'name'        => $settings['publication_profile_name'] !== '' ? $settings['publication_profile_name'] : get_bloginfo('name'),
+                'voice_brief' => $settings['brand_voice'],
+                'guardrails'  => $settings['global_guardrails'],
             ],
             'content_presets' => [
                 'recipe' => [
                     'label'    => __('Recipe', 'kuchnia-twist'),
-                    'guidance' => $settings['recipe_preset_guidance'],
+                    'guidance' => 'Create dependable, craveable, and realistic home-cooking recipes with believable timings, coherent ingredient amounts, and repeatable results.',
                     'min_words'=> 1200,
                 ],
                 'food_fact' => [
                     'label'    => __('Food Fact', 'kuchnia-twist'),
-                    'guidance' => $settings['food_fact_preset_guidance'],
+                    'guidance' => 'Write a fact-led article that answers the question directly, corrects confusion, and gives a practical takeaway.',
                     'min_words'=> 1100,
                 ],
                 'food_story' => [
                     'label'    => __('Food Story', 'kuchnia-twist'),
-                    'guidance' => $settings['food_story_preset_guidance'],
+                    'guidance' => 'Write a publication-voice kitchen essay with a clear observation and a reflective close.',
                     'min_words'=> 1100,
                 ],
             ],
@@ -3111,9 +3354,6 @@ final class Kuchnia_Twist_Publisher
                 ],
                 'facebook_caption' => [
                     'guidance' => $settings['facebook_caption_guidance'],
-                ],
-                'group_share_kit' => [
-                    'guidance' => $settings['group_share_guidance'],
                 ],
                 'image' => [
                     'guidance' => $settings['image_style'],
@@ -3255,7 +3495,13 @@ final class Kuchnia_Twist_Publisher
 
     private function sanitize_image_generation_mode($value): string
     {
-        return in_array((string) $value, ['manual_only', 'ai_fallback'], true) ? (string) $value : 'manual_only';
+        $value = (string) $value;
+
+        if ($value === 'ai_fallback') {
+            return 'uploaded_first_generate_missing';
+        }
+
+        return in_array($value, ['manual_only', 'uploaded_first_generate_missing'], true) ? $value : 'uploaded_first_generate_missing';
     }
 
     private function find_conflicting_post_id(string $candidate, int $exclude_post_id = 0): int
@@ -3290,52 +3536,158 @@ final class Kuchnia_Twist_Publisher
         return $title_match;
     }
 
-    private function validate_generated_publish_payload(array $params, array $generated, array $job): ?WP_Error
+    private function normalized_social_variant_fingerprint(array $variant): string
     {
-        $settings       = $this->get_settings();
-        $title          = sanitize_text_field($params['title'] ?? '');
-        $slug           = sanitize_title($params['slug'] ?? '');
-        $excerpt        = sanitize_text_field($params['excerpt'] ?? '');
-        $seo_description = sanitize_text_field($params['seo_description'] ?? '');
-        $content_html   = (string) ($params['content_html'] ?? '');
-        $content_type   = sanitize_key($params['content_type'] ?? $job['content_type']);
-        $featured_image = (int) ($params['featured_image_id'] ?? 0);
-        $facebook_image = (int) ($params['facebook_image_id'] ?? 0);
-        $word_count     = str_word_count(wp_strip_all_tags($content_html));
-        $minimum_words  = [
+        $parts = [];
+        foreach (['hook', 'caption'] as $key) {
+            $parts[] = sanitize_title(wp_strip_all_tags((string) ($variant[$key] ?? '')));
+        }
+
+        return implode('|', array_filter($parts));
+    }
+
+    private function quality_failed_check_messages(): array
+    {
+        return [
+            'missing_core_fields'        => __('Missing title, slug, or article body.', 'kuchnia-twist'),
+            'missing_recipe'             => __('Missing recipe ingredients or instructions.', 'kuchnia-twist'),
+            'missing_manual_images'      => __('Manual-only mode requires both blog and Facebook images.', 'kuchnia-twist'),
+            'duplicate_conflict'         => __('A duplicate title or slug conflict was detected.', 'kuchnia-twist'),
+            'missing_target_pages'       => __('At least one target Facebook page is required.', 'kuchnia-twist'),
+            'thin_content'               => __('The article body is too thin for launch quality.', 'kuchnia-twist'),
+            'weak_excerpt'               => __('The excerpt is too thin.', 'kuchnia-twist'),
+            'weak_seo'                   => __('The SEO description is too thin.', 'kuchnia-twist'),
+            'weak_structure'             => __('The article needs more H2 structure.', 'kuchnia-twist'),
+            'missing_internal_links'     => __('The article needs more internal links.', 'kuchnia-twist'),
+            'social_pack_incomplete'     => __('The Facebook social pack does not cover all selected pages.', 'kuchnia-twist'),
+            'social_pack_repetitive'     => __('The Facebook social pack is too repetitive.', 'kuchnia-twist'),
+            'image_not_ready'            => __('The required image slots are not ready yet.', 'kuchnia-twist'),
+        ];
+    }
+
+    private function build_job_quality_summary(array $job, array $generated, array $overrides = []): array
+    {
+        $settings        = $this->get_settings();
+        $content_type    = sanitize_key((string) ($overrides['content_type'] ?? $generated['content_type'] ?? $job['content_type'] ?? 'recipe'));
+        $title           = sanitize_text_field((string) ($overrides['title'] ?? $generated['title'] ?? ''));
+        $slug            = sanitize_title((string) ($overrides['slug'] ?? $generated['slug'] ?? ''));
+        $excerpt         = sanitize_text_field((string) ($overrides['excerpt'] ?? $generated['excerpt'] ?? ''));
+        $seo_description = sanitize_text_field((string) ($overrides['seo_description'] ?? $generated['seo_description'] ?? ''));
+        $content_html    = (string) ($overrides['content_html'] ?? $generated['content_html'] ?? '');
+        $selected_pages  = $this->job_selected_pages($job);
+        $social_pack     = is_array($generated['social_pack'] ?? null) ? $generated['social_pack'] : [];
+        $recipe          = is_array($generated['recipe'] ?? null) ? $generated['recipe'] : [];
+        $featured_image  = isset($overrides['featured_image_id']) ? (int) $overrides['featured_image_id'] : (int) ($job['featured_image_id'] ?: $job['blog_image_id']);
+        $facebook_image  = isset($overrides['facebook_image_id']) ? (int) $overrides['facebook_image_id'] : (int) ($job['facebook_image_result_id'] ?: $job['facebook_image_id'] ?: $featured_image);
+        $minimum_words   = [
             'recipe'     => 1200,
             'food_fact'  => 1100,
             'food_story' => 1100,
         ][$content_type] ?? 1100;
+        $word_count      = str_word_count(wp_strip_all_tags($content_html));
+        $h2_count        = substr_count(strtolower($content_html), '<h2');
+        $internal_links  = $this->count_internal_links($content_html);
+        $excerpt_words   = str_word_count($excerpt);
+        $seo_words       = str_word_count($seo_description);
+        $recipe_complete = !empty($recipe['ingredients']) && !empty($recipe['instructions']);
+        $image_ready     = $settings['image_generation_mode'] === 'manual_only'
+            ? ($featured_image > 0 && $facebook_image > 0)
+            : ($featured_image > 0 && ($facebook_image > 0 || $featured_image > 0));
+        $target_pages    = count($selected_pages);
+        $social_variants = count($social_pack);
+        $unique_variants = count(array_unique(array_filter(array_map(
+            fn ($variant): string => $this->normalized_social_variant_fingerprint(is_array($variant) ? $variant : []),
+            $social_pack
+        ))));
+        $duplicate_risk = $title === '' || $slug === ''
+            ? false
+            : ($this->find_conflicting_post_id($slug, (int) ($job['post_id'] ?? 0)) > 0 || $this->find_conflicting_post_id($title, (int) ($job['post_id'] ?? 0)) > 0);
 
+        $failed_checks = [];
         if ($title === '' || $slug === '' || trim(wp_strip_all_tags($content_html)) === '') {
-            return new WP_Error('invalid_generated_post', __('The worker payload was missing a title, slug, or article body.', 'kuchnia-twist'), ['status' => 400]);
+            $failed_checks[] = 'missing_core_fields';
         }
-
+        if ($content_type === 'recipe' && !$recipe_complete) {
+            $failed_checks[] = 'missing_recipe';
+        }
         if ($settings['image_generation_mode'] === 'manual_only' && (!$featured_image || !$facebook_image)) {
-            return new WP_Error('launch_media_required', __('Manual-only launch mode requires both real uploaded blog and Facebook images before publish.', 'kuchnia-twist'), ['status' => 400]);
+            $failed_checks[] = 'missing_manual_images';
         }
-
-        if ($this->find_conflicting_post_id($slug, (int) ($job['post_id'] ?? 0)) > 0 || $this->find_conflicting_post_id($title, (int) ($job['post_id'] ?? 0)) > 0) {
-            return new WP_Error('duplicate_post', __('A post with the same title or slug already exists, so this generated article was blocked.', 'kuchnia-twist'), ['status' => 409]);
+        if ($duplicate_risk) {
+            $failed_checks[] = 'duplicate_conflict';
         }
-
+        if ($target_pages < 1) {
+            $failed_checks[] = 'missing_target_pages';
+        }
         if ($word_count < $minimum_words) {
-            return new WP_Error('thin_content', sprintf(__('The generated article body was too short for launch quality standards. Minimum words for %s is %d.', 'kuchnia-twist'), $content_type, $minimum_words), ['status' => 400]);
+            $failed_checks[] = 'thin_content';
+        }
+        if ($excerpt_words < 12) {
+            $failed_checks[] = 'weak_excerpt';
+        }
+        if ($seo_words < 12) {
+            $failed_checks[] = 'weak_seo';
+        }
+        if ($h2_count < 2) {
+            $failed_checks[] = 'weak_structure';
+        }
+        if ($internal_links < 3) {
+            $failed_checks[] = 'missing_internal_links';
+        }
+        if ($social_variants < max(1, $target_pages)) {
+            $failed_checks[] = 'social_pack_incomplete';
+        }
+        if ($social_variants > 0 && $unique_variants < min($social_variants, max(1, $target_pages))) {
+            $failed_checks[] = 'social_pack_repetitive';
+        }
+        if (!$image_ready) {
+            $failed_checks[] = 'image_not_ready';
         }
 
-        if (substr_count(strtolower($content_html), '<h2') < 2) {
-            return new WP_Error('weak_structure', __('The generated article needs at least two H2 sections before it can publish.', 'kuchnia-twist'), ['status' => 400]);
+        $score = 100;
+        $penalties = [
+            'missing_core_fields'    => 35,
+            'missing_recipe'         => 25,
+            'missing_manual_images'  => 20,
+            'duplicate_conflict'     => 30,
+            'missing_target_pages'   => 25,
+            'thin_content'           => 15,
+            'weak_excerpt'           => 8,
+            'weak_seo'               => 8,
+            'weak_structure'         => 10,
+            'missing_internal_links' => 9,
+            'social_pack_incomplete' => 12,
+            'social_pack_repetitive' => 10,
+            'image_not_ready'        => 8,
+        ];
+        foreach ($failed_checks as $failed_check) {
+            $score -= (int) ($penalties[$failed_check] ?? 0);
         }
+        $score = max(0, $score);
 
-        if (str_word_count($excerpt) < 12) {
-            return new WP_Error('weak_excerpt', __('The generated excerpt was too thin for a launch-quality archive card.', 'kuchnia-twist'), ['status' => 400]);
-        }
+        return [
+            'quality_score' => $score,
+            'failed_checks' => array_values(array_unique($failed_checks)),
+            'quality_checks' => [
+                'word_count'            => $word_count,
+                'minimum_words'         => $minimum_words,
+                'h2_count'              => $h2_count,
+                'internal_links'        => $internal_links,
+                'excerpt_words'         => $excerpt_words,
+                'seo_words'             => $seo_words,
+                'recipe_complete'       => $recipe_complete,
+                'image_ready'           => $image_ready,
+                'target_pages'          => $target_pages,
+                'social_variants'       => $social_variants,
+                'unique_social_variants'=> $unique_variants,
+                'duplicate_risk'        => $duplicate_risk,
+            ],
+        ];
+    }
 
-        if (str_word_count($seo_description) < 12) {
-            return new WP_Error('weak_seo', __('The generated SEO description was too thin for launch quality standards.', 'kuchnia-twist'), ['status' => 400]);
-        }
-
+    private function validate_generated_publish_payload(array $params, array $generated, array $job): ?WP_Error
+    {
+        $content_html = (string) ($params['content_html'] ?? '');
         $opening = strtolower(trim(wp_strip_all_tags((string) preg_split('/<\/p>/i', $content_html, 2)[0])));
         $blocked_phrases = [
             'lorem ipsum',
@@ -3354,42 +3706,61 @@ final class Kuchnia_Twist_Publisher
             }
         }
 
-        if ($this->count_internal_links($content_html) < 3) {
-            return new WP_Error('missing_internal_links', __('The generated article did not include enough internal Kuchnia Twist links.', 'kuchnia-twist'), ['status' => 400]);
+        $summary = $this->build_job_quality_summary($job, $generated, [
+            'title'             => sanitize_text_field($params['title'] ?? ''),
+            'slug'              => sanitize_title($params['slug'] ?? ''),
+            'excerpt'           => sanitize_text_field($params['excerpt'] ?? ''),
+            'seo_description'   => sanitize_text_field($params['seo_description'] ?? ''),
+            'content_html'      => $content_html,
+            'content_type'      => sanitize_key($params['content_type'] ?? $job['content_type']),
+            'featured_image_id' => (int) ($params['featured_image_id'] ?? 0),
+            'facebook_image_id' => (int) ($params['facebook_image_id'] ?? 0),
+        ]);
+        $failed_checks = $summary['failed_checks'] ?? [];
+        $messages = $this->quality_failed_check_messages();
+
+        if (in_array('missing_target_pages', $failed_checks, true)) {
+            return new WP_Error('missing_facebook_pages', __('Recipe jobs must keep at least one target Facebook page attached before publish.', 'kuchnia-twist'), ['status' => 400]);
         }
 
-        if ($content_type === 'recipe') {
-            $recipe = is_array($generated['recipe'] ?? null) ? $generated['recipe'] : [];
-            if (empty($recipe['ingredients']) || empty($recipe['instructions'])) {
-                return new WP_Error('missing_recipe', __('Recipe posts must include complete ingredients and instructions.', 'kuchnia-twist'), ['status' => 400]);
-            }
+        $settings = $this->get_settings();
+        if (($settings['image_generation_mode'] ?? '') === 'manual_only' && in_array('missing_manual_images', $failed_checks, true)) {
+            return new WP_Error('launch_media_required', __('Manual-only image handling requires both real uploaded blog and Facebook images before publish.', 'kuchnia-twist'), ['status' => 400]);
+        }
 
-            $request = is_array($job['request_payload'] ?? null) ? $job['request_payload'] : [];
-            $selected_pages = is_array($request['selected_facebook_pages'] ?? null) ? $request['selected_facebook_pages'] : [];
-            if (!$selected_pages) {
-                return new WP_Error('missing_facebook_pages', __('Recipe jobs must keep at least one target Facebook page attached before publish.', 'kuchnia-twist'), ['status' => 400]);
-            }
+        if (in_array('duplicate_conflict', $failed_checks, true)) {
+            return new WP_Error('duplicate_post', __('A post with the same title or slug already exists, so this generated article was blocked.', 'kuchnia-twist'), ['status' => 409]);
+        }
 
-            $active_pages = [];
-            foreach ($this->facebook_pages($settings, true, true) as $page) {
-                $active_pages[(string) ($page['page_id'] ?? '')] = true;
-            }
-
-            $active_selected_pages = array_filter(
-                $selected_pages,
-                static function ($page) use ($active_pages): bool {
-                    if (!is_array($page)) {
-                        return false;
-                    }
-
-                    $page_id = (string) ($page['page_id'] ?? $page['pageId'] ?? '');
-                    return $page_id !== '' && isset($active_pages[$page_id]);
-                }
+        if (($summary['quality_score'] ?? 0) < self::QUALITY_SCORE_THRESHOLD || !empty($failed_checks)) {
+            $first_failed = (string) ($failed_checks[0] ?? 'quality_gate_failed');
+            return new WP_Error(
+                $first_failed,
+                $messages[$first_failed] ?? __('The generated recipe package did not meet the quality gate for publish.', 'kuchnia-twist'),
+                [
+                    'status'        => 400,
+                    'quality_score' => (int) ($summary['quality_score'] ?? 0),
+                    'failed_checks' => $failed_checks,
+                ]
             );
+        }
 
-            if (!$active_selected_pages) {
-                return new WP_Error('inactive_facebook_pages', __('The selected Facebook pages are no longer active in Settings, so this recipe was blocked before publish.', 'kuchnia-twist'), ['status' => 400]);
+        $active_pages = [];
+        foreach ($this->facebook_pages($settings, true, true) as $page) {
+            $active_pages[(string) ($page['page_id'] ?? '')] = true;
+        }
+
+        $selected_pages = $this->job_selected_pages($job);
+        $active_selected_pages = array_filter(
+            $selected_pages,
+            static function (array $page) use ($active_pages): bool {
+                $page_id = (string) ($page['page_id'] ?? '');
+                return $page_id !== '' && isset($active_pages[$page_id]);
             }
+        );
+
+        if (!$active_selected_pages) {
+            return new WP_Error('inactive_facebook_pages', __('The selected Facebook pages are no longer active in Settings, so this recipe was blocked before publish.', 'kuchnia-twist'), ['status' => 400]);
         }
 
         return null;
@@ -3410,10 +3781,13 @@ final class Kuchnia_Twist_Publisher
             'job_queued'    => __('Job queued again for processing.', 'kuchnia-twist'),
             'job_missing'   => __('The selected job could not be found.', 'kuchnia-twist'),
             'invalid_job'   => __('Please enter a valid dish name for the recipe job.', 'kuchnia-twist'),
+            'idea_created'  => __('Recipe idea added to the backlog.', 'kuchnia-twist'),
+            'idea_archived' => __('Recipe idea archived.', 'kuchnia-twist'),
+            'idea_missing'  => __('The selected recipe idea could not be found.', 'kuchnia-twist'),
             'duplicate_job' => __('A matching job is already in progress, so the existing one was kept instead of creating a duplicate.', 'kuchnia-twist'),
             'existing_post_conflict' => __('A published or queued post with the same topic/title already exists, so the duplicate launch article was blocked.', 'kuchnia-twist'),
             'launch_title_required' => __('Launch mode requires a final title before a job can be queued.', 'kuchnia-twist'),
-            'launch_assets_required' => __('Launch mode requires both a real blog hero image and a real Facebook image.', 'kuchnia-twist'),
+            'launch_assets_required' => __('Manual-only image handling requires both a real blog hero image and a real Facebook image.', 'kuchnia-twist'),
             'facebook_pages_required' => __('Select at least one active Facebook page before queueing a recipe job.', 'kuchnia-twist'),
             'recipe_only_lane' => __('The automated generation lane is recipe-only right now. Older Food Fact and Food Story jobs can only retry if they already have a generated package ready to publish.', 'kuchnia-twist'),
             'job_publish_now' => __('The scheduled job will publish on the next worker pass.', 'kuchnia-twist'),
@@ -3425,7 +3799,7 @@ final class Kuchnia_Twist_Publisher
             return;
         }
 
-        $class = in_array($notice_key, ['launch_title_required', 'launch_assets_required', 'facebook_pages_required', 'invalid_job', 'existing_post_conflict', 'job_schedule_canceled', 'recipe_only_lane'], true) ? 'notice notice-error' : 'notice notice-success';
+        $class = in_array($notice_key, ['launch_title_required', 'launch_assets_required', 'facebook_pages_required', 'invalid_job', 'idea_missing', 'existing_post_conflict', 'job_schedule_canceled', 'recipe_only_lane'], true) ? 'notice notice-error' : 'notice notice-success';
         echo '<div class="' . esc_attr($class) . '"><p>' . esc_html($messages[$notice_key]) . '</p></div>';
     }
 
@@ -3548,6 +3922,8 @@ final class Kuchnia_Twist_Publisher
             <section class="kt-detail-block">
                 <h4><?php esc_html_e('Request Snapshot', 'kuchnia-twist'); ?></h4>
                 <?php $selected_pages = $this->job_selected_pages($job); ?>
+                <?php $request_payload = is_array($job['request_payload'] ?? null) ? $job['request_payload'] : []; ?>
+                <?php $linked_idea = !empty($request_payload['recipe_idea_id']) ? $this->get_recipe_idea((int) $request_payload['recipe_idea_id']) : null; ?>
                 <?php
                 $current_page_map = [];
                 foreach ($this->facebook_pages($this->get_settings(), false, true) as $page) {
@@ -3567,6 +3943,14 @@ final class Kuchnia_Twist_Publisher
                         <strong><?php echo esc_html($this->job_requested_title($job)); ?></strong>
                     </div>
                     <div>
+                        <span><?php esc_html_e('Recipe idea', 'kuchnia-twist'); ?></span>
+                        <strong><?php echo esc_html($linked_idea['dish_name'] ?? __('Freeform recipe', 'kuchnia-twist')); ?></strong>
+                    </div>
+                    <div>
+                        <span><?php esc_html_e('Preferred angle', 'kuchnia-twist'); ?></span>
+                        <strong><?php echo esc_html($this->hook_angle_label((string) ($request_payload['preferred_angle'] ?? ''))); ?></strong>
+                    </div>
+                    <div>
                         <span><?php esc_html_e('Hero image supplied', 'kuchnia-twist'); ?></span>
                         <strong><?php echo !empty($job['blog_image_id']) ? esc_html__('Yes', 'kuchnia-twist') : esc_html__('No', 'kuchnia-twist'); ?></strong>
                     </div>
@@ -3583,6 +3967,9 @@ final class Kuchnia_Twist_Publisher
                         <strong><?php echo esc_html($selected_pages ? implode(', ', wp_list_pluck($selected_pages, 'label')) : __('None selected', 'kuchnia-twist')); ?></strong>
                     </div>
                 </div>
+                <?php if (!empty($request_payload['operator_note'])) : ?>
+                    <p class="kt-detail-note"><?php echo esc_html((string) $request_payload['operator_note']); ?></p>
+                <?php endif; ?>
                 <?php if ($inactive_selected_pages) : ?>
                     <p class="kt-system-note kt-system-note--error">
                         <?php
@@ -3642,6 +4029,12 @@ final class Kuchnia_Twist_Publisher
                             <div>
                                 <span><?php esc_html_e('Target pages', 'kuchnia-twist'); ?></span>
                                 <strong><?php echo esc_html((string) $generated_snapshot['target_pages']); ?></strong>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($generated_snapshot['quality_score'])) : ?>
+                            <div>
+                                <span><?php esc_html_e('Quality score', 'kuchnia-twist'); ?></span>
+                                <strong><?php echo esc_html((string) $generated_snapshot['quality_score']); ?></strong>
                             </div>
                         <?php endif; ?>
                         <?php if (!empty($machine_meta['validator_summary']['distribution_source'])) : ?>
@@ -3709,6 +4102,13 @@ final class Kuchnia_Twist_Publisher
                         <p class="kt-system-note"><?php esc_html_e('The recipe master prompt returned some, but not all, Facebook variants. The worker filled the remaining page variants with local fallback copy.', 'kuchnia-twist'); ?></p>
                     <?php elseif (($machine_meta['validator_summary']['distribution_source'] ?? '') === 'local_fallback') : ?>
                         <p class="kt-system-note kt-system-note--error"><?php esc_html_e('The Facebook social pack was fully rebuilt from local fallback copy because the recipe master output did not provide usable variants.', 'kuchnia-twist'); ?></p>
+                    <?php endif; ?>
+                    <?php if (!empty($generated_snapshot['failed_checks']) && is_array($generated_snapshot['failed_checks'])) : ?>
+                        <div class="kt-context-chips">
+                            <?php foreach ($generated_snapshot['failed_checks'] as $failed_check) : ?>
+                                <span class="kt-context-chip"><?php echo esc_html($this->quality_failed_check_messages()[(string) $failed_check] ?? $this->format_human_label((string) $failed_check)); ?></span>
+                            <?php endforeach; ?>
+                        </div>
                     <?php endif; ?>
                 </section>
             <?php endif; ?>
@@ -3878,6 +4278,9 @@ final class Kuchnia_Twist_Publisher
                                             <span><?php echo esc_html($target_page); ?></span>
                                         <?php endif; ?>
                                     </div>
+                                    <?php if (!empty($variant['angle_key'])) : ?>
+                                        <span class="kt-stage-pill"><?php echo esc_html($this->hook_angle_label((string) $variant['angle_key'])); ?></span>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="kt-variant-fields">
                                     <?php if (!empty($variant['hook'])) : ?>
@@ -3952,16 +4355,6 @@ final class Kuchnia_Twist_Publisher
                             </article>
                         <?php endforeach; ?>
                     </div>
-                </section>
-            <?php endif; ?>
-
-            <?php if (!empty($job['group_share_kit'])) : ?>
-                <section class="kt-detail-block">
-                    <div class="kt-detail-block__head">
-                        <label for="kt-group-share-kit-<?php echo (int) $job['id']; ?>"><?php esc_html_e('Group Share Kit', 'kuchnia-twist'); ?></label>
-                        <button type="button" class="button button-small kt-copy-button" data-copy-target="#kt-group-share-kit-<?php echo (int) $job['id']; ?>"><?php esc_html_e('Copy', 'kuchnia-twist'); ?></button>
-                    </div>
-                    <textarea id="kt-group-share-kit-<?php echo (int) $job['id']; ?>" rows="6" readonly><?php echo esc_textarea($job['group_share_kit']); ?></textarea>
                 </section>
             <?php endif; ?>
 
@@ -4225,16 +4618,17 @@ final class Kuchnia_Twist_Publisher
         }
 
         return array_values(array_filter(array_map(
-            static function ($variant): array {
+            function ($variant): array {
                 if (!is_array($variant)) {
                     return [];
                 }
 
                 return array_filter([
-                    'id'       => sanitize_key((string) ($variant['id'] ?? '')),
-                    'hook'     => sanitize_text_field((string) ($variant['hook'] ?? '')),
-                    'caption'  => sanitize_textarea_field((string) ($variant['caption'] ?? '')),
-                    'cta_hint' => sanitize_text_field((string) ($variant['cta_hint'] ?? $variant['ctaHint'] ?? '')),
+                    'id'        => sanitize_key((string) ($variant['id'] ?? '')),
+                    'angle_key' => $this->normalize_hook_angle_key((string) ($variant['angle_key'] ?? $variant['angleKey'] ?? '')),
+                    'hook'      => sanitize_text_field((string) ($variant['hook'] ?? '')),
+                    'caption'   => sanitize_textarea_field((string) ($variant['caption'] ?? '')),
+                    'cta_hint'  => sanitize_text_field((string) ($variant['cta_hint'] ?? $variant['ctaHint'] ?? '')),
                 ]);
             },
             $pack
@@ -4300,7 +4694,7 @@ final class Kuchnia_Twist_Publisher
         }
         $social_pack = $this->job_social_pack($job);
         $machine_meta = $this->job_content_machine_meta($job);
-        $validator_summary = is_array($machine_meta['validator_summary'] ?? null) ? $machine_meta['validator_summary'] : [];
+        $validator_summary = $this->job_quality_summary($job);
 
         return array_filter([
             'title'           => sanitize_text_field((string) ($generated['title'] ?? '')),
@@ -4315,6 +4709,8 @@ final class Kuchnia_Twist_Publisher
             'opening_paragraph' => $opening_paragraph,
             'social_variants' => count($social_pack),
             'target_pages'    => (int) ($validator_summary['target_pages'] ?? 0),
+            'quality_score'   => isset($validator_summary['quality_score']) ? (int) $validator_summary['quality_score'] : 0,
+            'failed_checks'   => !empty($validator_summary['failed_checks']) && is_array($validator_summary['failed_checks']) ? $validator_summary['failed_checks'] : [],
             'headings'        => $headings,
         ]);
     }
@@ -4401,6 +4797,38 @@ final class Kuchnia_Twist_Publisher
             'publication_profile' => sanitize_text_field((string) ($meta['publication_profile'] ?? '')),
             'content_preset'      => sanitize_key((string) ($meta['content_preset'] ?? $job['content_type'] ?? '')),
             'validator_summary'   => is_array($meta['validator_summary'] ?? null) ? $meta['validator_summary'] : [],
+        ];
+    }
+
+    private function job_quality_summary(array $job): array
+    {
+        $machine_meta = $this->job_content_machine_meta($job);
+        $validator_summary = is_array($machine_meta['validator_summary'] ?? null) ? $machine_meta['validator_summary'] : [];
+        $generated = is_array($job['generated_payload'] ?? null) ? $job['generated_payload'] : [];
+        $calculated = $generated ? $this->build_job_quality_summary($job, $generated) : [];
+
+        $quality_checks = is_array($validator_summary['quality_checks'] ?? null)
+            ? $validator_summary['quality_checks']
+            : [];
+        if (!$quality_checks && !empty($calculated['quality_checks'])) {
+            $quality_checks = $calculated['quality_checks'];
+        }
+
+        return [
+            'quality_score' => isset($validator_summary['quality_score'])
+                ? (int) $validator_summary['quality_score']
+                : (int) ($calculated['quality_score'] ?? 0),
+            'failed_checks' => !empty($validator_summary['failed_checks']) && is_array($validator_summary['failed_checks'])
+                ? $validator_summary['failed_checks']
+                : (array) ($calculated['failed_checks'] ?? []),
+            'quality_checks' => $quality_checks,
+            'target_pages' => isset($validator_summary['target_pages'])
+                ? (int) $validator_summary['target_pages']
+                : (int) ($quality_checks['target_pages'] ?? 0),
+            'social_variants' => isset($validator_summary['social_variants'])
+                ? (int) $validator_summary['social_variants']
+                : (int) ($quality_checks['social_variants'] ?? 0),
+            'distribution_source' => sanitize_key((string) ($validator_summary['distribution_source'] ?? '')),
         ];
     }
 
@@ -4493,6 +4921,323 @@ final class Kuchnia_Twist_Publisher
         return trim((string) getenv('CONTENT_PIPELINE_SHARED_SECRET'));
     }
 
+    private function recipe_idea_statuses(): array
+    {
+        return [
+            'idea'      => __('Idea', 'kuchnia-twist'),
+            'queued'    => __('Queued', 'kuchnia-twist'),
+            'scheduled' => __('Scheduled', 'kuchnia-twist'),
+            'published' => __('Published', 'kuchnia-twist'),
+            'archived'  => __('Archived', 'kuchnia-twist'),
+        ];
+    }
+
+    private function hook_angle_presets(): array
+    {
+        return [
+            'quick_dinner' => [
+                'label'       => __('Quick Dinner', 'kuchnia-twist'),
+                'instruction' => __('Lead with speed, ease, and a real weeknight payoff.', 'kuchnia-twist'),
+            ],
+            'comfort_food' => [
+                'label'       => __('Comfort Food', 'kuchnia-twist'),
+                'instruction' => __('Lean into warmth, cozy payoff, texture, and repeat-cook appeal.', 'kuchnia-twist'),
+            ],
+            'budget_friendly' => [
+                'label'       => __('Budget Friendly', 'kuchnia-twist'),
+                'instruction' => __('Emphasize value, pantry practicality, and generous payoff without sounding cheap.', 'kuchnia-twist'),
+            ],
+            'beginner_friendly' => [
+                'label'       => __('Beginner Friendly', 'kuchnia-twist'),
+                'instruction' => __('Make the hook feel approachable, low-stress, and confidence-building.', 'kuchnia-twist'),
+            ],
+            'crowd_pleaser' => [
+                'label'       => __('Crowd Pleaser', 'kuchnia-twist'),
+                'instruction' => __('Frame the recipe as dependable, family-friendly, and easy to serve again.', 'kuchnia-twist'),
+            ],
+            'better_than_takeout' => [
+                'label'       => __('Better Than Takeout', 'kuchnia-twist'),
+                'instruction' => __('Focus on restaurant-style payoff with simpler home-kitchen control.', 'kuchnia-twist'),
+            ],
+        ];
+    }
+
+    private function normalize_hook_angle_key(string $value): string
+    {
+        $value = sanitize_key($value);
+        return isset($this->hook_angle_presets()[$value]) ? $value : '';
+    }
+
+    private function hook_angle_label(string $angle_key): string
+    {
+        $angle_key = $this->normalize_hook_angle_key($angle_key);
+        $presets = $this->hook_angle_presets();
+        return $angle_key !== '' && !empty($presets[$angle_key]['label'])
+            ? (string) $presets[$angle_key]['label']
+            : __('Auto rotate', 'kuchnia-twist');
+    }
+
+    private function get_recipe_ideas(array $statuses = [], int $limit = 50): array
+    {
+        global $wpdb;
+
+        $statuses = array_values(array_filter(array_map(
+            fn ($status): string => sanitize_key((string) $status),
+            $statuses
+        )));
+
+        if ($statuses) {
+            $placeholders = implode(',', array_fill(0, count($statuses), '%s'));
+            $query = $wpdb->prepare(
+                "SELECT * FROM {$this->ideas_table_name()} WHERE status IN ({$placeholders}) ORDER BY updated_at DESC, id DESC LIMIT %d",
+                [...$statuses, $limit]
+            );
+        } else {
+            $query = $wpdb->prepare(
+                "SELECT * FROM {$this->ideas_table_name()} ORDER BY FIELD(status, 'queued', 'scheduled', 'idea', 'published', 'archived'), updated_at DESC, id DESC LIMIT %d",
+                $limit
+            );
+        }
+
+        $rows = $wpdb->get_results($query, ARRAY_A);
+        return array_map([$this, 'prepare_recipe_idea_record'], $rows ?: []);
+    }
+
+    private function get_recipe_idea(int $idea_id): ?array
+    {
+        global $wpdb;
+        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$this->ideas_table_name()} WHERE id = %d", $idea_id), ARRAY_A);
+        return $row ? $this->prepare_recipe_idea_record($row) : null;
+    }
+
+    private function prepare_recipe_idea_record(array $row): array
+    {
+        $row['id'] = (int) ($row['id'] ?? 0);
+        $row['linked_job_id'] = !empty($row['linked_job_id']) ? (int) $row['linked_job_id'] : 0;
+        $row['linked_post_id'] = !empty($row['linked_post_id']) ? (int) $row['linked_post_id'] : 0;
+        $row['created_by'] = !empty($row['created_by']) ? (int) $row['created_by'] : 0;
+        $row['dish_name'] = sanitize_text_field((string) ($row['dish_name'] ?? ''));
+        $row['preferred_angle'] = $this->normalize_hook_angle_key((string) ($row['preferred_angle'] ?? ''));
+        $row['operator_note'] = sanitize_textarea_field((string) ($row['operator_note'] ?? ''));
+        $row['status'] = sanitize_key((string) ($row['status'] ?? 'idea'));
+        $row['created_at'] = (string) ($row['created_at'] ?? '');
+        $row['updated_at'] = (string) ($row['updated_at'] ?? '');
+        return $row;
+    }
+
+    private function get_recipe_idea_counts(): array
+    {
+        global $wpdb;
+
+        $counts = array_fill_keys(array_keys($this->recipe_idea_statuses()), 0);
+        $rows = $wpdb->get_results("SELECT status, COUNT(*) AS total FROM {$this->ideas_table_name()} GROUP BY status", ARRAY_A);
+        foreach ($rows ?: [] as $row) {
+            $status = sanitize_key((string) ($row['status'] ?? ''));
+            if (isset($counts[$status])) {
+                $counts[$status] = (int) ($row['total'] ?? 0);
+            }
+        }
+
+        return $counts;
+    }
+
+    private function insert_recipe_idea(array $data): int
+    {
+        global $wpdb;
+
+        $dish_name = sanitize_text_field((string) ($data['dish_name'] ?? ''));
+        if ($dish_name === '') {
+            return 0;
+        }
+
+        $existing = $this->find_recipe_idea_by_dish_name($dish_name);
+        if ($existing) {
+            $updates = ['updated_at' => current_time('mysql', true)];
+            if (!empty($data['preferred_angle']) && empty($existing['preferred_angle'])) {
+                $updates['preferred_angle'] = $this->normalize_hook_angle_key((string) $data['preferred_angle']);
+            }
+            if (!empty($data['operator_note']) && empty($existing['operator_note'])) {
+                $updates['operator_note'] = sanitize_textarea_field((string) $data['operator_note']);
+            }
+            if (($existing['status'] ?? '') === 'archived') {
+                $updates['status'] = 'idea';
+            }
+            $this->update_recipe_idea((int) $existing['id'], $updates);
+            return (int) $existing['id'];
+        }
+
+        $now = current_time('mysql', true);
+        $wpdb->insert($this->ideas_table_name(), [
+            'dish_name'       => $dish_name,
+            'preferred_angle' => $this->normalize_hook_angle_key((string) ($data['preferred_angle'] ?? '')),
+            'operator_note'   => sanitize_textarea_field((string) ($data['operator_note'] ?? '')),
+            'status'          => sanitize_key((string) ($data['status'] ?? 'idea')),
+            'linked_job_id'   => !empty($data['linked_job_id']) ? (int) $data['linked_job_id'] : null,
+            'linked_post_id'  => !empty($data['linked_post_id']) ? (int) $data['linked_post_id'] : null,
+            'created_by'      => !empty($data['created_by']) ? (int) $data['created_by'] : get_current_user_id(),
+            'created_at'      => $now,
+            'updated_at'      => $now,
+        ], ['%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s']);
+
+        return (int) $wpdb->insert_id;
+    }
+
+    private function update_recipe_idea(int $idea_id, array $fields): void
+    {
+        global $wpdb;
+
+        $updates = [];
+        $formats = [];
+
+        foreach ($fields as $key => $value) {
+            switch ($key) {
+                case 'dish_name':
+                    $updates[$key] = sanitize_text_field((string) $value);
+                    $formats[] = '%s';
+                    break;
+                case 'preferred_angle':
+                    $updates[$key] = $this->normalize_hook_angle_key((string) $value);
+                    $formats[] = '%s';
+                    break;
+                case 'operator_note':
+                    $updates[$key] = sanitize_textarea_field((string) $value);
+                    $formats[] = '%s';
+                    break;
+                case 'status':
+                    $updates[$key] = sanitize_key((string) $value);
+                    $formats[] = '%s';
+                    break;
+                case 'linked_job_id':
+                case 'linked_post_id':
+                case 'created_by':
+                    $updates[$key] = $value ? (int) $value : null;
+                    $formats[] = '%d';
+                    break;
+                case 'updated_at':
+                case 'created_at':
+                    $updates[$key] = (string) $value;
+                    $formats[] = '%s';
+                    break;
+            }
+        }
+
+        if (!$updates) {
+            return;
+        }
+
+        if (!isset($updates['updated_at'])) {
+            $updates['updated_at'] = current_time('mysql', true);
+            $formats[] = '%s';
+        }
+
+        $wpdb->update(
+            $this->ideas_table_name(),
+            $updates,
+            ['id' => $idea_id],
+            $formats,
+            ['%d']
+        );
+    }
+
+    private function find_recipe_idea_by_dish_name(string $dish_name): ?array
+    {
+        global $wpdb;
+
+        $normalized = sanitize_title($dish_name);
+        if ($normalized === '') {
+            return null;
+        }
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM {$this->ideas_table_name()} WHERE status <> %s ORDER BY id DESC",
+                'archived'
+            ),
+            ARRAY_A
+        );
+
+        foreach ($rows ?: [] as $row) {
+            if (sanitize_title((string) ($row['dish_name'] ?? '')) === $normalized) {
+                return $this->prepare_recipe_idea_record($row);
+            }
+        }
+
+        return null;
+    }
+
+    private function seed_recipe_ideas_from_topics_text(string $topics_text): void
+    {
+        global $wpdb;
+
+        $existing_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->ideas_table_name()}");
+        if ($existing_count > 0) {
+            return;
+        }
+
+        foreach ($this->parse_topics($topics_text) as $topic) {
+            $this->insert_recipe_idea([
+                'dish_name' => $topic,
+                'status'    => 'idea',
+            ]);
+        }
+    }
+
+    private function sync_recipe_idea_for_job_id(int $job_id): void
+    {
+        $job = $job_id > 0 ? $this->get_job($job_id) : null;
+        if ($job) {
+            $this->sync_recipe_idea_from_job($job);
+        }
+    }
+
+    private function sync_recipe_idea_from_job(array $job): void
+    {
+        $request = is_array($job['request_payload'] ?? null) ? $job['request_payload'] : [];
+        $idea_id = absint($request['recipe_idea_id'] ?? 0);
+        if ($idea_id <= 0) {
+            return;
+        }
+
+        $idea = $this->get_recipe_idea($idea_id);
+        if (!$idea) {
+            return;
+        }
+
+        $status = 'idea';
+        if (!empty($job['post_id']) || (in_array((string) ($job['status'] ?? ''), ['completed', 'partial_failure'], true) && !empty($job['permalink']))) {
+            $status = 'published';
+        } elseif ((string) ($job['status'] ?? '') === 'scheduled') {
+            $status = 'scheduled';
+        } elseif (in_array((string) ($job['status'] ?? ''), ['queued', 'generating', 'publishing_blog', 'publishing_facebook', 'failed', 'partial_failure'], true)) {
+            $status = 'queued';
+        }
+
+        if (($idea['status'] ?? '') === 'archived' && $status === 'idea') {
+            return;
+        }
+
+        $this->update_recipe_idea($idea_id, [
+            'status'          => $status,
+            'linked_job_id'   => (int) ($job['id'] ?? 0),
+            'linked_post_id'  => !empty($job['post_id']) ? (int) $job['post_id'] : (int) ($idea['linked_post_id'] ?? 0),
+            'preferred_angle' => $this->normalize_hook_angle_key((string) ($request['preferred_angle'] ?? $idea['preferred_angle'] ?? '')),
+        ]);
+    }
+
+    private function archive_recipe_idea_link(array $idea): string
+    {
+        return wp_nonce_url(
+            add_query_arg(
+                [
+                    'action'  => 'kuchnia_twist_archive_recipe_idea',
+                    'idea_id' => (int) $idea['id'],
+                ],
+                admin_url('admin-post.php')
+            ),
+            'kuchnia_twist_archive_recipe_idea'
+        );
+    }
+
     private function parse_topics(string $topics_text): array
     {
         $topics = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $topics_text)));
@@ -4515,24 +5260,97 @@ final class Kuchnia_Twist_Publisher
         ];
     }
 
+    private function default_voice_brief(): string
+    {
+        return implode("\n", [
+            'Warm, practical, craveable, and trustworthy.',
+            'Write for real home cooks who want clear steps, reliable results, and recipes worth repeating.',
+            'The tone should feel premium and human, not robotic, spammy, or overhyped.',
+        ]);
+    }
+
+    private function default_global_guardrails(): string
+    {
+        return implode("\n", [
+            'No fake personal stories or invented family memories.',
+            'No filler SEO intros, generic throat-clearing, or padded explanations.',
+            'No spammy clickbait, fake cliffhangers, or weak viral language.',
+            'No medical, nutrition, weight-loss, detox, or expert claims beyond ordinary kitchen guidance.',
+            'Keep paragraphs short, specific, and human.',
+            'Every promise in the hook or title must be honestly supported by the recipe.',
+        ]);
+    }
+
+    private function default_recipe_master_direction(): string
+    {
+        return implode("\n", [
+            'Turn the dish name into one complete premium recipe package.',
+            'Return a strong title, excerpt, SEO description, useful article body, structured recipe card, image direction, and one unique Facebook variant per selected page.',
+            'Make the recipe feel highly clickable without being misleading.',
+            'Make the output original, practical, cookable, and worth publishing on a real food site.',
+        ]);
+    }
+
+    private function default_recipe_article_guidance(): string
+    {
+        return implode("\n", [
+            'Open with appetite, payoff, and a clear reason to care.',
+            'Use H2 sections for why this recipe works, ingredient notes, practical method, and serving or storage tips.',
+            'Keep the recipe realistic, cookable, and repeatable for home kitchens.',
+            'Prioritize taste, texture, convenience, comfort, and kitchen usefulness over fluff.',
+            'Do not paste the full ingredient list and full numbered method into the article body; keep those in the recipe card.',
+        ]);
+    }
+
+    private function default_facebook_variant_guidance(): string
+    {
+        return implode("\n", [
+            'Generate one distinct Facebook variant per selected page.',
+            'Each variant must have a short hook plus a 2 to 5 line caption.',
+            'Vary the angle across pages: quick dinner, comfort food, budget-friendly, beginner-friendly, crowd-pleasing, or better-than-takeout.',
+            'Hooks must feel curiosity-led and high-performing without sounding fake or low-trust.',
+            'No links, hashtags, emoji clutter, or fake cliffhangers.',
+            'Do not repeat the same sentence pattern across all variants.',
+        ]);
+    }
+
+    private function default_image_style_brief(): string
+    {
+        return implode("\n", [
+            'Realistic, appetizing food photography.',
+            'Natural light, warm editorial tone, clean plating, and no text overlays.',
+            'Make the dish look premium, craveable, and believable for a food blog and Facebook feed.',
+        ]);
+    }
+
+    private function legacy_guardrails_text(array $settings): string
+    {
+        return trim(implode("\n", array_filter([
+            trim((string) ($settings['editorial_do_guidance'] ?? '')),
+            trim((string) ($settings['editorial_dont_guidance'] ?? '')),
+            trim((string) ($settings['banned_claim_guidance'] ?? '')),
+        ])));
+    }
+
     private function default_settings(): array
     {
         return [
             'topics_text'                => implode("\n", kuchnia_twist_launch_topics()),
             'publication_profile_name'   => 'Kuchnia Twist',
-            'brand_voice'                => 'Warm, practical, calm, and editorial. The site should sound like a trusted home-cooking publication rather than a generic SEO blog.',
+            'brand_voice'                => $this->default_voice_brief(),
+            'global_guardrails'          => $this->default_global_guardrails(),
             'editorial_do_guidance'      => 'Lead with concrete kitchen detail, use helpful headings, and keep the tone calm, specific, and useful.',
             'editorial_dont_guidance'    => 'Avoid filler openings, AI mention, fabricated first-person memories, and unsupported expert language.',
             'banned_claim_guidance'      => 'Avoid medical, nutritional, or safety claims beyond ordinary kitchen guidance the publication can reasonably support.',
             'shared_link_policy'         => 'Include at least three relevant internal Kuchnia Twist links inside the article body.',
-            'recipe_master_prompt'       => 'Generate a premium, practical recipe article from the dish name. Return a complete blog package, recipe card data, image direction, and a strong multi-page Facebook social pack with one unique hook-led variant per selected page.',
-            'article_prompt'             => 'Write original, useful, and substantial home-cooking content with clean headings, specific guidance, and no filler.',
+            'recipe_master_prompt'       => $this->default_recipe_master_direction(),
+            'article_prompt'             => $this->default_recipe_article_guidance(),
             'recipe_preset_guidance'     => 'Emphasize why the recipe works, ingredient notes, practical method details, and serving or storage guidance.',
             'food_fact_preset_guidance'  => 'Answer the kitchen question directly, correct common confusion, explain what is happening, and finish with a practical takeaway.',
             'food_story_preset_guidance' => 'Write a publication-voice essay with a clear observation, practical home-cooking meaning, and a reflective close without fake memoir.',
-            'facebook_caption_guidance'  => 'Write a short, hook-led Facebook caption that feels conversational and never includes the link.',
+            'facebook_caption_guidance'  => $this->default_facebook_variant_guidance(),
             'group_share_guidance'       => 'Write a useful manual-share blurb that feels natural in food groups and leaves the link to the operator or tracked follow-up.',
-            'default_cta'                => 'Read the full article on the blog.',
+            'default_cta'                => 'Read the full recipe on the blog.',
             'editor_name'                => '',
             'editor_role'                => 'Founding editor',
             'editor_bio'                 => 'Kuchnia Twist is edited as a warm home-cooking journal focused on practical recipes, useful ingredient explainers, and slower story-led kitchen essays.',
@@ -4547,8 +5365,8 @@ final class Kuchnia_Twist_Publisher
             'openai_model'               => 'gpt-5-mini',
             'openai_image_model'         => 'gpt-image-1.5',
             'openai_api_key'             => '',
-            'image_style'                => 'Natural food photography, editorial light, appetizing detail, no text overlays, premium magazine look.',
-            'image_generation_mode'      => 'manual_only',
+            'image_style'                => $this->default_image_style_brief(),
+            'image_generation_mode'      => 'uploaded_first_generate_missing',
             'daily_publish_time'         => '09:00',
             'repair_enabled'             => '1',
             'repair_attempts'            => 1,
@@ -4564,6 +5382,67 @@ final class Kuchnia_Twist_Publisher
     private function get_settings(): array
     {
         $settings = wp_parse_args(get_option(self::OPTION_KEY, []), $this->default_settings());
+        $settings['image_generation_mode'] = $this->sanitize_image_generation_mode($settings['image_generation_mode'] ?? 'uploaded_first_generate_missing');
+
+        $legacy_voice_defaults = [
+            'Warm, practical, calm, and editorial. The site should sound like a trusted home-cooking publication rather than a generic SEO blog.',
+            'Warm, practical, craveable, and trustworthy. Write for real home cooks who want clear steps, reliable results, and recipes worth repeating.',
+        ];
+        $legacy_master_defaults = [
+            'Generate a premium, practical recipe article from the dish name. Return a complete blog package, recipe card data, image direction, and a strong multi-page Facebook social pack with one unique hook-led variant per selected page.',
+            'Turn the dish name into a complete premium recipe package with a strong title, excerpt, SEO description, useful article body, structured recipe card, image direction, and one unique Facebook variant per selected page.',
+        ];
+        $legacy_article_defaults = [
+            'Write original, useful, and substantial home-cooking content with clean headings, specific guidance, and no filler.',
+            'Open with appetite and payoff. Use H2 sections for why this recipe works, ingredient notes, practical method, and serving or storage tips. Keep the recipe realistic, cookable, and repeatable for home kitchens.',
+        ];
+        $legacy_social_defaults = [
+            'Write a short, hook-led Facebook caption that feels conversational and never includes the link.',
+            'Generate one distinct variant per selected Facebook page. Use short curiosity-led hooks and 2 to 5 short caption lines. Vary the angle across pages: quick dinner, comfort food, budget-friendly, beginner-friendly, crowd-pleasing, or better-than-takeout. No links, hashtags, or fake cliffhangers.',
+        ];
+        $legacy_image_defaults = [
+            'Natural food photography, editorial light, appetizing detail, no text overlays, premium magazine look.',
+            'Realistic, appetizing food photography with natural light, warm editorial tone, clean plating, and no text overlays.',
+        ];
+        $legacy_cta_defaults = [
+            'Read the full article on the blog.',
+        ];
+
+        $settings['brand_voice'] = trim((string) ($settings['brand_voice'] ?? ''));
+        if ($settings['brand_voice'] === '' || in_array($settings['brand_voice'], $legacy_voice_defaults, true)) {
+            $settings['brand_voice'] = $this->default_voice_brief();
+        }
+
+        $settings['global_guardrails'] = trim((string) ($settings['global_guardrails'] ?? ''));
+        if ($settings['global_guardrails'] === '') {
+            $settings['global_guardrails'] = $this->legacy_guardrails_text($settings) ?: $this->default_global_guardrails();
+        }
+
+        $settings['recipe_master_prompt'] = trim((string) ($settings['recipe_master_prompt'] ?? ''));
+        if ($settings['recipe_master_prompt'] === '' || in_array($settings['recipe_master_prompt'], $legacy_master_defaults, true)) {
+            $settings['recipe_master_prompt'] = $this->default_recipe_master_direction();
+        }
+
+        $settings['article_prompt'] = trim((string) ($settings['article_prompt'] ?? ''));
+        if ($settings['article_prompt'] === '' || in_array($settings['article_prompt'], $legacy_article_defaults, true)) {
+            $settings['article_prompt'] = $this->default_recipe_article_guidance();
+        }
+
+        $settings['facebook_caption_guidance'] = trim((string) ($settings['facebook_caption_guidance'] ?? ''));
+        if ($settings['facebook_caption_guidance'] === '' || in_array($settings['facebook_caption_guidance'], $legacy_social_defaults, true)) {
+            $settings['facebook_caption_guidance'] = $this->default_facebook_variant_guidance();
+        }
+
+        $settings['image_style'] = trim((string) ($settings['image_style'] ?? ''));
+        if ($settings['image_style'] === '' || in_array($settings['image_style'], $legacy_image_defaults, true)) {
+            $settings['image_style'] = $this->default_image_style_brief();
+        }
+
+        $settings['default_cta'] = trim((string) ($settings['default_cta'] ?? ''));
+        if ($settings['default_cta'] === '' || in_array($settings['default_cta'], $legacy_cta_defaults, true)) {
+            $settings['default_cta'] = 'Read the full recipe on the blog.';
+        }
+
         $settings['facebook_pages'] = $this->facebook_pages($settings, false, false);
         return $settings;
     }
@@ -4672,5 +5551,11 @@ final class Kuchnia_Twist_Publisher
     {
         global $wpdb;
         return $wpdb->prefix . 'kuchnia_twist_job_events';
+    }
+
+    private function ideas_table_name(): string
+    {
+        global $wpdb;
+        return $wpdb->prefix . 'kuchnia_twist_recipe_ideas';
     }
 }

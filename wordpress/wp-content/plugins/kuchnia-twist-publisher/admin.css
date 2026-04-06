@@ -60,6 +60,10 @@
   align-items: start;
 }
 
+.kt-admin-grid--ideas {
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+}
+
 .kt-settings {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }

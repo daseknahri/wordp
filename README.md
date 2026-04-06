@@ -6,7 +6,6 @@ This repo now ships a simple phase-1 publishing system for `Kuchnia Twist`:
 - a background worker that picks up queued jobs from WordPress
 - one-click article publishing from wp-admin
 - Facebook Page posting with the blog link added as the first comment
-- a manual group-share kit for Facebook food groups
 
 The workflow is intentionally small and upgrade-friendly. WordPress stays the control panel, and the worker does the background execution.
 
@@ -36,7 +35,6 @@ The workflow is intentionally small and upgrade-friendly. WordPress stays the co
     - publishes the WordPress post when the slot is due
     - publishes the Facebook Page post
     - adds the CTA link as the first comment
-    - stores a manual group-share kit
     - sends heartbeat updates back to WordPress
 
 ## Local development
@@ -105,25 +103,32 @@ After deployment, go to wp-admin:
 
 1. Open `Kuchnia Twist -> Settings`
 2. Fill in:
-   - publication profile name and topic bank
-   - global voice brief plus short do/don't guidance
-   - recipe master prompt and recipe guidance
-   - Facebook caption, group-share, and image style guidance
+   - global voice brief plus one short guardrails field
+   - recipe master direction and recipe article guidance
+   - Facebook variant guidance and image style brief
+   - image handling mode
    - daily publish time
    - OpenAI model and optional API key override
-   - repair pass settings
    - Facebook page library entries
    - UTM source and campaign prefix
 3. Save settings
 
 Then open `Kuchnia Twist` and create a job:
 
-1. Enter the dish name
-2. Optionally set a final title override
-3. Upload a blog image
-4. Upload a Facebook image
-5. Select one or more active Facebook pages
-6. Click `Queue Job`
+1. Optionally pick a recipe idea from the Publisher backlog
+2. Enter the dish name
+3. Optionally choose a preferred hook angle
+4. Optionally set a final title override
+5. Upload a blog image
+6. Upload a Facebook image
+7. Select one or more active Facebook pages
+8. Click `Queue Job`
+
+The Publisher screen now also includes a minimal recipe backlog:
+
+- add recipe ideas with an optional note and preferred angle
+- move active ideas into the composer
+- watch ideas move from `idea` to `queued`, `scheduled`, and `published`
 
 The worker will pick up the queued job in the background.
 
@@ -140,12 +145,13 @@ For each job:
    - image prompt / alt text
    - a social pack with one Facebook variant per selected page
 4. If the social pack is weak or missing, the worker falls back to deterministic local variants so the article can still move forward.
-5. If the site is in an AI-fallback image mode and images are missing, the worker generates them too.
-6. The job moves to `scheduled` and is assigned the next daily `publish_on` slot in the WordPress timezone.
-7. When the slot is due, the worker publishes the WordPress post.
-8. The worker publishes one different Facebook post variant to each selected page.
-9. The tracked article link is posted as the first comment on each selected page post.
-10. A manual group-share kit is saved in the job record for your food groups.
+5. If image handling is `Uploaded First` and one or both image slots are missing, the worker generates only the missing slot(s).
+6. The worker calculates a quality summary with article depth, structure, internal links, page coverage, social uniqueness, and image readiness.
+7. The job moves to `scheduled` and is assigned the next daily `publish_on` slot in the WordPress timezone.
+8. When the slot is due, the worker reruns the blocking quality gate before WordPress publish.
+9. If the package passes, the worker publishes the WordPress post.
+10. The worker publishes one different Facebook post variant to each selected page.
+11. The tracked article link is posted as the first comment on each selected page post.
 
 If the blog publishes but one or more Facebook pages fail, the WordPress post stays live and the job is marked as `partial_failure`. You can retry it from wp-admin without duplicating the article or re-posting to pages that already succeeded.
 
@@ -159,7 +165,7 @@ Retries for failed or partial jobs bypass the daily cadence. They move back into
 - Missing Facebook credentials do not block queueing because the publish policy keeps the blog live even if Facebook fails later.
 - Missing OpenAI credentials or a stale worker heartbeat show warnings in wp-admin before you queue jobs.
 - The job list can be filtered and exported as CSV from the current filtered result set. CSV export intentionally omits article HTML, raw payload blobs, and long generated copy.
-- The selected-job view shows prompt version, profile, preset, repair attempts, distribution source, and operator controls for `Publish Now`, `Move To Next Slot`, and `Cancel Release`.
+- The selected-job view shows prompt version, profile, preset, repair attempts, distribution source, hook angles, quality score, failed checks, and operator controls for `Publish Now`, `Move To Next Slot`, and `Cancel Release`.
 
 ## Production smoke test
 
@@ -170,10 +176,10 @@ After each deploy:
    - worker secret is present
    - OpenAI is ready
    - Facebook is ready, or the warning is expected
-3. Queue one valid `manual_only` job with:
-   - a final title
-   - a blog hero image
-   - a Facebook image
+3. Queue one valid recipe job with:
+   - a dish name
+   - optional title override
+   - either both uploaded images, one uploaded image, or no uploaded images depending on the image-handling mode you want to test
 4. Watch the job move through:
    - `queued`
    - `generating`
