@@ -1,6 +1,17 @@
 (function ($) {
   const emptyPortraitText = "<p>No portrait selected.</p>";
   const autoRefreshStorageKey = "kuchniaTwistAutoRefreshPaused";
+  const announce = (message) => {
+    const region = $("[data-copy-live-region]");
+    if (!region.length || !message) {
+      return;
+    }
+
+    region.text("");
+    window.setTimeout(() => {
+      region.text(message);
+    }, 10);
+  };
 
   const parseTarget = (button) => {
     try {
@@ -134,6 +145,7 @@
 
     const original = button.text();
     button.text("Copied");
+    announce("Copied to clipboard");
     window.setTimeout(() => {
       button.text(original);
     }, 1400);
@@ -187,23 +199,6 @@
     updateFacebookSelectionState();
   });
 
-  $(document).on("change", "[data-recipe-idea-select]", function () {
-    const select = $(this);
-    const option = select.find("option:selected");
-    const dishInput = $(select.attr("data-target-input") || "");
-    const angleInput = $(select.attr("data-angle-input") || "");
-    const dishName = option.attr("data-dish-name") || "";
-    const preferredAngle = option.attr("data-preferred-angle") || "";
-
-    if (dishInput.length && dishName) {
-      dishInput.val(dishName);
-    }
-
-    if (angleInput.length) {
-      angleInput.val(preferredAngle);
-    }
-  });
-
   syncFacebookPageRows();
   updateFacebookSelectionState();
 
@@ -223,6 +218,7 @@
 
     const renderRefreshState = () => {
       toggle.text(paused ? "Resume Auto Refresh" : "Pause Auto Refresh");
+      toggle.attr("aria-pressed", paused ? "true" : "false");
 
       if (!label.length) {
         return;
@@ -246,6 +242,7 @@
       }
 
       renderRefreshState();
+      announce(paused ? "Auto refresh paused" : "Auto refresh resumed");
     });
 
     renderRefreshState();

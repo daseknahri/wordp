@@ -36,7 +36,6 @@ It now also owns:
 
 - worker heartbeat status
 - per-job ops events
-- minimal recipe idea backlog state
 - filtered job export from wp-admin
 - seeded launch-page refresh tracking via stored seed hashes
 
@@ -59,8 +58,8 @@ Responsibility:
 - generate article payloads from code-owned prompt presets
 - run a single repair pass when validation fails
 - generate missing images
-- schedule generated jobs into the next daily publish slot
-- publish the WordPress article when the slot is due
+- publish immediately when a manual recipe job has no future schedule
+- wait for a job's exact `publish_on` timestamp when it is scheduled for later
 - publish the Facebook Page post
 - add the first comment with the tracked link
 - send worker heartbeat snapshots back to WordPress
@@ -118,7 +117,6 @@ This is intentionally compact. It should store short operational context only, n
 The publisher screen is now an operator console:
 
 - system status strip for worker/OpenAI/Facebook readiness
-- recipe idea bank with idea, queued, scheduled, published, and archived states
 - paginated job list with search and filters
 - selected job detail with snapshots, outputs, media, retry actions, quality score, and failed checks
 - selected job detail with prompt version, publication profile, preset, validator summary, and per-variant hook angles
@@ -134,12 +132,13 @@ The active AI lane is now recipe-only and is centered around one master prompt p
 - `publication_profile`
   - brand voice
   - one consolidated guardrails field
-- `recipe backlog`
+- `manual recipe composer`
   - dish name
-  - status
-  - optional preferred angle
-  - optional operator note
-  - linked job / post ids
+  - optional title override
+  - blog image
+  - Facebook image
+  - selected Facebook pages
+  - optional per-job publish time
 - `recipe_master_prompt`
   - title
   - slug
@@ -168,17 +167,20 @@ The active AI lane is now recipe-only and is centered around one master prompt p
   - selected-page coverage
   - social variant uniqueness
   - image readiness
-  - blocking threshold before publish
+  - `block` for hard integrity failures
+  - `warn` for softer quality issues that should stay visible without stopping publish
 - `cadence`
   - generate now
-  - publish daily
-  - one slot per day in the WordPress timezone
+  - publish immediately if no future time is set
+  - wait for the exact per-job `publish_on` timestamp otherwise
 - `models`
   - primary text model
   - image model
   - one internal repair pass
 
 WordPress stores the operator-facing guidance and the selected target pages for each job. The worker owns the runtime prompt contract, produces the social pack, and fans out one unique variant per selected page.
+The worker also persists final assembled Facebook post messages and page-level first-comment messages so wp-admin can review the exact planned/posted copy instead of only the raw hook and caption pieces.
+Future AI idea generation / autopilot posting is intentionally dormant in this phase. Older compatibility paths stay readable in code, but the active operator workflow is the manual recipe composer only.
 
 ### Scheduling model
 
@@ -193,11 +195,11 @@ Jobs now move through these main states:
 - `failed`
 - `partial_failure`
 
-Generated jobs receive a `publish_on` timestamp for the next available daily slot.
+Generated jobs use `publish_on` as the exact UTC publish timestamp.
 
-- normal jobs generate now and publish later
-- retries bypass the daily cadence and become due immediately
-- operator controls can publish now, move a job to the next slot, or cancel a scheduled release
+- normal jobs generate now and either publish immediately or wait for an exact future timestamp
+- retries bypass future scheduling and become due immediately
+- operator controls can publish now, reschedule a job, or cancel a scheduled release
 
 ### Seeded trust pages
 
