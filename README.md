@@ -18,19 +18,22 @@ The workflow is intentionally small and upgrade-friendly. WordPress stays the co
   - category archives for Recipes, Food Facts, and Food Stories
   - trust-ready footer and page links
 - `wordpress/wp-content/plugins/kuchnia-twist-publisher/`
-  - topic-list-driven publishing UI in wp-admin
+  - content-machine-driven publishing UI in wp-admin
   - system-status dashboard with worker freshness checks
+  - generate-now / publish-daily scheduling controls
   - event timeline and CSV export for filtered job history
-  - settings screen for OpenAI + Facebook
+  - settings screen for content presets, cadence, OpenAI, and Facebook
   - queued job storage
   - job event storage
   - internal REST endpoints for the worker
 - `autopost/`
   - queue worker that:
     - claims jobs from WordPress
-    - generates the article
+    - generates the article package with preset-aware prompts
+    - runs a single repair pass when validation fails
     - generates missing images only when the launch policy allows it
-    - publishes the WordPress post
+    - schedules ready jobs into the next daily release slot
+    - publishes the WordPress post when the slot is due
     - publishes the Facebook Page post
     - adds the CTA link as the first comment
     - stores a manual group-share kit
@@ -102,23 +105,24 @@ After deployment, go to wp-admin:
 
 1. Open `Kuchnia Twist -> Settings`
 2. Fill in:
-   - topic list
-   - brand voice
-   - article prompt guidance
+   - publication profile name and topic bank
+   - global voice brief plus short do/don't guidance
+   - recipe master prompt and recipe guidance
+   - Facebook caption, group-share, and image style guidance
+   - daily publish time
    - OpenAI model and optional API key override
-   - image style guidance
-   - Facebook Page ID
-   - Facebook Page access token
+   - repair pass settings
+   - Facebook page library entries
    - UTM source and campaign prefix
 3. Save settings
 
 Then open `Kuchnia Twist` and create a job:
 
-1. Select a topic
-2. Select `Recipe`, `Food Fact`, or `Food Story`
-3. Set the final title when launch mode is `manual_only`
-4. Upload a blog image
-5. Upload a Facebook image
+1. Enter the dish name
+2. Optionally set a final title override
+3. Upload a blog image
+4. Upload a Facebook image
+5. Select one or more active Facebook pages
 6. Click `Queue Job`
 
 The worker will pick up the queued job in the background.
@@ -127,14 +131,25 @@ The worker will pick up the queued job in the background.
 
 For each job:
 
-1. The worker generates the article package with OpenAI.
-2. If the site is in an AI-fallback image mode and images are missing, it generates them too.
-3. The WordPress article is published immediately.
-4. A Facebook Page post is published.
-5. The article link is posted as the first Facebook comment.
-6. A manual group-share kit is saved in the job record for your food groups.
+1. The worker claims the queued recipe job and runs the recipe master prompt.
+2. If validation fails, the worker runs one repair pass using the validator error as feedback.
+3. The recipe master prompt returns the full pack:
+   - title / slug / excerpt / SEO description
+   - recipe article HTML
+   - recipe card data
+   - image prompt / alt text
+   - a social pack with one Facebook variant per selected page
+4. If the social pack is weak or missing, the worker falls back to deterministic local variants so the article can still move forward.
+5. If the site is in an AI-fallback image mode and images are missing, the worker generates them too.
+6. The job moves to `scheduled` and is assigned the next daily `publish_on` slot in the WordPress timezone.
+7. When the slot is due, the worker publishes the WordPress post.
+8. The worker publishes one different Facebook post variant to each selected page.
+9. The tracked article link is posted as the first comment on each selected page post.
+10. A manual group-share kit is saved in the job record for your food groups.
 
-If the blog publishes but Facebook fails, the WordPress post stays live and the job is marked as `partial_failure`. You can retry it from wp-admin without duplicating the article.
+If the blog publishes but one or more Facebook pages fail, the WordPress post stays live and the job is marked as `partial_failure`. You can retry it from wp-admin without duplicating the article or re-posting to pages that already succeeded.
+
+Retries for failed or partial jobs bypass the daily cadence. They move back into an immediate `scheduled` state so the worker can repair them on the next pass.
 
 ## Operations and worker health
 
@@ -144,6 +159,7 @@ If the blog publishes but Facebook fails, the WordPress post stays live and the 
 - Missing Facebook credentials do not block queueing because the publish policy keeps the blog live even if Facebook fails later.
 - Missing OpenAI credentials or a stale worker heartbeat show warnings in wp-admin before you queue jobs.
 - The job list can be filtered and exported as CSV from the current filtered result set. CSV export intentionally omits article HTML, raw payload blobs, and long generated copy.
+- The selected-job view shows prompt version, profile, preset, repair attempts, distribution source, and operator controls for `Publish Now`, `Move To Next Slot`, and `Cancel Release`.
 
 ## Production smoke test
 
@@ -161,12 +177,15 @@ After each deploy:
 4. Watch the job move through:
    - `queued`
    - `generating`
+   - `scheduled`
    - `publishing_blog`
    - `publishing_facebook`
    - `completed`
-5. Open the published post and confirm the article is live.
-6. Confirm the Facebook post and first comment were created.
-7. If Facebook fails after blog publish, confirm the job becomes `partial_failure` and retry it from wp-admin.
+5. Confirm the selected job shows a future `publish_on` slot and the prompt metadata you expect.
+6. Use `Publish Now` if you want to force the first smoke test through immediately.
+7. Open the published post and confirm the article is live.
+8. Confirm the Facebook post and first comment were created.
+9. If Facebook fails after blog publish, confirm the job becomes `partial_failure` and retry it from wp-admin.
 
 ## Public launch QA
 

@@ -480,6 +480,20 @@
   font-size: 13px;
 }
 
+.kt-job-row__distribution {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0;
+  color: #6f635a;
+  font-size: 13px;
+}
+
+.kt-job-row__distribution span {
+  color: #8c4032;
+  font-weight: 600;
+}
+
 .kt-job-row__actions {
   display: flex;
   align-items: center;
@@ -504,8 +518,15 @@
   color: #166534;
 }
 
-.kt-status--partial_failure,
-.kt-status--failed {
+.kt-status--scheduled,
+.kt-status--partial_failure {
+  background: #fff1e6;
+  color: #8a4b20;
+}
+
+.kt-status--failed,
+.kt-status--post_failed,
+.kt-status--comment_failed {
   background: #fee2e2;
   color: #991b1b;
 }
@@ -762,6 +783,129 @@
   gap: 8px;
 }
 
+.kt-checkbox-card {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid #eadfce;
+  border-radius: 16px;
+  background: #fffaf4;
+}
+
+.kt-checkbox-card legend {
+  padding: 0 8px;
+  font-weight: 700;
+  color: #352c28;
+}
+
+.kt-checkbox-list {
+  display: grid;
+  gap: 10px;
+}
+
+.kt-checkbox-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kt-checkbox-count {
+  color: #7a6a5f;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.kt-checkbox-item {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 12px !important;
+  padding: 12px 14px;
+  border: 1px solid #eadfce;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.kt-checkbox-item input {
+  margin-top: 2px;
+}
+
+.kt-checkbox-item span {
+  display: grid;
+  gap: 3px;
+}
+
+.kt-checkbox-item small {
+  color: #7a6a5f;
+}
+
+.kt-page-library,
+.kt-page-library__rows,
+.kt-variant-list,
+.kt-distribution-list {
+  display: grid;
+  gap: 14px;
+}
+
+.kt-variant-fields {
+  display: grid;
+  gap: 12px;
+}
+
+.kt-variant-field {
+  display: grid;
+  gap: 8px;
+}
+
+.kt-card-head--compact {
+  margin-bottom: 0;
+}
+
+.kt-page-row,
+.kt-variant-card,
+.kt-distribution-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #eadfce;
+  border-radius: 16px;
+  background: #fffaf5;
+}
+
+.kt-toggle-field {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px !important;
+}
+
+.kt-toggle-field input {
+  width: auto;
+  min-height: 0;
+}
+
+.kt-variant-card__head,
+.kt-distribution-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kt-variant-card__head div,
+.kt-distribution-card__head div {
+  display: grid;
+  gap: 3px;
+}
+
+.kt-variant-card__head span,
+.kt-distribution-card__head span {
+  color: #7a6a5f;
+  font-size: 13px;
+}
+
 .kt-event-list {
   display: grid;
   gap: 12px;
@@ -933,7 +1077,10 @@
   .kt-env-item,
   .kt-summary-list div,
   .kt-job-row,
-  .kt-detail-block__head {
+  .kt-checkbox-actions,
+  .kt-detail-block__head,
+  .kt-variant-card__head,
+  .kt-distribution-card__head {
     flex-direction: column;
     align-items: stretch;
   }

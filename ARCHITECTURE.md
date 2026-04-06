@@ -26,6 +26,7 @@ Responsibility:
 - wp-admin publishing UI
 - publishing settings
 - job creation and retry flow
+- content machine presets and cadence settings
 - queue storage and job state
 - internal REST endpoints used by the worker
 
@@ -54,9 +55,11 @@ Location: `autopost/`
 Responsibility:
 
 - claim queued jobs from WordPress
-- generate article payloads
+- generate article payloads from code-owned prompt presets
+- run a single repair pass when validation fails
 - generate missing images
-- publish the WordPress article
+- schedule generated jobs into the next daily publish slot
+- publish the WordPress article when the slot is due
 - publish the Facebook Page post
 - add the first comment with the tracked link
 - save the manual group-share kit
@@ -117,10 +120,70 @@ The publisher screen is now an operator console:
 - system status strip for worker/OpenAI/Facebook readiness
 - paginated job list with search and filters
 - selected job detail with snapshots, outputs, media, and retry actions
+- selected job detail with prompt version, publication profile, preset, and validator summary
 - per-job ops timeline
 - filtered CSV export for reporting/debugging
 
 This keeps WordPress as the source of truth for editorial and operational state.
+
+### Content machine
+
+The active AI lane is now recipe-only and is centered around one master prompt plus short operator guidance:
+
+- `publication_profile`
+  - brand voice
+  - do / don't guidance
+  - banned-claim guidance
+  - shared-link policy
+- `recipe_master_prompt`
+  - title
+  - slug
+  - excerpt
+  - SEO description
+  - recipe article HTML
+  - recipe card data
+  - image prompt / alt text
+  - social pack with one variant per selected Facebook page
+- `recipe helpers`
+  - recipe article guidance
+  - Facebook caption guidance
+  - group-share guidance
+  - image style brief
+- `facebook page library`
+  - label
+  - page id
+  - page access token
+  - active toggle
+- `cadence`
+  - generate now
+  - publish daily
+  - one slot per day in the WordPress timezone
+- `models`
+  - primary text model
+  - image model
+  - repair enabled
+  - repair attempts
+
+WordPress stores the operator-facing guidance and the selected target pages for each job. The worker owns the runtime prompt contract, produces the social pack, and fans out one unique variant per selected page.
+
+### Scheduling model
+
+Jobs now move through these main states:
+
+- `queued`
+- `generating`
+- `scheduled`
+- `publishing_blog`
+- `publishing_facebook`
+- `completed`
+- `failed`
+- `partial_failure`
+
+Generated jobs receive a `publish_on` timestamp for the next available daily slot.
+
+- normal jobs generate now and publish later
+- retries bypass the daily cadence and become due immediately
+- operator controls can publish now, move a job to the next slot, or cancel a scheduled release
 
 ### Seeded trust pages
 
@@ -182,8 +245,8 @@ This architecture is still the right one for the current phase.
 
 1. Run production hardening and validate the live pipeline.
 2. Use heartbeat + ops log + export to catch real runtime issues.
-3. Start phase-2 plugin cleanup by modularizing the plugin.
-4. Extend the content machine only after the codebase is easier to maintain.
+3. Stabilize the content machine and daily scheduling in production.
+4. Start phase-2 plugin cleanup by modularizing the plugin.
 
 ## Rule for future work
 

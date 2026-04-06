@@ -13,6 +13,40 @@
   const shouldIgnoreRowClick = (target) =>
     $(target).closest("a, button, input, select, textarea, label").length > 0;
 
+  const syncFacebookPageRows = () => {
+    $("[data-facebook-page-list]").find("[data-facebook-page-row]").each(function (index) {
+      $(this)
+        .find("[data-facebook-page-field]")
+        .each(function () {
+          const field = $(this).attr("data-facebook-page-field");
+          if (!field) {
+            return;
+          }
+
+          $(this).attr("name", `facebook_pages[${index}][${field}]`);
+        });
+    });
+  };
+
+  const updateFacebookSelectionState = () => {
+    $(".kt-checkbox-card").each(function () {
+      const card = $(this);
+      const checkboxes = card.find("[data-facebook-page-checkbox]");
+      const checked = checkboxes.filter(":checked").length;
+      const submit = card.closest("form").find("[data-facebook-submit]");
+      const counter = card.find("[data-facebook-selection-count]");
+
+      if (counter.length) {
+        counter.text(`${checked} page${checked === 1 ? "" : "s"} selected`);
+      }
+
+      if (submit.length) {
+        submit.prop("disabled", checked === 0);
+        submit.attr("aria-disabled", checked === 0 ? "true" : "false");
+      }
+    });
+  };
+
   $(document).on("click", ".kt-media-select", function (event) {
     event.preventDefault();
 
@@ -108,6 +142,53 @@
   $(document).on("change", ".kt-jobs-toolbar select", function () {
     $(this).closest("form").trigger("submit");
   });
+
+  $(document).on("click", "[data-add-facebook-page]", function (event) {
+    event.preventDefault();
+
+    const library = $(this).closest("[data-facebook-pages]");
+    const list = library.find("[data-facebook-page-list]");
+    const template = document.getElementById("kt-facebook-page-template");
+
+    if (!list.length || !template) {
+      return;
+    }
+
+    const fragment = template.content.cloneNode(true);
+    list[0].appendChild(fragment);
+    syncFacebookPageRows();
+  });
+
+  $(document).on("click", "[data-remove-facebook-page]", function (event) {
+    event.preventDefault();
+    $(this).closest("[data-facebook-page-row]").remove();
+    syncFacebookPageRows();
+  });
+
+  $(document).on("click", "[data-facebook-page-select-all]", function (event) {
+    event.preventDefault();
+    $(this)
+      .closest(".kt-checkbox-card")
+      .find("[data-facebook-page-checkbox]")
+      .prop("checked", true);
+    updateFacebookSelectionState();
+  });
+
+  $(document).on("click", "[data-facebook-page-clear]", function (event) {
+    event.preventDefault();
+    $(this)
+      .closest(".kt-checkbox-card")
+      .find("[data-facebook-page-checkbox]")
+      .prop("checked", false);
+    updateFacebookSelectionState();
+  });
+
+  $(document).on("change", "[data-facebook-page-checkbox]", function () {
+    updateFacebookSelectionState();
+  });
+
+  syncFacebookPageRows();
+  updateFacebookSelectionState();
 
   const adminRoot = $(".kt-admin[data-auto-refresh-seconds]");
   const toggle = $(".kt-auto-refresh-toggle[data-seconds]");
