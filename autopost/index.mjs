@@ -841,7 +841,7 @@ async function generateRecipeMasterPackage(job, settings) {
         {
           role: "system",
           content:
-            "You are the recipe publishing engine for a premium food publication. Return strict JSON only with no markdown fences. The JSON must contain: title, slug, excerpt, seo_description, content_html, recipe, image_prompt, image_alt, and social_pack. content_html must be clean WordPress-ready HTML using paragraphs, h2 headings, lists, and blockquotes only. The recipe object must contain prep_time, cook_time, total_time, yield, ingredients, and instructions. social_pack must be an array of objects with angle_key, hook, caption, and cta_hint. Never include the article URL, hashtags, or markdown inside captions.",
+            "You are the recipe publishing engine for a premium food publication. Return strict JSON only with no markdown fences. Put every required field at the top level of the JSON object; do not wrap them inside article, data, post, or content objects. The JSON must contain: title, slug, excerpt, seo_description, content_html, recipe, image_prompt, image_alt, and social_pack. content_html must be clean WordPress-ready HTML using paragraphs, h2 headings, lists, and blockquotes only, and it must never be empty. The recipe object must contain prep_time, cook_time, total_time, yield, ingredients, and instructions. social_pack must be an array of objects with angle_key, hook, caption, and cta_hint. Never include the article URL, hashtags, or markdown inside captions.",
         },
         {
           role: "user",
@@ -1118,12 +1118,27 @@ async function generateDistributionPack(job, settings, article) {
 }
 
 async function requestOpenAiChat(settings, messages) {
-  const payload = await openAiJsonRequest(settings, "/chat/completions", {
-    model: settings.openaiModel,
-    messages,
-  });
+  let payload;
 
-  return payload?.choices?.[0]?.message?.content;
+  try {
+    payload = await openAiJsonRequest(settings, "/chat/completions", {
+      model: settings.openaiModel,
+      messages,
+      response_format: { type: "json_object" },
+    });
+  } catch (error) {
+    const message = formatError(error);
+    if (!/response_format|json_object|unsupported/i.test(message)) {
+      throw error;
+    }
+
+    payload = await openAiJsonRequest(settings, "/chat/completions", {
+      model: settings.openaiModel,
+      messages,
+    });
+  }
+
+  return extractOpenAiMessageText(payload?.choices?.[0]?.message);
 }
 
 function resolveContentMachine(raw) {
@@ -1508,6 +1523,7 @@ function buildRecipeMasterPrompt(job, settings, selectedPages, repairNote = "") 
     "Recipe output rules:",
     "- Write an original, practical, highly clickable recipe article with real kitchen value after the click.",
     "- content_html must open with 1 to 2 short appetite-led paragraphs before the first H2.",
+    "- Keep the JSON flat: do not wrap article fields in nested article, post, data, or content objects.",
     "- Use H2 sections that help scanning and conversion: why this recipe works, ingredient notes, how to make it, and serving or storage tips.",
     "- Keep paragraphs short, specific, and concrete. Avoid generic filler, fake memoir, or restaurant-style exaggeration.",
     "- Do not paste the full ingredient list and full numbered method into the article body; keep those for the recipe object.",
@@ -1888,27 +1904,34 @@ function validateGeneratedPayload(generated, job) {
 function normalizeGeneratedPayload(raw, job) {
   const source = isPlainObject(raw) ? raw : {};
   const titleOverride = cleanText(job?.title_override || "");
-  const title = titleOverride || cleanText(source.title) || cleanText(job?.topic) || "Fresh from Kuchnia Twist";
-  const slug = normalizeSlug(source.slug || title);
-  const sourceContentText = cleanText(String(source.content_html || source.contentHtml || "").replace(/<[^>]+>/g, " "));
+  const title =
+    titleOverride ||
+    cleanText(readGeneratedString(source, ["title", "headline", "post_title", "postTitle", "name"])) ||
+    cleanText(job?.topic) ||
+    "Fresh from Kuchnia Twist";
+  const slug = normalizeSlug(readGeneratedString(source, ["slug", "post_slug", "postSlug"]) || title);
+  const contentHtml = ensureInternalLinks(resolveGeneratedContentHtml(source, job), job);
+  const sourceContentText = cleanText(String(contentHtml || "").replace(/<[^>]+>/g, " "));
   const fallbackExcerpt = trimText(sourceContentText.split(/(?<=[.!?])\s+/)[0] || sourceContentText, 220);
-  const excerpt = trimText(cleanText(source.excerpt), 220) || fallbackExcerpt || `${title} on Kuchnia Twist.`;
+  const excerpt =
+    trimText(cleanText(readGeneratedString(source, ["excerpt", "summary", "dek", "standfirst", "description"])), 220) ||
+    fallbackExcerpt ||
+    `${title} on Kuchnia Twist.`;
   const seoDescription =
-    trimText(cleanText(source.seo_description || source.seoDescription), 155) ||
+    trimText(cleanText(readGeneratedString(source, ["seo_description", "seoDescription", "meta_description", "metaDescription", "search_description", "searchDescription"])), 155) ||
     trimText(excerpt, 155);
-  const contentHtml = ensureInternalLinks(normalizeHtml(source.content_html || source.contentHtml || ""), job);
   const facebookCaption =
-    cleanMultilineText(source.facebook_caption || source.facebookCaption) ||
+    cleanMultilineText(readGeneratedString(source, ["facebook_caption", "facebookCaption"])) ||
     buildFallbackFacebookCaption({ title, excerpt }, "Read the full recipe on the blog.");
-  const groupShareKit = cleanMultilineText(source.group_share_kit || source.groupShareKit);
+  const groupShareKit = cleanMultilineText(readGeneratedString(source, ["group_share_kit", "groupShareKit"]));
   const imagePrompt =
-    cleanMultilineText(source.image_prompt || source.imagePrompt) ||
+    cleanMultilineText(readGeneratedString(source, ["image_prompt", "imagePrompt", "hero_image_prompt", "heroImagePrompt"])) ||
     `Editorial food photography of ${title}, premium magazine lighting, appetizing detail, natural styling, no text overlay.`;
-  const imageAlt = cleanText(source.image_alt || source.imageAlt) || title;
-  const recipe = normalizeRecipe(source.recipe || {}, job?.content_type || "recipe");
+  const imageAlt = cleanText(readGeneratedString(source, ["image_alt", "imageAlt", "hero_image_alt", "heroImageAlt", "alt_text", "altText"])) || title;
+  const recipe = normalizeRecipe(readGeneratedObject(source, ["recipe", "recipe_card", "recipeCard"]) || {}, job?.content_type || "recipe");
 
   if (!contentHtml) {
-    throw new Error("The generated article body was empty.");
+    throw new Error(`The generated article body was empty. Parsed keys: ${describeGeneratedShape(source)}.`);
   }
 
   if ((job?.content_type || "") === "recipe" && (!recipe.ingredients.length || !recipe.instructions.length)) {
@@ -1926,12 +1949,169 @@ function normalizeGeneratedPayload(raw, job) {
     image_prompt: imagePrompt,
     image_alt: imageAlt,
     recipe,
-    social_pack: normalizeSocialPack(source.social_pack || source.socialPack),
-    facebook_distribution: normalizeFacebookDistribution(source.facebook_distribution || source.facebookDistribution),
-    assets: isPlainObject(source.assets) ? source.assets : {},
-    facebook_urls: isPlainObject(source.facebook_urls) ? source.facebook_urls : {},
-    content_machine: isPlainObject(source.content_machine) ? source.content_machine : {},
+    social_pack: normalizeSocialPack(readGeneratedArray(source, ["social_pack", "socialPack", "facebook_variants", "facebookVariants"])),
+    facebook_distribution: normalizeFacebookDistribution(readGeneratedObject(source, ["facebook_distribution", "facebookDistribution"]) || {}),
+    assets: readGeneratedObject(source, ["assets"]) || {},
+    facebook_urls: readGeneratedObject(source, ["facebook_urls", "facebookUrls"]) || {},
+    content_machine: readGeneratedObject(source, ["content_machine", "contentMachine"]) || {},
   };
+}
+
+function generatedPayloadContainers(source) {
+  const containers = [];
+  const queue = [source];
+  const seen = new Set();
+  const nestedKeys = ["article", "post", "content", "data", "result", "output", "payload", "article_package", "recipe_package", "blog_post", "blogPost"];
+
+  while (queue.length && containers.length < 16) {
+    const current = queue.shift();
+    if (!isPlainObject(current) || seen.has(current)) {
+      continue;
+    }
+
+    seen.add(current);
+    containers.push(current);
+
+    for (const key of nestedKeys) {
+      if (isPlainObject(current[key])) {
+        queue.push(current[key]);
+      }
+    }
+  }
+
+  return containers;
+}
+
+function readGeneratedString(source, keys) {
+  for (const container of generatedPayloadContainers(source)) {
+    for (const key of keys) {
+      const value = container[key];
+      if (typeof value === "string" && cleanText(value)) {
+        return value;
+      }
+
+      if (Array.isArray(value)) {
+        const joined = cleanMultilineText(
+          value
+            .map((item) => {
+              if (typeof item === "string") {
+                return item;
+              }
+
+              if (isPlainObject(item)) {
+                return cleanMultilineText(item.html || item.text || item.content || item.body || item.value || "");
+              }
+
+              return "";
+            })
+            .filter(Boolean)
+            .join("\n\n"),
+        );
+
+        if (joined) {
+          return joined;
+        }
+      }
+    }
+  }
+
+  return "";
+}
+
+function readGeneratedObject(source, keys) {
+  for (const container of generatedPayloadContainers(source)) {
+    for (const key of keys) {
+      if (isPlainObject(container[key])) {
+        return container[key];
+      }
+    }
+  }
+
+  return null;
+}
+
+function readGeneratedArray(source, keys) {
+  for (const container of generatedPayloadContainers(source)) {
+    for (const key of keys) {
+      if (Array.isArray(container[key])) {
+        return container[key];
+      }
+    }
+  }
+
+  return [];
+}
+
+function buildContentHtmlFromSections(source) {
+  const sectionSets = readGeneratedArray(source, ["sections", "article_sections", "articleSections", "content_sections", "contentSections", "body_sections", "bodySections"]);
+  if (!sectionSets.length) {
+    return "";
+  }
+
+  return sectionSets
+    .map((section) => {
+      if (typeof section === "string") {
+        return `<p>${escapeHtml(cleanText(section))}</p>`;
+      }
+
+      if (!isPlainObject(section)) {
+        return "";
+      }
+
+      const heading = cleanText(section.heading || section.title || section.label);
+      const body = cleanMultilineText(section.html || section.content_html || section.content || section.body || section.text || "");
+      const bodyHtml = normalizeHtml(body);
+      if (!heading && !bodyHtml) {
+        return "";
+      }
+
+      return [heading ? `<h2>${escapeHtml(heading)}</h2>` : "", bodyHtml].filter(Boolean).join("\n");
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function resolveGeneratedContentHtml(source, job) {
+  const direct = readGeneratedString(source, [
+    "content_html",
+    "contentHtml",
+    "article_html",
+    "articleHtml",
+    "body_html",
+    "bodyHtml",
+    "blog_html",
+    "blogHtml",
+    "article_body",
+    "articleBody",
+    "html",
+    "body",
+  ]);
+
+  if (direct) {
+    return normalizeHtml(direct);
+  }
+
+  const sectionHtml = buildContentHtmlFromSections(source);
+  if (sectionHtml) {
+    return sectionHtml;
+  }
+
+  const plaintext = readGeneratedString(source, ["content", "article", "post"]);
+  if (plaintext && !isPlainObject(plaintext)) {
+    return normalizeHtml(plaintext);
+  }
+
+  return "";
+}
+
+function describeGeneratedShape(source) {
+  const keys = new Set();
+
+  for (const container of generatedPayloadContainers(source)) {
+    Object.keys(container).forEach((key) => keys.add(key));
+  }
+
+  return Array.from(keys).sort().join(", ") || "none";
 }
 
 function normalizeRecipe(value, contentType) {
@@ -2206,6 +2386,45 @@ function parseJsonObject(text) {
     }
     return JSON.parse(text.slice(firstBrace, lastBrace + 1));
   }
+}
+
+function extractOpenAiMessageText(message) {
+  if (typeof message?.content === "string") {
+    return message.content;
+  }
+
+  if (Array.isArray(message?.content)) {
+    const joined = cleanMultilineText(
+      message.content
+        .map((part) => {
+          if (typeof part === "string") {
+            return part;
+          }
+
+          if (!isPlainObject(part)) {
+            return "";
+          }
+
+          if (typeof part.text === "string") {
+            return part.text;
+          }
+
+          if (isPlainObject(part.text) && typeof part.text.value === "string") {
+            return part.text.value;
+          }
+
+          return cleanMultilineText(part.content || part.value || part.output_text || "");
+        })
+        .filter(Boolean)
+        .join("\n"),
+    );
+
+    if (joined) {
+      return joined;
+    }
+  }
+
+  return cleanMultilineText(message?.text || message?.output_text || "");
 }
 
 function normalizeHtml(value) {
