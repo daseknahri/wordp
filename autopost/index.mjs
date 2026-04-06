@@ -1138,7 +1138,27 @@ async function requestOpenAiChat(settings, messages) {
     });
   }
 
-  return extractOpenAiMessageText(payload?.choices?.[0]?.message);
+  let content = extractOpenAiMessageText(payload?.choices?.[0]?.message);
+  if (!isDegenerateModelJsonText(content)) {
+    return content;
+  }
+
+  const fallbackMessages = [
+    ...messages,
+    {
+      role: "system",
+      content:
+        "Your previous reply was invalid for this task. Reply with one JSON object only. Do not return an array, do not return [], do not return markdown, and do not wrap the object in quotes.",
+    },
+  ];
+
+  const fallbackPayload = await openAiJsonRequest(settings, "/chat/completions", {
+    model: settings.openaiModel,
+    messages: fallbackMessages,
+  });
+
+  content = extractOpenAiMessageText(fallbackPayload?.choices?.[0]?.message);
+  return content;
 }
 
 function resolveContentMachine(raw) {
@@ -1522,6 +1542,7 @@ function buildRecipeMasterPrompt(job, settings, selectedPages, repairNote = "") 
     ...pageAnglePlan.map((item) => `- social_pack[${item.index}] -> ${item.page_label} -> ${item.angle_key}: ${item.instruction}`),
     "Recipe output rules:",
     "- Write an original, practical, highly clickable recipe article with real kitchen value after the click.",
+    "- Never return [] or an empty array. Return one JSON object matching the contract even if the recipe is simple.",
     "- content_html must open with 1 to 2 short appetite-led paragraphs before the first H2.",
     "- Keep the JSON flat: do not wrap article fields in nested article, post, data, or content objects.",
     "- Use H2 sections that help scanning and conversion: why this recipe works, ingredient notes, how to make it, and serving or storage tips.",
@@ -2473,6 +2494,15 @@ function coerceParsedJsonValue(value, depth = 0) {
   }
 
   return value;
+}
+
+function isDegenerateModelJsonText(value) {
+  const normalized = cleanMultilineText(value);
+  if (!normalized) {
+    return true;
+  }
+
+  return ["[]", "[ ]", "null", "\"[]\"", "'[]'"].includes(normalized);
 }
 
 function extractOpenAiMessageText(message) {
