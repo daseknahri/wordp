@@ -1902,7 +1902,7 @@ function validateGeneratedPayload(generated, job) {
 }
 
 function normalizeGeneratedPayload(raw, job) {
-  const source = isPlainObject(raw) ? raw : {};
+  const source = coerceGeneratedPayload(raw);
   const titleOverride = cleanText(job?.title_override || "");
   const title =
     titleOverride ||
@@ -1931,7 +1931,9 @@ function normalizeGeneratedPayload(raw, job) {
   const recipe = normalizeRecipe(readGeneratedObject(source, ["recipe", "recipe_card", "recipeCard"]) || {}, job?.content_type || "recipe");
 
   if (!contentHtml) {
-    throw new Error(`The generated article body was empty. Parsed keys: ${describeGeneratedShape(source)}.`);
+    throw new Error(
+      `The generated article body was empty. Parsed type: ${describeGeneratedType(raw)}. Parsed keys: ${describeGeneratedShape(source)}. Raw preview: ${previewGeneratedValue(raw)}.`,
+    );
   }
 
   if ((job?.content_type || "") === "recipe" && (!recipe.ingredients.length || !recipe.instructions.length)) {
@@ -1955,6 +1957,44 @@ function normalizeGeneratedPayload(raw, job) {
     facebook_urls: readGeneratedObject(source, ["facebook_urls", "facebookUrls"]) || {},
     content_machine: readGeneratedObject(source, ["content_machine", "contentMachine"]) || {},
   };
+}
+
+function coerceGeneratedPayload(value, depth = 0) {
+  if (depth > 4) {
+    return {};
+  }
+
+  if (isPlainObject(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return {};
+    }
+
+    if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+      try {
+        return coerceGeneratedPayload(JSON.parse(trimmed), depth + 1);
+      } catch {
+        return {};
+      }
+    }
+
+    return {};
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 1) {
+      return coerceGeneratedPayload(value[0], depth + 1);
+    }
+
+    const firstObject = value.find((item) => isPlainObject(item) || typeof item === "string" || Array.isArray(item));
+    return firstObject ? coerceGeneratedPayload(firstObject, depth + 1) : {};
+  }
+
+  return {};
 }
 
 function generatedPayloadContainers(source) {
@@ -2112,6 +2152,30 @@ function describeGeneratedShape(source) {
   }
 
   return Array.from(keys).sort().join(", ") || "none";
+}
+
+function describeGeneratedType(value) {
+  if (Array.isArray(value)) {
+    return `array(${value.length})`;
+  }
+
+  if (value === null) {
+    return "null";
+  }
+
+  return typeof value;
+}
+
+function previewGeneratedValue(value) {
+  if (isPlainObject(value)) {
+    return trimText(JSON.stringify(value).replace(/\s+/g, " "), 220) || "empty-object";
+  }
+
+  if (Array.isArray(value)) {
+    return trimText(JSON.stringify(value).replace(/\s+/g, " "), 220) || "empty-array";
+  }
+
+  return trimText(String(value || "").replace(/\s+/g, " "), 220) || "empty";
 }
 
 function normalizeRecipe(value, contentType) {
@@ -2377,15 +2441,38 @@ function assertRecipeDistributionTargets(job, pages) {
 
 function parseJsonObject(text) {
   try {
-    return JSON.parse(text);
+    return coerceParsedJsonValue(JSON.parse(text));
   } catch {
     const firstBrace = text.indexOf("{");
     const lastBrace = text.lastIndexOf("}");
     if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
       throw new Error("The model response was not valid JSON.");
     }
-    return JSON.parse(text.slice(firstBrace, lastBrace + 1));
+    return coerceParsedJsonValue(JSON.parse(text.slice(firstBrace, lastBrace + 1)));
   }
+}
+
+function coerceParsedJsonValue(value, depth = 0) {
+  if (depth > 4) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+      try {
+        return coerceParsedJsonValue(JSON.parse(trimmed), depth + 1);
+      } catch {
+        return value;
+      }
+    }
+  }
+
+  if (Array.isArray(value) && value.length === 1) {
+    return coerceParsedJsonValue(value[0], depth + 1);
+  }
+
+  return value;
 }
 
 function extractOpenAiMessageText(message) {
