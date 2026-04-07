@@ -965,6 +965,10 @@ async function wpRequest(path, options = {}) {
 }
 
 async function openAiJsonRequest(settings, path, body) {
+  log(
+    `OpenAI request ${path} key_present=${settings.openaiApiKey ? "yes" : "no"} key_suffix=${maskSecretSuffix(settings.openaiApiKey)} base_url=${settings.openaiBaseUrl || "missing"}`,
+  );
+
   const response = await fetch(`${settings.openaiBaseUrl}${path}`, {
     method: "POST",
     headers: {
@@ -1152,13 +1156,30 @@ async function requestOpenAiChat(settings, messages) {
     },
   ];
 
-  const fallbackPayload = await openAiJsonRequest(settings, "/chat/completions", {
+  content = await requestOpenAiResponses(settings, fallbackMessages);
+  return content;
+}
+
+async function requestOpenAiResponses(settings, messages) {
+  const payload = await openAiJsonRequest(settings, "/responses", {
     model: settings.openaiModel,
-    messages: fallbackMessages,
+    input: messages.map((message) => ({
+      role: message.role === "system" ? "developer" : message.role,
+      content: [
+        {
+          type: "input_text",
+          text: String(message.content || ""),
+        },
+      ],
+    })),
+    text: {
+      format: {
+        type: "json_object",
+      },
+    },
   });
 
-  content = extractOpenAiMessageText(fallbackPayload?.choices?.[0]?.message);
-  return content;
+  return extractOpenAiResponseText(payload);
 }
 
 function resolveContentMachine(raw) {
@@ -2324,6 +2345,15 @@ function buildTrackedUrl(permalink, settings, generated, contentLabel) {
   return url.toString();
 }
 
+function maskSecretSuffix(value) {
+  const text = cleanText(value);
+  if (!text) {
+    return "none";
+  }
+
+  return text.length <= 4 ? text : text.slice(-4);
+}
+
 function buildFacebookPostUrl(postId) {
   if (!postId.includes("_")) {
     return "";
@@ -2542,6 +2572,55 @@ function extractOpenAiMessageText(message) {
   }
 
   return cleanMultilineText(message?.text || message?.output_text || "");
+}
+
+function extractOpenAiResponseText(payload) {
+  if (typeof payload?.output_text === "string" && cleanMultilineText(payload.output_text)) {
+    return cleanMultilineText(payload.output_text);
+  }
+
+  if (Array.isArray(payload?.output)) {
+    const joined = cleanMultilineText(
+      payload.output
+        .flatMap((item) => {
+          if (!isPlainObject(item)) {
+            return [];
+          }
+
+          if (Array.isArray(item.content)) {
+            return item.content.map((part) => {
+              if (!isPlainObject(part)) {
+                return "";
+              }
+
+              if (typeof part.text === "string") {
+                return part.text;
+              }
+
+              if (isPlainObject(part.text) && typeof part.text.value === "string") {
+                return part.text.value;
+              }
+
+              if (typeof part.output_text === "string") {
+                return part.output_text;
+              }
+
+              return cleanMultilineText(part.content || part.value || "");
+            });
+          }
+
+          return [cleanMultilineText(item.text || item.output_text || "")];
+        })
+        .filter(Boolean)
+        .join("\n"),
+    );
+
+    if (joined) {
+      return joined;
+    }
+  }
+
+  return "";
 }
 
 function normalizeHtml(value) {
