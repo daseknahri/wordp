@@ -148,7 +148,7 @@ async function processJob(job, settings, claimMode = "generate") {
   let permalink = String(job.permalink || "");
   let facebookPostId = String(job.facebook_post_id || "");
   let facebookCommentId = String(job.facebook_comment_id || "");
-  let generated = normalizeGeneratedPayload(job.generated_payload || {}, job);
+  let generated = hydrateStoredGeneratedPayload(job.generated_payload, job);
   let facebookCaption = String(job.facebook_caption || generated.facebook_caption || "");
   let groupShareKit = String(job.group_share_kit || generated.group_share_kit || "");
   let featuredImage = firstAttachment(job.featured_image, job.blog_image);
@@ -1998,6 +1998,45 @@ function normalizeGeneratedPayload(raw, job) {
     assets: readGeneratedObject(source, ["assets"]) || {},
     facebook_urls: readGeneratedObject(source, ["facebook_urls", "facebookUrls"]) || {},
     content_machine: readGeneratedObject(source, ["content_machine", "contentMachine"]) || {},
+  };
+}
+
+function hydrateStoredGeneratedPayload(raw, job) {
+  const source = coerceGeneratedPayload(raw);
+  if (!Object.keys(source).length) {
+    return emptyGeneratedPayload(job);
+  }
+
+  try {
+    return normalizeGeneratedPayload(source, job);
+  } catch (error) {
+    const message = formatError(error);
+    if (/generated article body was empty|generated recipe is missing ingredients or instructions/i.test(message)) {
+      return emptyGeneratedPayload(job);
+    }
+    throw error;
+  }
+}
+
+function emptyGeneratedPayload(job) {
+  const title = cleanText(job?.title_override || job?.topic || "");
+
+  return {
+    title,
+    slug: title ? normalizeSlug(title) : "",
+    excerpt: "",
+    seo_description: "",
+    content_html: "",
+    facebook_caption: "",
+    group_share_kit: "",
+    image_prompt: "",
+    image_alt: title,
+    recipe: normalizeRecipe({}, job?.content_type || "recipe"),
+    social_pack: [],
+    facebook_distribution: normalizeFacebookDistribution({}),
+    assets: {},
+    facebook_urls: {},
+    content_machine: {},
   };
 }
 
