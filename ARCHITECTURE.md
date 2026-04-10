@@ -55,11 +55,12 @@ Location: `autopost/`
 Responsibility:
 
 - claim queued jobs from WordPress
-- generate article payloads from code-owned prompt presets
+- generate canonical article packages from code-owned typed prompt presets
 - run a single repair pass when validation fails
 - generate missing images
-- publish immediately when a manual recipe job has no future schedule
+- publish immediately when a manual typed job has no future schedule
 - wait for a job's exact `publish_on` timestamp when it is scheduled for later
+- generate platform-specific channel outputs from the canonical package
 - publish the Facebook Page post
 - add the first comment with the tracked link
 - send worker heartbeat snapshots back to WordPress
@@ -127,31 +128,49 @@ This keeps WordPress as the source of truth for editorial and operational state.
 
 ### Content machine
 
-The active AI lane is now recipe-only and is centered around one master prompt plus short operator guidance:
+The active AI lane is now a typed content engine centered around one canonical article package plus channel adapters:
 
 - `publication_profile`
-  - brand voice
-  - one consolidated guardrails field
-- `manual recipe composer`
-  - dish name
-  - optional title override
+  - publication role
+  - voice brief
+  - consolidated guardrails
+- `manual typed composer`
+  - `recipe`
+    - dish name
+  - `food_fact`
+    - working title / topic seed
+  - optional final title override
   - blog image
   - Facebook image
   - selected Facebook pages
   - optional per-job publish time
-- `recipe_master_prompt`
-  - title
-  - slug
-  - excerpt
-  - SEO description
-  - recipe article HTML
-  - recipe card data
+- `article engine`
+  - returns one canonical `content_package`
+  - `content_type`
+  - `topic_seed`
+  - title / slug / excerpt / SEO description
+  - `content_html`
+  - `content_pages`
+  - `page_flow`
   - image prompt / alt text
-  - social pack with one variant per selected Facebook page
-- `recipe helpers`
-  - recipe article guidance
-  - Facebook variant guidance
-  - image style brief
+  - typed data such as `recipe` only when required by the content type
+- `content-type profiles`
+  - `recipe`
+    - recipe validation
+    - recipe multipage rendering
+  - `food_fact`
+    - editorial validation
+    - editorial multipage rendering
+  - `food_story`
+    - dormant compatibility path
+- `channel adapters`
+  - `channels.facebook`
+    - candidate pool
+    - selected variants
+    - page-level distribution records
+    - final post/comment messages
+  - `channels.pinterest`
+    - dormant draft scaffold only for now
 - `image handling`
   - uploaded first, generate only missing slot(s)
   - manual only
@@ -160,13 +179,10 @@ The active AI lane is now recipe-only and is centered around one master prompt p
   - page id
   - page access token
   - active toggle
-- `quality gate`
-  - article depth and structure
-  - internal links
-  - recipe completeness
-  - selected-page coverage
-  - social variant uniqueness
-  - image readiness
+- `quality model`
+  - package/article quality
+  - channel-specific quality
+  - overall readiness
   - `block` for hard integrity failures
   - `warn` for softer quality issues that should stay visible without stopping publish
 - `cadence`
@@ -178,9 +194,9 @@ The active AI lane is now recipe-only and is centered around one master prompt p
   - image model
   - one internal repair pass
 
-WordPress stores the operator-facing guidance and the selected target pages for each job. The worker owns the runtime prompt contract, produces the social pack, and fans out one unique variant per selected page.
-The worker also persists final assembled Facebook post messages and page-level first-comment messages so wp-admin can review the exact planned/posted copy instead of only the raw hook and caption pieces.
-Future AI idea generation / autopilot posting is intentionally dormant in this phase. Older compatibility paths stay readable in code, but the active operator workflow is the manual recipe composer only.
+WordPress stores the operator-facing guidance and target pages for each job. The worker owns the runtime prompt contract, produces the canonical content package, then builds channel-specific output from that package.
+The worker persists final assembled Facebook post messages, page-level first-comment messages, package quality, and channel quality so wp-admin can review the exact planned/posted copy instead of only raw fragments.
+Future AI idea generation / autopilot posting is still dormant in this phase. Pinterest is scaffolded at the contract level, but Facebook is the only live social adapter right now.
 
 ### Scheduling model
 

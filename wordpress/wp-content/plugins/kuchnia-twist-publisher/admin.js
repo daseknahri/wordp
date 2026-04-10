@@ -58,6 +58,38 @@
     });
   };
 
+  const updateComposerTypeState = () => {
+    const select = $("[data-content-type-select]");
+    if (!select.length) {
+      return;
+    }
+
+    const selectedType = String(select.val() || "recipe");
+    const topicLabel = $("[data-topic-label]");
+    const topicInput = $("[data-topic-input]");
+    const topicHelp = $("[data-topic-help]");
+    const titleOverride = $("[data-title-override-input]");
+
+    if (topicLabel.length) {
+      topicLabel.text(topicLabel.attr(`data-label-${selectedType}`) || topicLabel.attr("data-label-recipe") || "");
+    }
+
+    if (topicInput.length) {
+      topicInput.attr("placeholder", topicInput.attr(`data-placeholder-${selectedType}`) || topicInput.attr("data-placeholder-recipe") || "");
+    }
+
+    if (topicHelp.length) {
+      topicHelp.text(topicHelp.attr(`data-help-${selectedType}`) || topicHelp.attr("data-help-recipe") || "");
+    }
+
+    if (titleOverride.length) {
+      titleOverride.attr(
+        "placeholder",
+        titleOverride.attr(`data-placeholder-${selectedType}`) || titleOverride.attr("data-placeholder-recipe") || "",
+      );
+    }
+  };
+
   $(document).on("click", ".kt-media-select", function (event) {
     event.preventDefault();
 
@@ -199,8 +231,13 @@
     updateFacebookSelectionState();
   });
 
+  $(document).on("change", "[data-content-type-select]", function () {
+    updateComposerTypeState();
+  });
+
   syncFacebookPageRows();
   updateFacebookSelectionState();
+  updateComposerTypeState();
 
   const adminRoot = $(".kt-admin[data-auto-refresh-seconds]");
   const toggle = $(".kt-auto-refresh-toggle[data-seconds]");

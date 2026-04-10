@@ -1397,6 +1397,265 @@ summary:focus-visible {
   text-underline-offset: 0.18em;
 }
 
+.article-progress {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid rgba(38, 23, 15, 0.08);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(255, 250, 242, 0.96), rgba(255, 252, 247, 0.9)),
+    rgba(255, 252, 247, 0.92);
+  box-shadow: var(--shadow-sm);
+}
+
+.article-progress__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px 18px;
+}
+
+.article-progress__head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.article-progress__head strong {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 3vw, 1.45rem);
+  line-height: 1.05;
+}
+
+.article-progress__head p {
+  max-width: 28rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.article-progress__track {
+  position: relative;
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(38, 23, 15, 0.08);
+}
+
+.article-progress__track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(184, 101, 60, 0.92), rgba(230, 186, 150, 0.95));
+}
+
+.article-progress__pages {
+  display: grid;
+  gap: 10px;
+}
+
+.article-progress__pages a {
+  text-decoration: none;
+}
+
+.article-progress__page {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid rgba(38, 23, 15, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--muted-strong);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.article-progress__pages a:hover .article-progress__page,
+.article-progress__pages a:focus-visible .article-progress__page {
+  transform: translateY(-2px);
+  border-color: rgba(184, 101, 60, 0.22);
+  box-shadow: var(--shadow-sm);
+}
+
+.article-progress__page strong {
+  color: var(--ink);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.article-progress__page span {
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.article-progress__page small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.article-progress__page.is-current {
+  border-color: rgba(184, 101, 60, 0.28);
+  background: rgba(255, 248, 239, 0.96);
+  box-shadow: var(--shadow-sm);
+}
+
+.article-handoff {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+  padding: 22px;
+  border: 1px solid rgba(38, 23, 15, 0.08);
+  border-radius: 28px;
+  background:
+    linear-gradient(145deg, rgba(255, 248, 239, 0.98), rgba(255, 253, 249, 0.92)),
+    rgba(255, 252, 247, 0.92);
+  box-shadow: var(--shadow-md);
+}
+
+.article-handoff__copy {
+  display: grid;
+  gap: 8px;
+}
+
+.article-handoff__copy h2 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3vw, 1.85rem);
+  line-height: 1.05;
+}
+
+.article-handoff__copy p {
+  margin: 0;
+  max-width: 38rem;
+  color: var(--muted-strong);
+}
+
+.article-handoff__path {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.article-handoff__path strong {
+  color: var(--ink);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.article-handoff__path-list {
+  display: grid;
+  gap: 10px;
+}
+
+.article-handoff__path-item {
+  display: grid;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid rgba(38, 23, 15, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.article-handoff__path-item span {
+  color: var(--ink);
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.article-handoff__path-item small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.article-handoff__action a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.article-handoff__action a:hover,
+.article-handoff__action a:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  background: var(--accent-deep);
+}
+
+.article-pagination {
+  display: grid;
+  gap: 14px;
+  margin-top: 28px;
+  padding: 18px;
+  border: 1px solid rgba(38, 23, 15, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 252, 247, 0.9);
+  box-shadow: var(--shadow-sm);
+}
+
+.article-pagination__meta {
+  display: grid;
+  gap: 6px;
+}
+
+.article-pagination__meta p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.article-pagination__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.article-pagination__links a,
+.article-pagination__spacer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+}
+
+.article-pagination__links a {
+  border: 1px solid rgba(38, 23, 15, 0.1);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.article-pagination__links a:hover,
+.article-pagination__links a:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(184, 101, 60, 0.24);
+  box-shadow: var(--shadow-md);
+}
+
+.article-pagination__spacer {
+  visibility: hidden;
+}
+
 .recipe-panel {
   display: grid;
   gap: 18px;
@@ -1437,6 +1696,21 @@ summary:focus-visible {
   margin: 0 0 10px;
   font-family: var(--font-display);
   font-size: clamp(1.4rem, 5vw, 1.9rem);
+}
+
+@media (min-width: 720px) {
+  .article-progress__pages {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .article-handoff {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .article-handoff__path-list {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
 }
 
 .recipe-panel__grid ul,

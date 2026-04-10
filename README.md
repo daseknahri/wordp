@@ -1,13 +1,14 @@
-# Kuchnia Twist: WordPress + Facebook Publishing
+# Kuchnia Twist: Typed Content Publishing
 
-This repo now ships a simple phase-1 publishing system for `Kuchnia Twist`:
+This repo now ships a typed publishing system for `Kuchnia Twist`:
 
 - a custom WordPress image that installs the `Kuchnia Twist` theme and publisher plugin
 - a background worker that picks up queued jobs from WordPress
-- one-click article publishing from wp-admin
+- one canonical multi-page article package for each generated post
 - Facebook Page posting with the blog link added as the first comment
+- a dormant Pinterest draft adapter scaffold for later expansion
 
-The workflow is intentionally small and upgrade-friendly. WordPress stays the control panel, and the worker does the background execution.
+The workflow is intentionally small and upgrade-friendly. WordPress stays the control panel, the worker does the background execution, and platform-specific social output hangs off a stable content package instead of being mixed into the article engine.
 
 ## What is included
 
@@ -19,7 +20,7 @@ The workflow is intentionally small and upgrade-friendly. WordPress stays the co
 - `wordpress/wp-content/plugins/kuchnia-twist-publisher/`
   - content-machine-driven publishing UI in wp-admin
   - system-status dashboard with worker freshness checks
-  - manual recipe composer with optional per-job scheduling
+  - typed composer for `recipe` and `food_fact` jobs with optional per-job scheduling
   - event timeline and CSV export for filtered job history
   - settings screen for content prompts, image policy, OpenAI, and Facebook
   - queued job storage
@@ -28,11 +29,12 @@ The workflow is intentionally small and upgrade-friendly. WordPress stays the co
 - `autopost/`
   - queue worker that:
     - claims jobs from WordPress
-    - generates the article package with preset-aware prompts
+    - generates a canonical article package with typed prompts
     - runs a single repair pass when validation fails
     - generates missing images only when the launch policy allows it
     - publishes the WordPress post immediately when no future schedule is set
     - waits for `publish_on` when a job is scheduled for later
+    - generates channel-specific output from the canonical package
     - publishes the Facebook Page post
     - adds the CTA link as the first comment
     - sends heartbeat updates back to WordPress
@@ -103,9 +105,10 @@ After deployment, go to wp-admin:
 
 1. Open `Kuchnia Twist -> Settings`
 2. Fill in:
-   - global voice brief plus one short guardrails field
-   - recipe master direction and recipe article guidance
-   - Facebook variant guidance and image style brief
+   - publication role, voice brief, and guardrails
+   - recipe article/social guidance
+   - food-fact article/social guidance
+   - image style brief
    - image handling mode
    - OpenAI model and optional API key override
    - Facebook page library entries
@@ -114,13 +117,14 @@ After deployment, go to wp-admin:
 
 Then open `Kuchnia Twist` and create a job:
 
-1. Enter the dish name
-2. Optionally set a final title override
-3. Upload a blog image
-4. Upload a Facebook image
-5. Select one or more active Facebook pages
-6. Optionally set an exact publish date and time
-7. Click `Queue Job`
+1. Choose `Recipe` or `Food Fact`
+2. Enter the dish name or working title/topic seed
+3. Optionally set a final title override
+4. Upload a blog image
+5. Upload a Facebook image
+6. Select one or more active Facebook pages
+7. Optionally set an exact publish date and time
+8. Click `Queue Job`
 
 The worker will pick up the queued job in the background.
 
@@ -128,28 +132,31 @@ The worker will pick up the queued job in the background.
 
 For each job:
 
-1. The worker claims the queued recipe job and runs the recipe master prompt.
+1. The worker claims the queued job and runs the typed article stage.
 2. If validation fails, the worker runs one repair pass using the validator error as feedback.
-3. The recipe master prompt returns the full pack:
+3. The article stage returns one canonical content package:
+   - `content_type` / `topic_seed`
    - title / slug / excerpt / SEO description
-   - recipe article HTML
-   - recipe card data
+   - multi-page article HTML plus `content_pages` and `page_flow`
    - image prompt / alt text
-   - a social pack with one Facebook variant per selected page
-4. If the social pack is weak or missing, the worker falls back to deterministic local variants so the article can still move forward.
-5. If image handling is `Uploaded First` and one or both image slots are missing, the worker generates only the missing slot(s).
-6. The worker calculates a quality summary with article depth, structure, internal links, page coverage, social uniqueness, and image readiness.
+   - typed data such as recipe fields when the content type is `recipe`
+4. The worker then builds channel adapters from that package:
+   - `channels.facebook` for live Facebook variants and distribution
+   - `channels.pinterest` as a dormant draft scaffold only
+5. If the Facebook pack is weak or missing, the worker falls back to deterministic local variants so the article can still move forward.
+6. If image handling is `Uploaded First` and one or both image slots are missing, the worker generates only the missing slot(s).
+7. The worker calculates a layered quality summary with article/package quality, Facebook adapter quality, and overall editorial readiness.
    - hard integrity problems become `block`
    - softer content issues become `warn`
-7. The job moves to `scheduled`.
-8. If no future `publish_on` was requested, the worker continues straight into publish.
-9. If a future `publish_on` was requested, the worker waits until that exact timestamp in the WordPress timezone before publish.
-10. Right before WordPress publish, the worker reruns the blocking quality gate.
+8. The job moves to `scheduled`.
+9. If no future `publish_on` was requested, the worker continues straight into publish.
+10. If a future `publish_on` was requested, the worker waits until that exact timestamp in the WordPress timezone before publish.
+11. Right before WordPress publish, the worker reruns the blocking quality gate.
     - `block` stops blog publish
     - `warn` still publishes and stays visible in wp-admin
-11. If the package passes, the worker publishes the WordPress post.
-12. The worker publishes one different Facebook post variant to each selected page.
-13. The tracked article link is posted as the first comment on each selected page post.
+12. If the package passes, the worker publishes the WordPress post.
+13. The worker publishes one different Facebook post variant to each selected page.
+14. The tracked article link is posted as the first comment on each selected page post.
 
 If the blog publishes but one or more Facebook pages fail, the WordPress post stays live and the job is marked as `partial_failure`. You can retry it from wp-admin without duplicating the article or re-posting to pages that already succeeded.
 
@@ -174,8 +181,8 @@ After each deploy:
    - worker secret is present
    - OpenAI is ready
    - Facebook is ready, or the warning is expected
-3. Queue one valid recipe job with:
-   - a dish name
+3. Queue one valid typed job with:
+   - either a recipe dish name or a food-fact working title
    - optional title override
    - optional exact publish date/time
    - either both uploaded images, one uploaded image, or no uploaded images depending on the image-handling mode you want to test
@@ -225,7 +232,7 @@ Acceptance checklist:
 
 - The plugin seeds `About`, `Contact`, `Privacy Policy`, `Cookie Policy`, and `Editorial Policy` with launch-ready copy and media, and now keeps a seed hash so later launch-copy improvements can refresh untouched seeded pages without overwriting manual edits.
 - The theme is switched automatically to `Kuchnia Twist` on first load.
-- The active publishing machine is manual recipe only right now. Future AI idea generation / autopilot posting is not active yet, and older dormant paths are kept only for compatibility.
+- The active publishing machine is a manual typed engine right now. `recipe` and `food_fact` are active, future AI idea generation / autopilot posting is not active yet, and older dormant paths are kept only for compatibility.
 - Facebook Groups are manual in phase 1. The system prepares the copy, but it does not auto-post into groups.
 - The worker is stateless now. It polls for queued jobs instead of keeping its own post history file.
 

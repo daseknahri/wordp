@@ -381,6 +381,34 @@ function kuchnia_twist_get_recipe_data($post_id)
     return [];
 }
 
+function kuchnia_twist_get_page_flow($post_id)
+{
+    $page_flow = get_post_meta($post_id, 'kuchnia_twist_page_flow', true);
+
+    if (!is_array($page_flow)) {
+        return [];
+    }
+
+    return array_values(array_filter(array_map(static function ($item) {
+        if (!is_array($item)) {
+            return null;
+        }
+
+        $index = (int) ($item['index'] ?? 0);
+        $label = trim((string) ($item['label'] ?? ''));
+        $summary = trim((string) ($item['summary'] ?? ''));
+        if ($index < 1 || $label === '') {
+            return null;
+        }
+
+        return [
+            'index' => $index,
+            'label' => $label,
+            'summary' => $summary,
+        ];
+    }, $page_flow)));
+}
+
 function kuchnia_twist_primary_category($post_id = 0)
 {
     $post_id = $post_id ?: get_the_ID();
@@ -868,9 +896,114 @@ function kuchnia_twist_render_breadcrumbs($post = null)
     echo '</ol></nav>';
 }
 
+function kuchnia_twist_extract_page_label($content, $fallback = '')
+{
+    $content = (string) $content;
+    if (preg_match('/<h([23])[^>]*>(.*?)<\/h\1>/is', $content, $matches)) {
+        $heading = trim(wp_strip_all_tags((string) $matches[2]));
+        $heading = preg_replace('/^[0-9]+\s*[:.)-]?\s*/', '', (string) $heading);
+        if ($heading !== '') {
+            return wp_trim_words($heading, 8, '...');
+        }
+    }
+
+    if (preg_match('/<p\b[^>]*>(.*?)<\/p>/is', $content, $matches)) {
+        $paragraph = trim(preg_replace('/\s+/', ' ', wp_strip_all_tags((string) ($matches[1] ?? ''))));
+        if ($paragraph !== '') {
+            $sentences = preg_split('/(?<=[.!?])\s+/', $paragraph) ?: [$paragraph];
+            $lead = trim((string) ($sentences[0] ?? $paragraph));
+            if ($lead !== '') {
+                return wp_trim_words($lead, 8, '...');
+            }
+        }
+    }
+
+    $plaintext = trim(preg_replace('/\s+/', ' ', wp_strip_all_tags($content)));
+    if ($plaintext !== '') {
+        return wp_trim_words($plaintext, 8, '...');
+    }
+
+    return trim((string) $fallback);
+}
+
+function kuchnia_twist_extract_page_summary($content, $fallback = '')
+{
+    $content = (string) $content;
+
+    if (preg_match('/<p\b[^>]*>(.*?)<\/p>/is', $content, $matches)) {
+        $paragraph = trim(preg_replace('/\s+/', ' ', wp_strip_all_tags((string) ($matches[1] ?? ''))));
+        if ($paragraph !== '') {
+            $sentences = array_values(array_filter(array_map('trim', preg_split('/(?<=[.!?])\s+/', $paragraph) ?: [$paragraph])));
+            $summary = (string) ($sentences[1] ?? $sentences[0] ?? $paragraph);
+            if ($summary !== '') {
+                return wp_trim_words($summary, 18, '...');
+            }
+        }
+    }
+
+    $plaintext = trim(preg_replace('/\s+/', ' ', wp_strip_all_tags($content)));
+    if ($plaintext !== '') {
+        return wp_trim_words($plaintext, 18, '...');
+    }
+
+    return trim((string) $fallback);
+}
+
 function kuchnia_twist_prepare_article_content($post_id)
 {
-    $content = apply_filters('the_content', get_post_field('post_content', $post_id));
+    global $page;
+
+    $post = get_post($post_id);
+    if (!$post instanceof WP_Post) {
+        return [
+            'content'         => '',
+            'headings'        => [],
+            'page_count'      => 1,
+            'current_page'    => 1,
+            'current_label'   => '',
+            'current_summary' => '',
+            'next_page_label' => '',
+            'next_page_summary' => '',
+            'remaining_pages' => [],
+            'remaining_page_count' => 0,
+            'final_page_label' => '',
+            'final_page_summary' => '',
+            'page_labels'     => [],
+        ];
+    }
+
+    $raw_content = (string) $post->post_content;
+    $raw_pages = preg_split('/\s*<!--nextpage-->\s*/i', $raw_content) ?: [$raw_content];
+    $page_count = max(1, count($raw_pages));
+    $current_page = max(1, min($page_count, (int) ($page ?: 1)));
+    $current_index = $current_page - 1;
+    $current_raw = (string) ($raw_pages[$current_index] ?? '');
+    $next_raw = (string) ($raw_pages[$current_index + 1] ?? '');
+    $stored_page_flow = kuchnia_twist_get_page_flow($post_id);
+    $page_labels = [];
+    foreach ($raw_pages as $index => $raw_page) {
+        $stored_page = $stored_page_flow[$index] ?? [];
+        $label = trim((string) ($stored_page['label'] ?? ''));
+        if ($label === '') {
+            $label = kuchnia_twist_extract_page_label($raw_page, sprintf(__('Page %d', 'kuchnia-twist'), $index + 1));
+        }
+        $summary = trim((string) ($stored_page['summary'] ?? ''));
+        if ($summary === '') {
+            $summary = kuchnia_twist_extract_page_summary($raw_page);
+        }
+        $page_labels[] = [
+            'index'   => $index + 1,
+            'label'   => $label,
+            'summary' => $summary,
+            'current' => ($index + 1) === $current_page,
+        ];
+    }
+    $remaining_pages = array_values(array_filter(array_slice($page_labels, $current_index + 1), static function ($page_item): bool {
+        return !empty($page_item['index']);
+    }));
+    $final_page = !empty($page_labels) ? (array) end($page_labels) : [];
+    reset($page_labels);
+    $content = apply_filters('the_content', $current_raw);
     $headings = [];
     $used_ids = [];
 
@@ -920,8 +1053,19 @@ function kuchnia_twist_prepare_article_content($post_id)
     }, $content);
 
     return [
-        'content'  => $content,
-        'headings' => $headings,
+        'content'         => $content,
+        'headings'        => $headings,
+        'page_count'      => $page_count,
+        'current_page'    => $current_page,
+        'current_label'   => trim((string) ($page_labels[$current_index]['label'] ?? kuchnia_twist_extract_page_label($current_raw, get_the_title($post)))),
+        'current_summary' => trim((string) ($page_labels[$current_index]['summary'] ?? kuchnia_twist_extract_page_summary($current_raw))),
+        'next_page_label' => trim((string) ($page_labels[$current_index + 1]['label'] ?? kuchnia_twist_extract_page_label($next_raw))),
+        'next_page_summary' => trim((string) ($page_labels[$current_index + 1]['summary'] ?? kuchnia_twist_extract_page_summary($next_raw))),
+        'remaining_pages' => $remaining_pages,
+        'remaining_page_count' => max(0, count($remaining_pages)),
+        'final_page_label' => trim((string) ($final_page['label'] ?? '')),
+        'final_page_summary' => trim((string) ($final_page['summary'] ?? '')),
+        'page_labels'     => $page_labels,
     ];
 }
 
