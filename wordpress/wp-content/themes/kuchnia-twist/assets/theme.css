@@ -1298,6 +1298,35 @@ summary:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+.article-hero__trust {
+  display: grid;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.article-hero__trust-byline {
+  color: var(--muted-strong);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.article-hero__trust-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.article-hero__trust-links a {
+  color: var(--accent-deep);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.article-hero__trust-links a:hover,
+.article-hero__trust-links a:focus-visible {
+  color: var(--ink);
+}
+
 .article-utility {
   display: grid;
   gap: 16px;

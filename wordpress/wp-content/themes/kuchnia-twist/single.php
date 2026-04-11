@@ -22,6 +22,7 @@ while (have_posts()) :
     $public_email       = kuchnia_twist_public_contact_email();
     $story_links        = kuchnia_twist_adjacent_story_links($post_id);
     $has_social         = kuchnia_twist_has_social_profiles();
+    $editor_name        = trim((string) ($editor_profile['name'] ?? ''));
     $is_recipe          = $content_type === 'recipe' && !empty($recipe_data);
     $current_page       = max(1, (int) ($article['current_page'] ?? ($page ?? 1)));
     $total_pages        = max(1, (int) ($article['page_count'] ?? ($numpages ?? 1)));
@@ -64,6 +65,21 @@ while (have_posts()) :
                     <span><?php printf(esc_html__('Updated %s', 'kuchnia-twist'), esc_html(get_the_modified_date())); ?></span>
                 <?php endif; ?>
             </div>
+            <?php if ($editor_name !== '' || $editorial_policy instanceof WP_Post || $contact_page instanceof WP_Post) : ?>
+                <div class="article-hero__trust">
+                    <?php if ($editor_name !== '') : ?>
+                        <span class="article-hero__trust-byline"><?php echo esc_html(sprintf(__('Edited by %s', 'kuchnia-twist'), $editor_name)); ?></span>
+                    <?php endif; ?>
+                    <div class="article-hero__trust-links">
+                        <?php if ($editorial_policy instanceof WP_Post) : ?>
+                            <a href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Editorial policy', 'kuchnia-twist'); ?></a>
+                        <?php endif; ?>
+                        <?php if ($contact_page instanceof WP_Post) : ?>
+                            <a href="<?php echo esc_url(get_permalink($contact_page)); ?>"><?php esc_html_e('Contact', 'kuchnia-twist'); ?></a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         </header>
 
         <div class="article-utility">
@@ -190,6 +206,23 @@ while (have_posts()) :
                         <a class="article-rail__mail" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
                     <?php endif; ?>
                 </section>
+
+                <?php if ($about_page instanceof WP_Post || $editorial_policy instanceof WP_Post || $contact_page instanceof WP_Post) : ?>
+                    <section class="article-rail">
+                        <span class="eyebrow"><?php esc_html_e('Journal standards', 'kuchnia-twist'); ?></span>
+                        <div class="chip-links">
+                            <?php if ($about_page instanceof WP_Post) : ?>
+                                <a class="chip-link" href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('About', 'kuchnia-twist'); ?></a>
+                            <?php endif; ?>
+                            <?php if ($editorial_policy instanceof WP_Post) : ?>
+                                <a class="chip-link" href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Editorial Policy', 'kuchnia-twist'); ?></a>
+                            <?php endif; ?>
+                            <?php if ($contact_page instanceof WP_Post) : ?>
+                                <a class="chip-link" href="<?php echo esc_url(get_permalink($contact_page)); ?>"><?php esc_html_e('Contact', 'kuchnia-twist'); ?></a>
+                            <?php endif; ?>
+                        </div>
+                    </section>
+                <?php endif; ?>
             </aside>
         </div>
 
