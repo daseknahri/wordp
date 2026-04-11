@@ -367,6 +367,7 @@ summary:focus-visible {
   right: 0;
   bottom: 0;
   z-index: 1500;
+  isolation: isolate;
   width: min(100vw, 420px);
   padding: 12px;
   margin-left: auto;
