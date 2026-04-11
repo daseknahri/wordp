@@ -425,7 +425,7 @@ function kuchnia_twist_publication_settings()
 {
     $defaults = [
         'editor_name'           => '',
-        'editor_role'           => __('Founding editor', 'kuchnia-twist'),
+        'editor_role'           => __('Editorial desk', 'kuchnia-twist'),
         'editor_bio'            => __('Independent home-cooking journal with recipes, food facts, and stories.', 'kuchnia-twist'),
         'editor_public_email'   => '',
         'editor_business_email' => '',
@@ -750,7 +750,7 @@ function kuchnia_twist_editor_profile()
 
     return [
         'name'           => $name !== '' ? $name : get_bloginfo('name'),
-        'role'           => $role !== '' ? $role : __('Founding editor', 'kuchnia-twist'),
+        'role'           => $role !== '' ? $role : __('Editorial desk', 'kuchnia-twist'),
         'bio'            => $bio !== '' ? $bio : __('Independent home-cooking journal with recipes, food facts, and stories.', 'kuchnia-twist'),
         'public_email'   => is_email($email) ? $email : '',
         'business_email' => is_email($business) ? $business : '',

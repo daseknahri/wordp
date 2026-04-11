@@ -292,7 +292,6 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
             <?php endif; ?>
         </div>
         <div>
-            <span class="eyebrow"><?php echo esc_html($editor_profile['role']); ?></span>
             <h2><?php echo esc_html($editor_profile['name']); ?></h2>
             <p><?php echo esc_html($editor_profile['bio']); ?></p>
         </div>

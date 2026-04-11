@@ -65,11 +65,8 @@ while (have_posts()) :
                     <span><?php printf(esc_html__('Updated %s', 'kuchnia-twist'), esc_html(get_the_modified_date())); ?></span>
                 <?php endif; ?>
             </div>
-            <?php if ($editor_name !== '' || $editorial_policy instanceof WP_Post || $contact_page instanceof WP_Post) : ?>
+            <?php if ($editorial_policy instanceof WP_Post || $contact_page instanceof WP_Post) : ?>
                 <div class="article-hero__trust">
-                    <?php if ($editor_name !== '') : ?>
-                        <span class="article-hero__trust-byline"><?php echo esc_html(sprintf(__('Edited by %s', 'kuchnia-twist'), $editor_name)); ?></span>
-                    <?php endif; ?>
                     <div class="article-hero__trust-links">
                         <?php if ($editorial_policy instanceof WP_Post) : ?>
                             <a href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Editorial Policy', 'kuchnia-twist'); ?></a>

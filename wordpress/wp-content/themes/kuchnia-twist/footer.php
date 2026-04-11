@@ -21,7 +21,6 @@ $follow_label_id = 'site-footer-follow-label';
                         <img src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')); ?>" alt="" width="38" height="38" loading="lazy" decoding="async">
                     </span>
                     <div>
-                        <span class="site-footer__eyebrow"><?php echo esc_html($editor_profile['role']); ?></span>
                         <h2><?php bloginfo('name'); ?></h2>
                         <p class="site-footer__summary"><?php echo esc_html($editor_profile['bio']); ?></p>
                     </div>
