@@ -72,7 +72,7 @@ while (have_posts()) :
                     <?php endif; ?>
                     <div class="article-hero__trust-links">
                         <?php if ($editorial_policy instanceof WP_Post) : ?>
-                            <a href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Editorial policy', 'kuchnia-twist'); ?></a>
+                            <a href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Editorial Policy', 'kuchnia-twist'); ?></a>
                         <?php endif; ?>
                         <?php if ($contact_page instanceof WP_Post) : ?>
                             <a href="<?php echo esc_url(get_permalink($contact_page)); ?>"><?php esc_html_e('Contact', 'kuchnia-twist'); ?></a>
@@ -90,7 +90,7 @@ while (have_posts()) :
             <?php endif; ?>
 
             <div class="article-utility__group article-utility__group--share">
-                <span class="article-utility__label"><?php esc_html_e('Share this article', 'kuchnia-twist'); ?></span>
+                <span class="article-utility__label"><?php esc_html_e('Share this story', 'kuchnia-twist'); ?></span>
                 <?php kuchnia_twist_render_share_links($post_id, 'share-links--inline'); ?>
             </div>
         </div>
@@ -198,7 +198,7 @@ while (have_posts()) :
                 <section class="article-rail">
                     <span class="eyebrow"><?php esc_html_e('Share and follow', 'kuchnia-twist'); ?></span>
                     <div class="article-rail__group">
-                        <span class="article-rail__label"><?php esc_html_e('Share this article', 'kuchnia-twist'); ?></span>
+                        <span class="article-rail__label"><?php esc_html_e('Share this story', 'kuchnia-twist'); ?></span>
                         <?php kuchnia_twist_render_share_links($post_id, 'share-links--rail'); ?>
                     </div>
                     <?php if ($has_social) : ?>

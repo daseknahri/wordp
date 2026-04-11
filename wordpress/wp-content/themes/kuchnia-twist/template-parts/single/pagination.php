@@ -21,7 +21,7 @@ $next_page_label = trim((string) ($context['next_page_label'] ?? ''));
             <?php echo _wp_link_page($current_page - 1); ?>
                 <span><?php esc_html_e('Previous page', 'kuchnia-twist'); ?></span>
                 <?php if ($previous_page_label !== '') : ?>
-                    <small><?php echo esc_html(sprintf(__('Back to %s', 'kuchnia-twist'), $previous_page_label)); ?></small>
+                    <small><?php echo esc_html(sprintf(__('Previous: %s', 'kuchnia-twist'), $previous_page_label)); ?></small>
                 <?php endif; ?>
             </a>
         <?php else : ?>
