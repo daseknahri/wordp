@@ -98,18 +98,6 @@ while (have_posts()) :
                     <?php echo $article['content']; ?>
                 </div>
 
-                <?php if ($is_multipage) : ?>
-                    <?php
-                    set_query_var('kt_article_pagination', [
-                        'is_multipage' => $is_multipage,
-                        'current_page' => $current_page,
-                        'total_pages'  => $total_pages,
-                        'is_recipe'    => $is_recipe,
-                    ]);
-                    get_template_part('template-parts/single/pagination');
-                    ?>
-                <?php endif; ?>
-
                 <?php
                 set_query_var('kt_single_type', [
                     'content_type'         => $content_type,
@@ -121,6 +109,18 @@ while (have_posts()) :
                 ]);
                 get_template_part('template-parts/single/type', $content_type);
                 ?>
+
+                <?php if ($is_multipage) : ?>
+                    <?php
+                    set_query_var('kt_article_pagination', [
+                        'is_multipage' => $is_multipage,
+                        'current_page' => $current_page,
+                        'total_pages'  => $total_pages,
+                        'is_recipe'    => $is_recipe,
+                    ]);
+                    get_template_part('template-parts/single/pagination');
+                    ?>
+                <?php endif; ?>
 
                 <?php
                 set_query_var('kt_article_support', [

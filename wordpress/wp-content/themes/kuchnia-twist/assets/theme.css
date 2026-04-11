@@ -1629,10 +1629,12 @@ summary:focus-visible {
 .article-pagination__links a,
 .article-pagination__spacer {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 0 16px;
+  gap: 2px;
+  padding: 10px 16px;
   border-radius: 999px;
 }
 
@@ -1643,6 +1645,12 @@ summary:focus-visible {
   font-weight: 800;
   text-decoration: none;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.article-pagination__links a small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 .article-pagination__links a:hover,
