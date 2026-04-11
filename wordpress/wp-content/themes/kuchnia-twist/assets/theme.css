@@ -354,6 +354,12 @@ summary:focus-visible {
   text-transform: uppercase;
 }
 
+.site-search-sheet__copy {
+  margin: -2px 0 2px;
+  max-width: 42ch;
+  color: var(--muted-strong);
+}
+
 .menu-sheet {
   position: fixed;
   top: 0;
@@ -410,6 +416,17 @@ summary:focus-visible {
 .menu-sheet__section {
   display: grid;
   gap: 10px;
+}
+
+.menu-sheet__intro {
+  display: grid;
+  gap: 6px;
+}
+
+.menu-sheet__intro p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.94rem;
 }
 
 .menu-sheet__links {
