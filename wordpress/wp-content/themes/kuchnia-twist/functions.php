@@ -1170,7 +1170,7 @@ function kuchnia_twist_archive_context()
 function kuchnia_twist_render_listing_empty_state(string $message, array $args = [])
 {
     $eyebrow   = trim((string) ($args['eyebrow'] ?? __('Nothing here yet', 'kuchnia-twist')));
-    $title     = trim((string) ($args['title'] ?? __('Keep exploring the journal', 'kuchnia-twist')));
+    $title     = trim((string) ($args['title'] ?? __('Keep exploring', 'kuchnia-twist')));
     $show_home = !empty($args['show_home']);
     ?>
     <div class="search-rescue search-rescue--text-only">
