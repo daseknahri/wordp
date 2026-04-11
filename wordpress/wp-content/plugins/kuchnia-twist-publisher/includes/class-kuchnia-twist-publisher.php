@@ -3,19 +3,30 @@
 defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/launch-content.php';
+require_once __DIR__ . '/class-kuchnia-twist-publisher-base.php';
+require_once __DIR__ . '/class-kuchnia-twist-publisher-module.php';
+require_once __DIR__ . '/Settings/class-kuchnia-twist-publisher-settings-module.php';
+require_once __DIR__ . '/Contracts/class-kuchnia-twist-publisher-contracts-module.php';
+require_once __DIR__ . '/Jobs/class-kuchnia-twist-publisher-jobs-module.php';
+require_once __DIR__ . '/Admin/class-kuchnia-twist-publisher-admin-module.php';
+require_once __DIR__ . '/Publishing/class-kuchnia-twist-publisher-publishing-module.php';
+require_once __DIR__ . '/Rest/class-kuchnia-twist-publisher-rest-worker-module.php';
+require_once __DIR__ . '/Rest/class-kuchnia-twist-publisher-rest-publishing-module.php';
+require_once __DIR__ . '/Quality/class-kuchnia-twist-publisher-quality-summary-module.php';
+require_once __DIR__ . '/Quality/class-kuchnia-twist-publisher-quality-review-module.php';
 
-final class Kuchnia_Twist_Publisher
+final class Kuchnia_Twist_Publisher extends Kuchnia_Twist_Publisher_Base
 {
-    private const VERSION = '1.7.6';
-    private const CONTENT_MACHINE_VERSION = 'typed-content-v10';
-    private const CONTENT_PACKAGE_CONTRACT_VERSION = 'content-package-v1';
-    private const CHANNEL_ADAPTER_CONTRACT_VERSION = 'channel-adapters-v1';
-    private const QUALITY_SCORE_THRESHOLD = 75;
-    private const OPTION_KEY = 'kuchnia_twist_settings';
-    private const VERSION_KEY = 'kuchnia_twist_publisher_version';
-    private const THEME_BOOTSTRAP_KEY = 'kuchnia_twist_theme_bootstrapped';
-    private const WORKER_STATUS_KEY = 'kuchnia_twist_worker_status';
-    private const CORE_PAGE_SEED_HASH_META = '_kuchnia_twist_core_page_seed_hash';
+    private Kuchnia_Twist_Publisher_Settings_Module $settings_module;
+    private Kuchnia_Twist_Publisher_Contracts_Module $contracts_module;
+    private Kuchnia_Twist_Publisher_Jobs_Module $jobs_module;
+    private Kuchnia_Twist_Publisher_Admin_Module $admin_module;
+    private Kuchnia_Twist_Publisher_Publishing_Module $publishing_module;
+    private Kuchnia_Twist_Publisher_Rest_Worker_Module $rest_worker_module;
+    private Kuchnia_Twist_Publisher_Rest_Publishing_Module $rest_publishing_module;
+    private Kuchnia_Twist_Publisher_Quality_Summary_Module $quality_summary_module;
+    private Kuchnia_Twist_Publisher_Quality_Review_Module $quality_review_module;
+    private array $modules = [];
 
     private static ?Kuchnia_Twist_Publisher $instance = null;
 
@@ -35,6 +46,27 @@ final class Kuchnia_Twist_Publisher
 
     private function __construct()
     {
+        $this->settings_module = new Kuchnia_Twist_Publisher_Settings_Module($this);
+        $this->contracts_module = new Kuchnia_Twist_Publisher_Contracts_Module($this);
+        $this->jobs_module = new Kuchnia_Twist_Publisher_Jobs_Module($this);
+        $this->admin_module = new Kuchnia_Twist_Publisher_Admin_Module($this);
+        $this->publishing_module = new Kuchnia_Twist_Publisher_Publishing_Module($this);
+        $this->rest_worker_module = new Kuchnia_Twist_Publisher_Rest_Worker_Module($this);
+        $this->rest_publishing_module = new Kuchnia_Twist_Publisher_Rest_Publishing_Module($this);
+        $this->quality_summary_module = new Kuchnia_Twist_Publisher_Quality_Summary_Module($this);
+        $this->quality_review_module = new Kuchnia_Twist_Publisher_Quality_Review_Module($this);
+        $this->modules = [
+            $this->settings_module,
+            $this->contracts_module,
+            $this->jobs_module,
+            $this->admin_module,
+            $this->publishing_module,
+            $this->rest_worker_module,
+            $this->rest_publishing_module,
+            $this->quality_summary_module,
+            $this->quality_review_module,
+        ];
+
         add_action('init', [$this, 'maybe_bootstrap'], 1);
         add_action('init', [$this, 'register_shortcodes'], 2);
         add_action('admin_menu', [$this, 'register_admin_pages']);
@@ -47,6 +79,17 @@ final class Kuchnia_Twist_Publisher
         add_action('admin_post_kuchnia_twist_cancel_scheduled_job', [$this, 'handle_cancel_scheduled_job']);
         add_action('admin_post_kuchnia_twist_export_jobs', [$this, 'handle_export_jobs']);
         add_action('rest_api_init', [$this, 'register_rest_routes']);
+    }
+
+    public function __call(string $name, array $arguments)
+    {
+        foreach ($this->modules as $module) {
+            if (method_exists($module, $name)) {
+                return $module->invoke($name, $arguments);
+            }
+        }
+
+        throw new BadMethodCallException(sprintf('Method %s not found on publisher or modules.', $name));
     }
 
     public function maybe_bootstrap(): void
@@ -113,51 +156,6 @@ final class Kuchnia_Twist_Publisher
             self::VERSION,
             true
         );
-    }
-
-    public function register_rest_routes(): void
-    {
-        register_rest_route('kuchnia-twist/v1', '/jobs/claim', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_claim_job'],
-            'permission_callback' => '__return_true',
-        ]);
-
-        register_rest_route('kuchnia-twist/v1', '/jobs/(?P<id>\d+)/media', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_upload_media'],
-            'permission_callback' => '__return_true',
-        ]);
-
-        register_rest_route('kuchnia-twist/v1', '/jobs/(?P<id>\d+)/publish-blog', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_publish_blog'],
-            'permission_callback' => '__return_true',
-        ]);
-
-        register_rest_route('kuchnia-twist/v1', '/jobs/(?P<id>\d+)/progress', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_progress_job'],
-            'permission_callback' => '__return_true',
-        ]);
-
-        register_rest_route('kuchnia-twist/v1', '/jobs/(?P<id>\d+)/complete', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_complete_job'],
-            'permission_callback' => '__return_true',
-        ]);
-
-        register_rest_route('kuchnia-twist/v1', '/jobs/(?P<id>\d+)/fail', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_fail_job'],
-            'permission_callback' => '__return_true',
-        ]);
-
-        register_rest_route('kuchnia-twist/v1', '/worker/heartbeat', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_worker_heartbeat'],
-            'permission_callback' => '__return_true',
-        ]);
     }
 
     public function render_publisher_page(): void
@@ -453,7 +451,7 @@ final class Kuchnia_Twist_Publisher
                         <span class="screen-reader-text"><?php esc_html_e('Filter by content type', 'kuchnia-twist'); ?></span>
                         <select name="job_type">
                             <option value=""><?php esc_html_e('All types', 'kuchnia-twist'); ?></option>
-                            <?php foreach ($this->content_types() as $value => $label) : ?>
+                            <?php foreach ($this->active_content_types() as $value => $label) : ?>
                                 <option value="<?php echo esc_attr($value); ?>" <?php selected($job_filters['content_type'], $value); ?>><?php echo esc_html($label); ?></option>
                             <?php endforeach; ?>
                         </select>
@@ -977,21 +975,7 @@ final class Kuchnia_Twist_Publisher
         $publish_at_input = (string) wp_unslash($_POST['publish_at'] ?? '');
         $publish_at_local = $this->sanitize_publish_datetime_input($publish_at_input);
         $input_mode       = $content_type === 'recipe' ? 'dish_name' : 'working_title';
-        $selected_page_ids = array_values(array_filter(array_map(
-            static fn ($value): string => sanitize_text_field((string) wp_unslash($value)),
-            (array) ($_POST['selected_facebook_pages'] ?? [])
-        )));
-        $available_pages = $this->facebook_pages($settings, true, true);
-        $available_page_map = [];
-        foreach ($available_pages as $page) {
-            $available_page_map[(string) $page['page_id']] = $page;
-        }
-        $selected_pages = [];
-        foreach ($selected_page_ids as $page_id) {
-            if (isset($available_page_map[$page_id])) {
-                $selected_pages[] = $available_page_map[$page_id];
-            }
-        }
+        $selected_pages   = $this->selected_pages_from_ids((array) ($_POST['selected_facebook_pages'] ?? []), $settings);
 
         if ($topic === '') {
             wp_safe_redirect(admin_url('admin.php?page=kuchnia-twist-publisher&kt_notice=invalid_job'));
@@ -1064,24 +1048,24 @@ final class Kuchnia_Twist_Publisher
 
         $publish_on = $this->normalize_requested_publish_on_utc($publish_at_local);
         $schedule_mode = $this->publish_time_is_future($publish_on) ? 'scheduled' : 'immediate';
-        $payload = [
-            'topic'             => $topic,
-            'title_seed'        => $topic,
-            'input_mode'        => $input_mode,
-            'content_type'      => $content_type,
-            'title_override'    => $title,
-            'schedule_mode'     => $schedule_mode,
-            'requested_publish_at' => $publish_at_local,
+        $payload = $this->build_job_request_payload([
+            'topic'                      => $topic,
+            'title_seed'                 => $topic,
+            'input_mode'                 => $input_mode,
+            'content_type'               => $content_type,
+            'title_override'             => $title,
+            'schedule_mode'              => $schedule_mode,
+            'requested_publish_at'       => $publish_at_local,
             'requested_publish_timezone' => wp_timezone_string() ?: 'UTC',
-            'blog_image_id'     => $blog_image_id,
-            'facebook_image_id' => $facebook_image_id,
-            'blog_image'        => $this->attachment_payload($blog_image_id),
-            'facebook_image'    => $this->attachment_payload($facebook_image_id),
-            'selected_facebook_pages' => $selected_pages,
-            'site_name'         => get_bloginfo('name'),
-            'default_cta'       => $settings['default_cta'],
-            'content_machine'   => $this->job_content_machine_snapshot($settings, $content_type),
-        ];
+            'blog_image_id'              => $blog_image_id,
+            'facebook_image_id'          => $facebook_image_id,
+            'blog_image'                 => $this->attachment_payload($blog_image_id),
+            'facebook_image'             => $this->attachment_payload($facebook_image_id),
+            'selected_pages'             => $selected_pages,
+            'site_name'                  => get_bloginfo('name'),
+            'default_cta'                => $settings['default_cta'],
+            'content_machine'            => $this->job_content_machine_snapshot($settings, $content_type),
+        ]);
 
         $now = current_time('mysql', true);
         $wpdb->insert($this->table_name(), [
@@ -1228,6 +1212,7 @@ final class Kuchnia_Twist_Publisher
             'openai_api_key'             => trim((string) wp_unslash($_POST['openai_api_key'] ?? $current['openai_api_key'] ?? '')),
             'image_style'                => trim((string) wp_unslash($_POST['image_style'] ?? $current['image_style'] ?? '')),
             'image_generation_mode'      => $this->sanitize_image_generation_mode(wp_unslash($_POST['image_generation_mode'] ?? $current['image_generation_mode'] ?? 'uploaded_first_generate_missing')),
+            'strict_contract_mode'       => isset($_POST['strict_contract_mode']) ? (!empty($_POST['strict_contract_mode']) ? '1' : '0') : (string) ($current['strict_contract_mode'] ?? '0'),
             'daily_publish_time'         => $this->sanitize_publish_time((string) wp_unslash($_POST['daily_publish_time'] ?? $current['daily_publish_time'] ?? '09:00')),
             'facebook_graph_version'     => sanitize_text_field(wp_unslash($_POST['facebook_graph_version'] ?? $current['facebook_graph_version'] ?? '')),
             'facebook_pages'             => $pages,
@@ -1548,573 +1533,6 @@ final class Kuchnia_Twist_Publisher
         exit;
     }
 
-    public function rest_claim_job(WP_REST_Request $request)
-    {
-        $auth = $this->authorize_worker($request);
-        if (is_wp_error($auth)) {
-            return $auth;
-        }
-
-        global $wpdb;
-        $table = $this->table_name();
-        $claim_mode = '';
-        $job = $wpdb->get_row(
-            "SELECT * FROM {$table}
-            WHERE status = 'scheduled'
-              AND publish_on IS NOT NULL
-              AND publish_on <= UTC_TIMESTAMP()
-            ORDER BY publish_on ASC, id ASC
-            LIMIT 1",
-            ARRAY_A
-        );
-
-        if ($job) {
-            $claim_mode = 'publish';
-        } else {
-            $queueable_types = array_keys($this->queueable_content_types());
-            $placeholders = implode(', ', array_fill(0, count($queueable_types), '%s'));
-            $job = $wpdb->get_row(
-                $wpdb->prepare(
-                    "SELECT * FROM {$table} WHERE status = 'queued' AND content_type IN ({$placeholders}) ORDER BY id ASC LIMIT 1",
-                    ...$queueable_types
-                ),
-                ARRAY_A
-            );
-            if ($job) {
-                $claim_mode = 'generate';
-            }
-        }
-
-        if (!$job) {
-            return rest_ensure_response(['job' => null]);
-        }
-
-        if ($claim_mode === 'publish') {
-            $publish_stage = in_array((string) ($job['retry_target'] ?? ''), ['facebook', 'comment'], true) ? 'publishing_facebook' : 'publishing_blog';
-            $wpdb->update(
-                $table,
-                [
-                    'status'          => $publish_stage,
-                    'stage'           => $publish_stage,
-                    'last_attempt_at' => current_time('mysql', true),
-                    'updated_at'      => current_time('mysql', true),
-                ],
-                ['id' => (int) $job['id']],
-                ['%s', '%s', '%s', '%s'],
-                ['%d']
-            );
-
-            $this->add_job_event(
-                (int) $job['id'],
-                'job_claimed',
-                $publish_stage,
-                $publish_stage,
-                __('Worker claimed a due scheduled job.', 'kuchnia-twist'),
-                [
-                    'last_attempt_at' => current_time('mysql', true),
-                    'publish_on'      => (string) ($job['publish_on'] ?? ''),
-                ]
-            );
-        } else {
-            $wpdb->update(
-                $table,
-                [
-                    'status'          => 'generating',
-                    'stage'           => 'generating',
-                    'last_attempt_at' => current_time('mysql', true),
-                    'updated_at'      => current_time('mysql', true),
-                ],
-                ['id' => (int) $job['id']],
-                ['%s', '%s', '%s', '%s'],
-                ['%d']
-            );
-
-            $this->add_job_event(
-                (int) $job['id'],
-                'job_claimed',
-                'generating',
-                'generating',
-                __('Worker claimed queued job.', 'kuchnia-twist'),
-                ['last_attempt_at' => current_time('mysql', true)]
-            );
-        }
-
-        $settings = $this->get_settings();
-
-        return rest_ensure_response([
-            'claim_mode' => $claim_mode,
-            'job'      => $this->get_job((int) $job['id']),
-            'settings' => [
-                'site_name'                  => get_bloginfo('name'),
-                'site_url'                   => home_url('/'),
-                'brand_voice'                => $settings['brand_voice'],
-                'article_prompt'             => $settings['article_prompt'],
-                'default_cta'                => $settings['default_cta'],
-                'image_style'                => $settings['image_style'],
-                'image_generation_mode'      => $settings['image_generation_mode'],
-                'facebook_graph_version'     => $settings['facebook_graph_version'],
-                'facebook_page_id'           => $settings['facebook_page_id'],
-                'facebook_page_access_token' => $settings['facebook_page_access_token'],
-                'facebook_pages'             => $this->facebook_pages($settings, false, false),
-                'openai_model'               => $settings['openai_model'],
-                'openai_image_model'         => $settings['openai_image_model'],
-                'openai_api_key'             => getenv('OPENAI_API_KEY') ?: $settings['openai_api_key'],
-                'openai_base_url'            => getenv('OPENAI_BASE_URL') ?: 'https://api.openai.com/v1',
-                'utm_source'                 => $settings['utm_source'],
-                'utm_campaign_prefix'        => $settings['utm_campaign_prefix'],
-                'content_machine'            => $this->content_machine_settings($settings),
-            ],
-        ]);
-    }
-
-    public function rest_progress_job(WP_REST_Request $request)
-    {
-        $auth = $this->authorize_worker($request);
-        if (is_wp_error($auth)) {
-            return $auth;
-        }
-
-        $job = $this->get_job((int) $request['id']);
-        if (!$job) {
-            return new WP_Error('job_not_found', __('Job not found.', 'kuchnia-twist'), ['status' => 404]);
-        }
-
-        $params = $request->get_json_params();
-        global $wpdb;
-
-        $status = sanitize_key($params['status'] ?? $job['status']);
-        $stage  = sanitize_key($params['stage'] ?? $status);
-        $generated_payload = is_array($params['generated_payload'] ?? null) ? $params['generated_payload'] : ($job['generated_payload'] ?? []);
-        $featured_image_id = !empty($params['featured_image_id']) ? (int) $params['featured_image_id'] : (int) ($job['featured_image_id'] ?? 0);
-        $facebook_image_id = !empty($params['facebook_image_result_id']) ? (int) $params['facebook_image_result_id'] : (int) ($job['facebook_image_result_id'] ?? 0);
-        $publish_on        = !empty($params['publish_on']) ? (string) $params['publish_on'] : (string) ($job['publish_on'] ?? '');
-        $validator_summary = is_array($generated_payload['content_machine']['validator_summary'] ?? null)
-            ? $generated_payload['content_machine']['validator_summary']
-            : [];
-        $quality_status = sanitize_key((string) ($validator_summary['quality_status'] ?? ''));
-        $blocking_checks = !empty($validator_summary['blocking_checks']) && is_array($validator_summary['blocking_checks'])
-            ? $validator_summary['blocking_checks']
-            : [];
-        $warning_checks = !empty($validator_summary['warning_checks']) && is_array($validator_summary['warning_checks'])
-            ? $validator_summary['warning_checks']
-            : [];
-
-        if ($status === 'scheduled' && $publish_on === '') {
-            $publish_on = current_time('mysql', true);
-        }
-
-        $wpdb->update(
-            $this->table_name(),
-            [
-                'status'        => $status,
-                'stage'         => $stage,
-                'publish_on'    => $publish_on !== '' ? $publish_on : null,
-                'generated_payload' => wp_json_encode($generated_payload),
-                'facebook_caption'  => isset($params['facebook_caption']) ? (string) $params['facebook_caption'] : (string) ($job['facebook_caption'] ?? ''),
-                'group_share_kit'   => isset($params['group_share_kit']) ? (string) $params['group_share_kit'] : (string) ($job['group_share_kit'] ?? ''),
-                'featured_image_id' => $featured_image_id ?: null,
-                'facebook_image_result_id' => $facebook_image_id ?: null,
-                'error_message' => !empty($params['error_message']) ? (string) $params['error_message'] : null,
-                'updated_at'    => current_time('mysql', true),
-            ],
-            ['id' => (int) $job['id']],
-            ['%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s'],
-            ['%d']
-        );
-
-        $message = !empty($params['error_message'])
-            ? (string) $params['error_message']
-            : ($status === 'scheduled'
-                ? ($quality_status === 'warn'
-                    ? ($this->publish_time_is_future($publish_on)
-                        ? sprintf(__('Job generated with quality warnings and scheduled for %s.', 'kuchnia-twist'), $this->format_admin_datetime($publish_on))
-                        : __('Job generated with quality warnings and is ready to publish immediately.', 'kuchnia-twist'))
-                    : ($this->publish_time_is_future($publish_on)
-                        ? sprintf(__('Job generated and scheduled for %s.', 'kuchnia-twist'), $this->format_admin_datetime($publish_on))
-                        : __('Job generated and ready to publish immediately.', 'kuchnia-twist')))
-                : sprintf(__('Job moved to %s.', 'kuchnia-twist'), $this->format_human_label($stage)));
-
-        $this->add_job_event(
-            (int) $job['id'],
-            $status === 'scheduled' ? 'job_scheduled' : 'progress_update',
-            $status,
-            $stage,
-            $message,
-            array_filter([
-                'publish_on'     => $publish_on,
-                'prompt_version' => is_array($generated_payload['content_machine'] ?? null) ? (string) ($generated_payload['content_machine']['prompt_version'] ?? '') : '',
-                'content_preset' => is_array($generated_payload['content_machine'] ?? null) ? (string) ($generated_payload['content_machine']['content_preset'] ?? '') : '',
-                'profile'        => is_array($generated_payload['content_machine'] ?? null) ? (string) ($generated_payload['content_machine']['publication_profile'] ?? '') : '',
-                'repair_attempts'=> (string) ($validator_summary['repair_attempts'] ?? ''),
-                'distribution'   => (string) ($validator_summary['distribution_source'] ?? ''),
-                'target_pages'   => (string) ($validator_summary['target_pages'] ?? ''),
-                'social_variants'=> (string) ($validator_summary['social_variants'] ?? ''),
-                'quality_score'  => (string) ($validator_summary['quality_score'] ?? ''),
-                'quality_status' => $quality_status,
-                'blocking_checks'=> !empty($blocking_checks) ? (string) count($blocking_checks) : '',
-                'warning_checks' => !empty($warning_checks) ? (string) count($warning_checks) : '',
-            ])
-        );
-
-        return rest_ensure_response([
-            'ok'  => true,
-            'job' => $this->get_job((int) $job['id']),
-        ]);
-    }
-
-    public function rest_upload_media(WP_REST_Request $request)
-    {
-        $auth = $this->authorize_worker($request);
-        if (is_wp_error($auth)) {
-            return $auth;
-        }
-
-        $job = $this->get_job((int) $request['id']);
-        if (!$job) {
-            return new WP_Error('job_not_found', __('Job not found.', 'kuchnia-twist'), ['status' => 404]);
-        }
-
-        $params = $request->get_json_params();
-        $slot   = sanitize_key($params['slot'] ?? 'blog');
-        $b64    = (string) ($params['base64_data'] ?? '');
-        $title  = sanitize_text_field($params['title'] ?? 'Generated image');
-        $alt    = sanitize_text_field($params['alt'] ?? $title);
-        $name   = sanitize_file_name($params['filename'] ?? 'generated-image.png');
-
-        if ($b64 === '') {
-            return new WP_Error('missing_image', __('Image payload is missing.', 'kuchnia-twist'), ['status' => 400]);
-        }
-
-        $binary = base64_decode($b64);
-        if ($binary === false) {
-            return new WP_Error('invalid_image', __('Image payload could not be decoded.', 'kuchnia-twist'), ['status' => 400]);
-        }
-
-        $upload = wp_upload_bits($name, null, $binary);
-        if (!empty($upload['error'])) {
-            return new WP_Error('upload_failed', $upload['error'], ['status' => 500]);
-        }
-
-        $attachment_id = wp_insert_attachment([
-            'post_title'     => $title,
-            'post_mime_type' => wp_check_filetype($upload['file'])['type'] ?? 'image/png',
-            'guid'           => $upload['url'],
-        ], $upload['file']);
-
-        require_once ABSPATH . 'wp-admin/includes/image.php';
-        $metadata = wp_generate_attachment_metadata($attachment_id, $upload['file']);
-        wp_update_attachment_metadata($attachment_id, $metadata);
-        update_post_meta($attachment_id, '_wp_attachment_image_alt', $alt);
-
-        global $wpdb;
-        $column = $slot === 'facebook' ? 'facebook_image_id' : 'blog_image_id';
-        $wpdb->update(
-            $this->table_name(),
-            [$column => $attachment_id, 'updated_at' => current_time('mysql', true)],
-            ['id' => (int) $job['id']],
-            ['%d', '%s'],
-            ['%d']
-        );
-
-        $this->add_job_event(
-            (int) $job['id'],
-            'media_uploaded',
-            (string) $job['status'],
-            (string) $job['stage'],
-            sprintf(__('Uploaded %s image asset.', 'kuchnia-twist'), $slot === 'facebook' ? __('Facebook', 'kuchnia-twist') : __('blog', 'kuchnia-twist')),
-            [
-                'slot'          => $slot,
-                'attachment_id' => $attachment_id,
-            ]
-        );
-
-        return rest_ensure_response($this->attachment_payload($attachment_id));
-    }
-
-    public function rest_publish_blog(WP_REST_Request $request)
-    {
-        $auth = $this->authorize_worker($request);
-        if (is_wp_error($auth)) {
-            return $auth;
-        }
-
-        $job = $this->get_job((int) $request['id']);
-        if (!$job) {
-            return new WP_Error('job_not_found', __('Job not found.', 'kuchnia-twist'), ['status' => 404]);
-        }
-
-        $params         = $request->get_json_params();
-        $content_type   = sanitize_key($params['content_type'] ?? $job['content_type']);
-        $featured_image = (int) ($params['featured_image_id'] ?? 0);
-        $facebook_image = (int) ($params['facebook_image_id'] ?? 0);
-        $generated      = is_array($params['generated_payload'] ?? null) ? $params['generated_payload'] : [];
-        $content_package = $this->normalized_generated_content_package($generated, $job);
-
-        $validation_error = $this->validate_generated_publish_payload($params, $generated, $job);
-        if ($validation_error instanceof WP_Error) {
-            return $validation_error;
-        }
-
-        $post_data = [
-            'post_type'     => 'post',
-            'post_status'   => 'publish',
-            'post_title'    => sanitize_text_field($params['title'] ?? ''),
-            'post_excerpt'  => sanitize_textarea_field($params['excerpt'] ?? ''),
-            'post_content'  => $this->sanitize_post_content_with_page_breaks((string) ($params['content_html'] ?? '')),
-            'post_author'   => !empty($job['created_by']) ? (int) $job['created_by'] : get_current_user_id(),
-            'post_name'     => sanitize_title($params['slug'] ?? ''),
-            'post_category' => [$this->ensure_category($content_type)],
-        ];
-
-        $post_id = !empty($job['post_id'])
-            ? wp_update_post(array_merge($post_data, ['ID' => (int) $job['post_id']]), true)
-            : wp_insert_post($post_data, true);
-
-        if (is_wp_error($post_id)) {
-            return new WP_Error('post_failed', $post_id->get_error_message(), ['status' => 500]);
-        }
-
-        if ($featured_image) {
-            set_post_thumbnail($post_id, $featured_image);
-        }
-
-        update_post_meta($post_id, 'kuchnia_twist_content_type', $content_type);
-        update_post_meta($post_id, 'kuchnia_twist_facebook_caption', (string) ($params['facebook_caption'] ?? ''));
-        update_post_meta($post_id, 'kuchnia_twist_group_share_kit', (string) ($params['group_share_kit'] ?? ''));
-        if ($content_type === 'recipe') {
-            update_post_meta($post_id, 'kuchnia_twist_recipe_data', $content_package['recipe'] ?? []);
-        } else {
-            delete_post_meta($post_id, 'kuchnia_twist_recipe_data');
-        }
-        update_post_meta($post_id, 'kuchnia_twist_seo_description', (string) ($params['seo_description'] ?? ''));
-        $page_flow = $this->normalize_generated_page_flow(
-            is_array($content_package['page_flow'] ?? null) ? $content_package['page_flow'] : [],
-            is_array($content_package['content_pages'] ?? null) ? $content_package['content_pages'] : []
-        );
-        if (!empty($page_flow)) {
-            update_post_meta($post_id, 'kuchnia_twist_page_flow', $page_flow);
-        } else {
-            delete_post_meta($post_id, 'kuchnia_twist_page_flow');
-        }
-
-        global $wpdb;
-        $wpdb->update(
-            $this->table_name(),
-            [
-                'status'                   => 'publishing_facebook',
-                'stage'                    => 'publishing_facebook',
-                'post_id'                  => $post_id,
-                'featured_image_id'        => $featured_image ?: null,
-                'facebook_image_result_id' => $facebook_image ?: null,
-                'permalink'                => get_permalink($post_id),
-                'generated_payload'        => wp_json_encode($generated),
-                'facebook_caption'         => (string) ($params['facebook_caption'] ?? ''),
-                'group_share_kit'          => (string) ($params['group_share_kit'] ?? ''),
-                'updated_at'               => current_time('mysql', true),
-            ],
-            ['id' => (int) $job['id']],
-            ['%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s'],
-            ['%d']
-        );
-
-        $this->add_job_event(
-            (int) $job['id'],
-            'blog_published',
-            'publishing_facebook',
-            'publishing_facebook',
-            __('WordPress article published successfully.', 'kuchnia-twist'),
-            [
-                'post_id'             => $post_id,
-                'featured_image_id'   => $featured_image ?: 0,
-                'facebook_image_id'   => $facebook_image ?: 0,
-                'permalink'           => get_permalink($post_id),
-            ]
-        );
-
-        return rest_ensure_response([
-            'post_id'    => $post_id,
-            'permalink'  => get_permalink($post_id),
-            'post_title' => get_the_title($post_id),
-        ]);
-    }
-
-    public function rest_complete_job(WP_REST_Request $request)
-    {
-        $auth = $this->authorize_worker($request);
-        if (is_wp_error($auth)) {
-            return $auth;
-        }
-
-        $job = $this->get_job((int) $request['id']);
-        if (!$job) {
-            return new WP_Error('job_not_found', __('Job not found.', 'kuchnia-twist'), ['status' => 404]);
-        }
-
-        $params = $request->get_json_params();
-        $generated_payload = is_array($params['generated_payload'] ?? null) ? $params['generated_payload'] : [];
-        $channels = $this->generated_channels($generated_payload, $job);
-        $distribution = is_array($channels['facebook']['distribution']['pages'] ?? null) ? $channels['facebook']['distribution']['pages'] : [];
-        $validator_summary = is_array($generated_payload['content_machine']['validator_summary'] ?? null)
-            ? $generated_payload['content_machine']['validator_summary']
-            : [];
-        $distribution_total = count($distribution);
-        $distribution_completed = count(array_filter(
-            $distribution,
-            static fn ($page): bool => is_array($page) && (($page['status'] ?? '') === 'completed')
-        ));
-        global $wpdb;
-        $wpdb->update(
-            $this->table_name(),
-            [
-                'status'              => sanitize_key($params['status'] ?? 'completed'),
-                'stage'               => sanitize_key($params['status'] ?? 'completed'),
-                'facebook_post_id'    => sanitize_text_field($params['facebook_post_id'] ?? ''),
-                'facebook_comment_id' => sanitize_text_field($params['facebook_comment_id'] ?? ''),
-                'facebook_caption'    => (string) ($params['facebook_caption'] ?? $job['facebook_caption']),
-                'group_share_kit'     => (string) ($params['group_share_kit'] ?? $job['group_share_kit']),
-                'generated_payload'   => wp_json_encode($params['generated_payload'] ?? $job['generated_payload']),
-                'error_message'       => !empty($params['error_message']) ? (string) $params['error_message'] : null,
-                'updated_at'          => current_time('mysql', true),
-            ],
-            ['id' => (int) $job['id']],
-            ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'],
-            ['%d']
-        );
-
-        $final_status = sanitize_key($params['status'] ?? 'completed');
-        $complete_message = $distribution_total > 0
-            ? sprintf(_n('Job completed successfully across %d Facebook page.', 'Job completed successfully across %d Facebook pages.', $distribution_total, 'kuchnia-twist'), $distribution_total)
-            : __('Job completed successfully.', 'kuchnia-twist');
-        $this->add_job_event(
-            (int) $job['id'],
-            'job_completed',
-            $final_status,
-            $final_status,
-            $complete_message,
-            [
-                'facebook_post_id'    => sanitize_text_field($params['facebook_post_id'] ?? ''),
-                'facebook_comment_id' => sanitize_text_field($params['facebook_comment_id'] ?? ''),
-                'facebook_pages'      => $distribution_total > 0 ? (string) $distribution_total : '',
-                'facebook_completed'  => $distribution_completed > 0 ? (string) $distribution_completed : '',
-                'quality_status'      => sanitize_key((string) ($validator_summary['quality_status'] ?? '')),
-                'quality_score'       => isset($validator_summary['quality_score']) ? (string) $validator_summary['quality_score'] : '',
-            ]
-        );
-
-        return rest_ensure_response(['ok' => true]);
-    }
-
-    public function rest_fail_job(WP_REST_Request $request)
-    {
-        $auth = $this->authorize_worker($request);
-        if (is_wp_error($auth)) {
-            return $auth;
-        }
-
-        $job = $this->get_job((int) $request['id']);
-        if (!$job) {
-            return new WP_Error('job_not_found', __('Job not found.', 'kuchnia-twist'), ['status' => 404]);
-        }
-
-        $params = $request->get_json_params();
-        $generated_payload = is_array($params['generated_payload'] ?? null) ? $params['generated_payload'] : [];
-        $channels = $this->generated_channels($generated_payload, $job);
-        $distribution = is_array($channels['facebook']['distribution']['pages'] ?? null) ? $channels['facebook']['distribution']['pages'] : [];
-        $validator_summary = is_array($generated_payload['content_machine']['validator_summary'] ?? null)
-            ? $generated_payload['content_machine']['validator_summary']
-            : [];
-        $distribution_total = count($distribution);
-        $distribution_completed = count(array_filter(
-            $distribution,
-            static fn ($page): bool => is_array($page) && (($page['status'] ?? '') === 'completed')
-        ));
-        global $wpdb;
-        $wpdb->update(
-            $this->table_name(),
-            [
-                'status'              => sanitize_key($params['status'] ?? 'failed'),
-                'stage'               => sanitize_key($params['stage'] ?? 'failed'),
-                'facebook_post_id'    => sanitize_text_field($params['facebook_post_id'] ?? $job['facebook_post_id']),
-                'facebook_comment_id' => sanitize_text_field($params['facebook_comment_id'] ?? $job['facebook_comment_id']),
-                'generated_payload'   => wp_json_encode($params['generated_payload'] ?? $job['generated_payload']),
-                'facebook_caption'    => (string) ($params['facebook_caption'] ?? $job['facebook_caption']),
-                'group_share_kit'     => (string) ($params['group_share_kit'] ?? $job['group_share_kit']),
-                'error_message'       => (string) ($params['error_message'] ?? __('Unknown job failure.', 'kuchnia-twist')),
-                'updated_at'          => current_time('mysql', true),
-            ],
-            ['id' => (int) $job['id']],
-            ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'],
-            ['%d']
-        );
-
-        $failed_status = sanitize_key($params['status'] ?? 'failed');
-        $failed_stage  = sanitize_key($params['stage'] ?? 'failed');
-        $base_message  = (string) ($params['error_message'] ?? __('Unknown job failure.', 'kuchnia-twist'));
-        $message       = $distribution_total > 0
-            ? sprintf(__('%1$s (%2$d of %3$d Facebook pages completed)', 'kuchnia-twist'), $base_message, $distribution_completed, $distribution_total)
-            : $base_message;
-
-        $this->add_job_event(
-            (int) $job['id'],
-            'job_failed',
-            $failed_status,
-            $failed_stage,
-            $message,
-            [
-                'facebook_post_id'    => sanitize_text_field($params['facebook_post_id'] ?? $job['facebook_post_id']),
-                'facebook_comment_id' => sanitize_text_field($params['facebook_comment_id'] ?? $job['facebook_comment_id']),
-                'retry_target'        => (string) ($job['retry_target'] ?? ''),
-                'facebook_pages'      => $distribution_total > 0 ? (string) $distribution_total : '',
-                'facebook_completed'  => $distribution_completed > 0 ? (string) $distribution_completed : '',
-                'quality_status'      => sanitize_key((string) ($validator_summary['quality_status'] ?? '')),
-                'quality_score'       => isset($validator_summary['quality_score']) ? (string) $validator_summary['quality_score'] : '',
-            ]
-        );
-
-        return rest_ensure_response(['ok' => true]);
-    }
-
-    public function rest_worker_heartbeat(WP_REST_Request $request)
-    {
-        $auth = $this->authorize_worker($request);
-        if (is_wp_error($auth)) {
-            return $auth;
-        }
-
-        $payload = $request->get_json_params();
-        $status = [
-            'worker_version'         => sanitize_text_field($payload['worker_version'] ?? ''),
-            'enabled'                => !empty($payload['enabled']),
-            'run_once'               => !empty($payload['run_once']),
-            'poll_seconds'           => max(0, (int) ($payload['poll_seconds'] ?? 0)),
-            'startup_delay_seconds'  => max(0, (int) ($payload['startup_delay_seconds'] ?? 0)),
-            'config_ok'              => !empty($payload['config_ok']),
-            'last_seen_at'           => current_time('mysql', true),
-            'last_loop_result'       => sanitize_key($payload['last_loop_result'] ?? ''),
-            'last_job_id'            => absint($payload['last_job_id'] ?? 0),
-            'last_job_status'        => sanitize_key($payload['last_job_status'] ?? ''),
-            'last_error'             => sanitize_text_field($payload['last_error'] ?? ''),
-        ];
-
-        update_option(self::WORKER_STATUS_KEY, wp_parse_args($status, $this->default_worker_status()), false);
-
-        if ($status['last_job_id'] > 0 && ($status['last_error'] !== '' || !$status['config_ok'])) {
-            $this->add_job_event(
-                $status['last_job_id'],
-                !$status['config_ok'] ? 'worker_config_warning' : 'worker_warning',
-                $status['last_job_status'],
-                $status['last_loop_result'],
-                $status['last_error'] !== '' ? $status['last_error'] : __('Worker configuration warning received.', 'kuchnia-twist'),
-                [
-                    'worker_version' => $status['worker_version'],
-                    'loop_result'    => $status['last_loop_result'],
-                ]
-            );
-        }
-
-        return rest_ensure_response(['ok' => true]);
-    }
-
     private function install(): void
     {
         global $wpdb;
@@ -2311,7 +1729,10 @@ final class Kuchnia_Twist_Publisher
 
     private function ensure_launch_posts(): void
     {
-        $launch_posts = kuchnia_twist_launch_posts();
+        $launch_posts = array_values(array_filter(
+            kuchnia_twist_launch_posts(),
+            fn (array $post): bool => $this->is_active_content_type((string) ($post['content_type'] ?? ''))
+        ));
         $editor_id    = $this->default_editor_user_id();
         $total_posts  = count($launch_posts);
 
@@ -2508,274 +1929,6 @@ final class Kuchnia_Twist_Publisher
         }
 
         return (int) $attachment_id;
-    }
-
-    private function get_jobs(int $limit = 10, array $filters = [], int $offset = 0): array
-    {
-        global $wpdb;
-
-        [$where_sql, $params] = $this->job_query_parts($filters);
-        $sql = "SELECT * FROM {$this->table_name()} {$where_sql} ORDER BY id DESC LIMIT %d OFFSET %d";
-        $params[] = $limit;
-        $params[] = max(0, $offset);
-
-        $rows = $wpdb->get_results($wpdb->prepare($sql, ...$params), ARRAY_A);
-        return array_map([$this, 'prepare_job_record'], $rows ?: []);
-    }
-
-    private function get_jobs_page(array $filters, int $page = 1, int $per_page = 24): array
-    {
-        $per_page    = $this->normalize_job_per_page($per_page);
-        $total       = $this->count_jobs($filters);
-        $total_pages = max(1, (int) ceil(($total ?: 1) / $per_page));
-        $page        = min(max(1, $page), $total_pages);
-        $offset      = ($page - 1) * $per_page;
-        $items       = $total > 0 ? $this->get_jobs($per_page, $filters, $offset) : [];
-
-        return [
-            'items'       => $items,
-            'total'       => $total,
-            'page'        => $page,
-            'per_page'    => $per_page,
-            'total_pages' => $total_pages,
-            'from'        => $total > 0 ? $offset + 1 : 0,
-            'to'          => $total > 0 ? $offset + count($items) : 0,
-        ];
-    }
-
-    private function count_jobs(array $filters = []): int
-    {
-        global $wpdb;
-
-        [$where_sql, $params] = $this->job_query_parts($filters);
-        $sql = "SELECT COUNT(*) FROM {$this->table_name()} {$where_sql}";
-
-        if ($params) {
-            return (int) $wpdb->get_var($wpdb->prepare($sql, ...$params));
-        }
-
-        return (int) $wpdb->get_var($sql);
-    }
-
-    private function get_jobs_for_export(array $filters = []): array
-    {
-        global $wpdb;
-
-        [$where_sql, $params] = $this->job_query_parts($filters);
-        $sql = "SELECT id, topic, content_type, status, stage, publish_on, created_at, last_attempt_at, updated_at, created_by, post_id, permalink, facebook_post_id, facebook_comment_id, retry_target, error_message FROM {$this->table_name()} {$where_sql} ORDER BY id DESC";
-
-        if ($params) {
-            $rows = $wpdb->get_results($wpdb->prepare($sql, ...$params), ARRAY_A);
-        } else {
-            $rows = $wpdb->get_results($sql, ARRAY_A);
-        }
-
-        return is_array($rows) ? $rows : [];
-    }
-
-    private function job_query_parts(array $filters): array
-    {
-        global $wpdb;
-
-        $where  = [];
-        $params = [];
-
-        $search = trim((string) ($filters['search'] ?? ''));
-        if ($search !== '') {
-            $like = '%' . $wpdb->esc_like($search) . '%';
-            $where[] = '(topic LIKE %s OR title_override LIKE %s OR error_message LIKE %s)';
-            $params[] = $like;
-            $params[] = $like;
-            $params[] = $like;
-        }
-
-        $content_type = $this->normalize_content_type_filter($filters['content_type'] ?? '');
-        if ($content_type !== '') {
-            $where[] = 'content_type = %s';
-            $params[] = $content_type;
-        }
-
-        $statuses = $this->job_statuses_for_group((string) ($filters['status_group'] ?? 'all'));
-        if ($statuses) {
-            $placeholders = implode(', ', array_fill(0, count($statuses), '%s'));
-            $where[] = "status IN ({$placeholders})";
-            foreach ($statuses as $status) {
-                $params[] = $status;
-            }
-        }
-
-        return [$where ? 'WHERE ' . implode(' AND ', $where) : '', $params];
-    }
-
-    private function job_filters_from_request(): array
-    {
-        return [
-            'search'       => sanitize_text_field(wp_unslash($_GET['job_search'] ?? '')),
-            'status_group' => $this->normalize_job_filter(wp_unslash($_GET['job_status'] ?? 'all')),
-            'content_type' => $this->normalize_content_type_filter(wp_unslash($_GET['job_type'] ?? '')),
-        ];
-    }
-
-    private function job_pagination_from_request(): array
-    {
-        return [
-            'page'     => max(1, absint($_GET['job_page'] ?? 1)),
-            'per_page' => $this->normalize_job_per_page(wp_unslash($_GET['job_per_page'] ?? 24)),
-        ];
-    }
-
-    private function job_filter_options(): array
-    {
-        return [
-            'all'        => __('All', 'kuchnia-twist'),
-            'attention'  => __('Needs Attention', 'kuchnia-twist'),
-            'active'     => __('Active', 'kuchnia-twist'),
-            'completed'  => __('Completed', 'kuchnia-twist'),
-        ];
-    }
-
-    private function normalize_job_filter($value): string
-    {
-        $value = sanitize_key((string) $value);
-        return array_key_exists($value, $this->job_filter_options()) ? $value : 'all';
-    }
-
-    private function normalize_content_type_filter($value): string
-    {
-        $value = sanitize_key((string) $value);
-        return array_key_exists($value, $this->content_types()) ? $value : '';
-    }
-
-    private function job_per_page_options(): array
-    {
-        return [12, 24, 50, 100];
-    }
-
-    private function normalize_job_per_page($value): int
-    {
-        $value = absint($value);
-        return in_array($value, $this->job_per_page_options(), true) ? $value : 24;
-    }
-
-    private function job_statuses_for_group(string $group): array
-    {
-        return [
-            'all'       => [],
-            'attention' => ['failed', 'partial_failure'],
-            'active'    => ['queued', 'generating', 'scheduled', 'publishing_blog', 'publishing_facebook'],
-            'completed' => ['completed'],
-        ][$group] ?? [];
-    }
-
-    private function publisher_page_url(array $args = []): string
-    {
-        $base = ['page' => 'kuchnia-twist-publisher'];
-        $query = array_merge($base, $args);
-
-        foreach ($query as $key => $value) {
-            if ($value === null || $value === '') {
-                unset($query[$key]);
-            }
-        }
-
-        return add_query_arg($query, admin_url('admin.php'));
-    }
-
-    private function current_job_view_args(): array
-    {
-        return [
-            'job_status'   => sanitize_key(wp_unslash($_GET['job_status'] ?? '')),
-            'job_search'   => sanitize_text_field(wp_unslash($_GET['job_search'] ?? '')),
-            'job_type'     => sanitize_key(wp_unslash($_GET['job_type'] ?? '')),
-            'job_page'     => max(1, absint($_GET['job_page'] ?? 1)),
-            'job_per_page' => $this->normalize_job_per_page($_GET['job_per_page'] ?? 24),
-        ];
-    }
-
-    private function job_allows_schedule_actions(array $job): bool
-    {
-        return (string) ($job['content_type'] ?? '') === 'recipe'
-            && (string) ($job['status'] ?? '') === 'scheduled';
-    }
-
-    private function posted_job_view_args(): array
-    {
-        return [
-            'job_status'   => sanitize_key(wp_unslash($_POST['job_status'] ?? '')),
-            'job_search'   => sanitize_text_field(wp_unslash($_POST['job_search'] ?? '')),
-            'job_type'     => sanitize_key(wp_unslash($_POST['job_type'] ?? '')),
-            'job_page'     => max(1, absint($_POST['job_page'] ?? 1)),
-            'job_per_page' => $this->normalize_job_per_page($_POST['job_per_page'] ?? 24),
-        ];
-    }
-
-    private function export_jobs_url(array $filters): string
-    {
-        return wp_nonce_url(
-            add_query_arg(
-                [
-                    'action'     => 'kuchnia_twist_export_jobs',
-                    'job_search' => $filters['search'] !== '' ? $filters['search'] : null,
-                    'job_status' => $filters['status_group'] !== 'all' ? $filters['status_group'] : null,
-                    'job_type'   => $filters['content_type'] !== '' ? $filters['content_type'] : null,
-                ],
-                admin_url('admin-post.php')
-            ),
-            'kuchnia_twist_export_jobs'
-        );
-    }
-
-    private function job_filter_count(string $filter, array $counts): int
-    {
-        return [
-            'all'        => (int) array_sum($counts),
-            'attention'  => (int) ($counts['needs_attention'] ?? 0),
-            'active'     => (int) (($counts['queued'] ?? 0) + ($counts['scheduled'] ?? 0) + ($counts['running'] ?? 0)),
-            'completed'  => (int) ($counts['completed'] ?? 0),
-        ][$filter] ?? 0;
-    }
-
-    private function job_results_summary(array $job_page): string
-    {
-        if ((int) $job_page['total'] <= 0) {
-            return __('No jobs found.', 'kuchnia-twist');
-        }
-
-        return sprintf(
-            __('Showing %1$d-%2$d of %3$d jobs', 'kuchnia-twist'),
-            (int) $job_page['from'],
-            (int) $job_page['to'],
-            (int) $job_page['total']
-        );
-    }
-
-    private function render_jobs_pagination(array $job_page, array $filters): void
-    {
-        if ((int) $job_page['total_pages'] <= 1) {
-            return;
-        }
-
-        $current = (int) $job_page['page'];
-        $total   = (int) $job_page['total_pages'];
-        $base    = [
-            'job_status'   => $filters['status_group'] !== 'all' ? $filters['status_group'] : null,
-            'job_search'   => $filters['search'] !== '' ? $filters['search'] : null,
-            'job_type'     => $filters['content_type'] !== '' ? $filters['content_type'] : null,
-            'job_per_page' => $job_page['per_page'],
-        ];
-        ?>
-        <nav class="kt-pagination" aria-label="<?php esc_attr_e('Job list pagination', 'kuchnia-twist'); ?>">
-            <span class="kt-pagination__summary"><?php echo esc_html(sprintf(__('Page %1$d of %2$d', 'kuchnia-twist'), $current, $total)); ?></span>
-            <div class="kt-pagination__actions">
-                <?php if ($current > 1) : ?>
-                    <a class="button" href="<?php echo esc_url($this->publisher_page_url(array_merge($base, ['job_page' => $current - 1]))); ?>"><?php esc_html_e('Previous', 'kuchnia-twist'); ?></a>
-                <?php endif; ?>
-                <?php if ($current < $total) : ?>
-                    <a class="button" href="<?php echo esc_url($this->publisher_page_url(array_merge($base, ['job_page' => $current + 1]))); ?>"><?php esc_html_e('Next', 'kuchnia-twist'); ?></a>
-                <?php endif; ?>
-            </div>
-        </nav>
-        <?php
     }
 
     private function default_worker_status(): array
@@ -3016,222 +2169,6 @@ final class Kuchnia_Twist_Publisher
         return (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_name()} WHERE status = 'queued' AND content_type NOT IN ('recipe', 'food_fact')");
     }
 
-    private function get_job_events(int $job_id, int $limit = 12): array
-    {
-        global $wpdb;
-
-        if ($job_id <= 0) {
-            return [];
-        }
-
-        $limit = max(1, min(20, $limit));
-        $rows  = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT * FROM {$this->events_table_name()} WHERE job_id = %d ORDER BY id DESC LIMIT %d",
-                $job_id,
-                $limit
-            ),
-            ARRAY_A
-        );
-
-        return array_map(function (array $row): array {
-            return [
-                'id'         => (int) $row['id'],
-                'job_id'     => (int) $row['job_id'],
-                'event_type' => sanitize_key((string) ($row['event_type'] ?? '')),
-                'status'     => sanitize_key((string) ($row['status'] ?? '')),
-                'stage'      => sanitize_key((string) ($row['stage'] ?? '')),
-                'message'    => sanitize_text_field((string) ($row['message'] ?? '')),
-                'context'    => $this->decode_json($row['context_json'] ?? ''),
-                'created_at' => (string) ($row['created_at'] ?? ''),
-            ];
-        }, $rows ?: []);
-    }
-
-    private function get_job_event_stats(int $job_id): array
-    {
-        global $wpdb;
-
-        if ($job_id <= 0) {
-            return [
-                'attempts' => 0,
-                'retries'  => 0,
-                'latest'   => '',
-            ];
-        }
-
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT event_type, COUNT(*) AS total, MAX(created_at) AS latest_at
-                FROM {$this->events_table_name()}
-                WHERE job_id = %d
-                GROUP BY event_type",
-                $job_id
-            ),
-            ARRAY_A
-        );
-
-        $stats = [
-            'attempts' => 0,
-            'retries'  => 0,
-            'latest'   => '',
-        ];
-
-        foreach ($rows ?: [] as $row) {
-            $event_type = sanitize_key((string) ($row['event_type'] ?? ''));
-            $total      = (int) ($row['total'] ?? 0);
-
-            if ($event_type === 'job_claimed') {
-                $stats['attempts'] = $total;
-            } elseif ($event_type === 'retry_queued') {
-                $stats['retries'] = $total;
-            }
-
-            $latest_at = (string) ($row['latest_at'] ?? '');
-            if ($latest_at !== '' && ($stats['latest'] === '' || strtotime($latest_at . ' UTC') > strtotime($stats['latest'] . ' UTC'))) {
-                $stats['latest'] = $latest_at;
-            }
-        }
-
-        return $stats;
-    }
-
-    private function add_job_event(int $job_id, string $event_type, string $status, string $stage, string $message, array $context = []): void
-    {
-        if ($job_id <= 0) {
-            return;
-        }
-
-        global $wpdb;
-        $clean_context = $this->compact_event_context($context);
-
-        $wpdb->insert($this->events_table_name(), [
-            'job_id'       => $job_id,
-            'event_type'   => sanitize_key($event_type),
-            'status'       => sanitize_key($status),
-            'stage'        => sanitize_key($stage),
-            'message'      => sanitize_textarea_field($message),
-            'context_json' => $clean_context ? wp_json_encode($clean_context) : null,
-            'created_at'   => current_time('mysql', true),
-        ], ['%d', '%s', '%s', '%s', '%s', '%s', '%s']);
-    }
-
-    private function compact_event_context(array $context): array
-    {
-        $clean = [];
-
-        foreach ($context as $key => $value) {
-            $normalized_key = sanitize_key((string) $key);
-            if ($normalized_key === '') {
-                continue;
-            }
-
-            if (is_bool($value)) {
-                $clean[$normalized_key] = $value;
-                continue;
-            }
-
-            if (is_int($value) || is_float($value)) {
-                $clean[$normalized_key] = $value;
-                continue;
-            }
-
-            if (is_string($value) && trim($value) !== '') {
-                $clean[$normalized_key] = sanitize_text_field(wp_html_excerpt($value, 180, '...'));
-            }
-        }
-
-        return $clean;
-    }
-
-    private function get_job(int $job_id): ?array
-    {
-        global $wpdb;
-        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$this->table_name()} WHERE id = %d", $job_id), ARRAY_A);
-        return $row ? $this->prepare_job_record($row) : null;
-    }
-
-    private function resolve_selected_job(array $jobs, int $job_id = 0): ?array
-    {
-        if ($job_id > 0) {
-            $explicit = $this->get_job($job_id);
-            if ($explicit) {
-                return $explicit;
-            }
-        }
-
-        $priority_groups = [
-            ['failed', 'partial_failure'],
-            ['scheduled', 'queued', 'generating', 'publishing_blog', 'publishing_facebook'],
-        ];
-
-        foreach ($priority_groups as $group) {
-            $match = $this->find_first_job_by_status($jobs, $group);
-            if ($match) {
-                return $match;
-            }
-        }
-
-        return $jobs[0] ?? null;
-    }
-
-    private function find_first_job_by_status(array $jobs, array $statuses): ?array
-    {
-        foreach ($jobs as $job) {
-            if (in_array($job['status'], $statuses, true)) {
-                return $job;
-            }
-        }
-
-        return null;
-    }
-
-    private function prepare_job_record(array $row): array
-    {
-        $row['id']                       = (int) $row['id'];
-        $row['created_by']               = !empty($row['created_by']) ? (int) $row['created_by'] : 0;
-        $row['post_id']                  = !empty($row['post_id']) ? (int) $row['post_id'] : 0;
-        $row['blog_image_id']            = !empty($row['blog_image_id']) ? (int) $row['blog_image_id'] : 0;
-        $row['facebook_image_id']        = !empty($row['facebook_image_id']) ? (int) $row['facebook_image_id'] : 0;
-        $row['featured_image_id']        = !empty($row['featured_image_id']) ? (int) $row['featured_image_id'] : 0;
-        $row['facebook_image_result_id'] = !empty($row['facebook_image_result_id']) ? (int) $row['facebook_image_result_id'] : 0;
-        $row['publish_on']               = (string) ($row['publish_on'] ?? '');
-        $row['request_payload']          = $this->decode_json($row['request_payload']);
-        $row['generated_payload']        = $this->decode_json($row['generated_payload']);
-        $row['blog_image']               = $this->attachment_payload($row['blog_image_id']);
-        $row['facebook_image']           = $this->attachment_payload($row['facebook_image_id']);
-        $row['featured_image']           = $this->attachment_payload($row['featured_image_id']);
-        $row['facebook_image_result']    = $this->attachment_payload($row['facebook_image_result_id']);
-        return $row;
-    }
-
-    private function attachment_payload(int $attachment_id): array
-    {
-        if (!$attachment_id) {
-            return [];
-        }
-
-        return [
-            'id'    => $attachment_id,
-            'url'   => wp_get_attachment_url($attachment_id),
-            'title' => get_the_title($attachment_id),
-        ];
-    }
-
-    private function decode_json($value): array
-    {
-        if (is_array($value)) {
-            return $value;
-        }
-
-        if (!is_string($value) || $value === '') {
-            return [];
-        }
-
-        $decoded = json_decode($value, true);
-        return is_array($decoded) ? $decoded : [];
-    }
-
     public function shortcode_editor_name(): string
     {
         $settings = $this->get_settings();
@@ -3306,88 +2243,6 @@ final class Kuchnia_Twist_Publisher
         }
 
         return sprintf('<a href="%s">%s</a>', esc_url($url), esc_html($label));
-    }
-
-    private function content_machine_settings(array $settings): array
-    {
-        return [
-            'prompt_version' => self::CONTENT_MACHINE_VERSION,
-            'publication_profile' => [
-                'id'          => 'default',
-                'name'        => $settings['publication_profile_name'] !== '' ? $settings['publication_profile_name'] : get_bloginfo('name'),
-                'role'        => $settings['publication_role'],
-                'voice_brief' => $settings['brand_voice'],
-                'guardrails'  => $settings['global_guardrails'],
-            ],
-            'content_presets' => [
-                'recipe' => [
-                    'label'    => __('Recipe', 'kuchnia-twist'),
-                    'guidance' => trim((string) ($settings['recipe_preset_guidance'] ?? '')) !== '' ? $settings['recipe_preset_guidance'] : $settings['article_prompt'],
-                    'min_words'=> 1200,
-                ],
-                'food_fact' => [
-                    'label'    => __('Food Fact', 'kuchnia-twist'),
-                    'guidance' => trim((string) ($settings['food_fact_preset_guidance'] ?? '')) !== '' ? $settings['food_fact_preset_guidance'] : $settings['food_fact_article_prompt'],
-                    'min_words'=> 1100,
-                ],
-                'food_story' => [
-                    'label'    => __('Food Story', 'kuchnia-twist'),
-                    'guidance' => trim((string) ($settings['food_story_preset_guidance'] ?? '')) !== '' ? $settings['food_story_preset_guidance'] : 'Write a publication-voice kitchen essay with a clear observation, practical kitchen meaning, and a reflective close without fake memoir.',
-                    'min_words'=> 1100,
-                ],
-            ],
-            'channel_presets' => [
-                'recipe_master' => [
-                    'guidance' => $settings['recipe_master_prompt'],
-                ],
-                'article' => [
-                    'recipe' => [
-                        'guidance' => $settings['article_prompt'],
-                    ],
-                    'food_fact' => [
-                        'guidance' => $settings['food_fact_article_prompt'],
-                    ],
-                    'food_story' => [
-                        'guidance' => 'Lead with one clear observation, show why it matters in a real kitchen, and close with reflection instead of recipe structure.',
-                    ],
-                ],
-                'facebook_caption' => [
-                    'recipe' => [
-                        'guidance' => $settings['facebook_caption_guidance'],
-                    ],
-                    'food_fact' => [
-                        'guidance' => $settings['food_fact_facebook_caption_guidance'],
-                    ],
-                    'food_story' => [
-                        'guidance' => 'Generate distinct editorial Facebook candidates with curiosity, warmth, concrete payoff, and no empty hype.',
-                    ],
-                ],
-                'image' => [
-                    'guidance' => $settings['image_style'],
-                ],
-            ],
-            'cadence' => [
-                'mode'             => 'manual_recipe_publish_at',
-                'timezone'         => wp_timezone_string() ?: 'UTC',
-            ],
-            'models' => [
-                'text_model'      => $settings['openai_model'],
-                'image_model'     => $settings['openai_image_model'],
-                'repair_enabled'  => $settings['repair_enabled'] === '1',
-                'repair_attempts' => (int) $settings['repair_attempts'],
-            ],
-            'default_cta' => $settings['default_cta'],
-        ];
-    }
-
-    private function job_content_machine_snapshot(array $settings, string $content_type): array
-    {
-        $machine = $this->content_machine_settings($settings);
-        return [
-            'prompt_version'      => $machine['prompt_version'],
-            'publication_profile' => (string) ($machine['publication_profile']['name'] ?? get_bloginfo('name')),
-            'content_preset'      => $content_type,
-        ];
     }
 
     private function sanitize_publish_time(string $value): string
@@ -4661,6 +3516,10 @@ final class Kuchnia_Twist_Publisher
             'weak_page_summaries'        => __('The page summaries are too thin to make the next click feel worthwhile.', 'kuchnia-twist'),
             'weak_structure'             => __('The article needs more H2 structure.', 'kuchnia-twist'),
             'missing_internal_links'     => __('The article needs more internal links.', 'kuchnia-twist'),
+            'package_contract_drift'     => __('This new typed job is relying on legacy article fields because the canonical content package is incomplete or malformed.', 'kuchnia-twist'),
+            'facebook_adapter_contract_drift' => __('This new typed job is relying on legacy Facebook fields because the Facebook adapter payload is incomplete or malformed.', 'kuchnia-twist'),
+            'facebook_groups_adapter_contract_drift' => __('This new typed job is missing a clean Facebook group manual-share adapter payload.', 'kuchnia-twist'),
+            'pinterest_adapter_contract_drift' => __('This new typed job is missing a clean Pinterest draft adapter payload.', 'kuchnia-twist'),
             'social_pack_incomplete'     => __('The Facebook social pack does not cover all selected pages.', 'kuchnia-twist'),
             'social_pack_repetitive'     => __('The Facebook social pack is too repetitive.', 'kuchnia-twist'),
             'social_hooks_repetitive'    => __('The Facebook hooks are too repetitive across selected pages.', 'kuchnia-twist'),
@@ -4720,6 +3579,19 @@ final class Kuchnia_Twist_Publisher
             'food_fact'  => 1100,
             'food_story' => 1100,
         ][$content_type] ?? 1100;
+        $contract_meta = $this->resolve_contract_job_flags($generated);
+        $typed_contract_job = !empty($contract_meta['typed_contract_job']);
+        $contract_checks = $typed_contract_job
+            ? $this->canonical_contract_checks($generated, $job, count($selected_pages))
+            : [
+                'package_contract_enforced' => false,
+                'channel_contract_enforced' => false,
+                'warning_checks' => [],
+            ];
+        $strict_contract_mode = ($settings['strict_contract_mode'] ?? '0') === '1';
+        $contract_blocking_checks = ($strict_contract_mode && $typed_contract_job)
+            ? array_values(array_filter($contract_checks['warning_checks'], static fn (string $check): bool => str_ends_with($check, '_contract_drift')))
+            : [];
         if (empty($content_pages) && $content_html !== '') {
             $content_pages = array_values(array_filter(preg_split('/\s*<!--nextpage-->\s*/i', $content_html) ?: []));
         }
@@ -4880,8 +3752,8 @@ final class Kuchnia_Twist_Publisher
             ? false
             : ($this->find_conflicting_post_id($slug, (int) ($job['post_id'] ?? 0)) > 0 || $this->find_conflicting_post_id($title, (int) ($job['post_id'] ?? 0)) > 0);
 
-        $blocking_checks = [];
-        $warning_checks = [];
+        $blocking_checks = $contract_blocking_checks;
+        $warning_checks = array_values(array_filter($contract_checks['warning_checks'], static fn (string $check): bool => !in_array($check, $contract_blocking_checks, true)));
         if ($title === '' || $slug === '' || trim(wp_strip_all_tags($content_html)) === '') {
             $blocking_checks[] = 'missing_core_fields';
         }
@@ -5089,6 +3961,10 @@ final class Kuchnia_Twist_Publisher
             'social_pain_points_thin' => 6,
             'social_payoffs_thin'   => 6,
             'image_not_ready'        => 8,
+            'package_contract_drift' => 6,
+            'facebook_adapter_contract_drift' => 5,
+            'facebook_groups_adapter_contract_drift' => 3,
+            'pinterest_adapter_contract_drift' => 3,
         ];
         foreach (array_merge($blocking_checks, $warning_checks) as $failed_check) {
             $score -= (int) ($penalties[$failed_check] ?? 0);
@@ -5126,6 +4002,10 @@ final class Kuchnia_Twist_Publisher
             'failed_checks'   => $failed_checks,
             'package_quality' => [
                 'layer' => 'article',
+                'contract_version' => sanitize_text_field((string) ($content_package['contract_version'] ?? ($this->generated_contract_versions($generated)['content_package'] ?? ''))),
+                'contract_enforced' => !empty($contract_checks['package_contract_enforced']),
+                'contract_warning' => in_array('package_contract_drift', $warning_checks, true),
+                'blocking_checks' => array_values(array_filter($blocking_checks, static fn (string $check): bool => $check === 'package_contract_drift')),
                 'stage_status' => sanitize_key((string) ($content_package['quality_summary']['stage_status'] ?? '')),
                 'stage_checks' => is_array($content_package['quality_summary']['stage_checks'] ?? null) ? $content_package['quality_summary']['stage_checks'] : [],
                 'editorial_readiness' => sanitize_key((string) ($content_package['quality_summary']['editorial_readiness'] ?? $editorial_summary['editorial_readiness'])),
@@ -5133,9 +4013,29 @@ final class Kuchnia_Twist_Publisher
             'channel_quality' => [
                 'facebook' => [
                     'layer' => 'facebook',
+                    'contract_version' => sanitize_text_field((string) ($facebook_channel['contract_version'] ?? ($this->generated_contract_versions($generated)['channel_adapters'] ?? ''))),
+                    'contract_enforced' => !empty($contract_checks['channel_contract_enforced']),
+                    'contract_warning' => in_array('facebook_adapter_contract_drift', $warning_checks, true),
                     'pool_quality_status' => sanitize_key((string) ($facebook_channel['quality_summary']['pool_quality_status'] ?? '')),
                     'distribution_source' => sanitize_key((string) ($facebook_channel['quality_summary']['distribution_source'] ?? '')),
-                    'warning_checks' => array_values(array_filter($warning_checks, static fn (string $check): bool => str_starts_with($check, 'social_') || $check === 'missing_target_pages')),
+                    'blocking_checks' => array_values(array_filter($blocking_checks, static fn (string $check): bool => $check === 'facebook_adapter_contract_drift')),
+                    'warning_checks' => array_values(array_filter($warning_checks, static fn (string $check): bool => str_starts_with($check, 'social_') || $check === 'missing_target_pages' || $check === 'facebook_adapter_contract_drift')),
+                ],
+                'facebook_groups' => [
+                    'layer' => 'facebook_groups',
+                    'contract_version' => sanitize_text_field((string) (($channels['facebook_groups']['contract_version'] ?? ($this->generated_contract_versions($generated)['channel_adapters'] ?? '')))),
+                    'contract_enforced' => !empty($contract_checks['channel_contract_enforced']),
+                    'contract_warning' => in_array('facebook_groups_adapter_contract_drift', $warning_checks, true),
+                    'blocking_checks' => array_values(array_filter($blocking_checks, static fn (string $check): bool => $check === 'facebook_groups_adapter_contract_drift')),
+                    'warning_checks' => array_values(array_filter($warning_checks, static fn (string $check): bool => $check === 'facebook_groups_adapter_contract_drift')),
+                ],
+                'pinterest' => [
+                    'layer' => 'pinterest',
+                    'contract_version' => sanitize_text_field((string) (($channels['pinterest']['contract_version'] ?? ($this->generated_contract_versions($generated)['channel_adapters'] ?? '')))),
+                    'contract_enforced' => !empty($contract_checks['channel_contract_enforced']),
+                    'contract_warning' => in_array('pinterest_adapter_contract_drift', $warning_checks, true),
+                    'blocking_checks' => array_values(array_filter($blocking_checks, static fn (string $check): bool => $check === 'pinterest_adapter_contract_drift')),
+                    'warning_checks' => array_values(array_filter($warning_checks, static fn (string $check): bool => $check === 'pinterest_adapter_contract_drift')),
                 ],
             ],
             'editorial_readiness' => $editorial_summary['editorial_readiness'],
@@ -5167,6 +4067,11 @@ final class Kuchnia_Twist_Publisher
                 'strong_page_summaries' => $strong_page_summaries,
                 'recipe_complete'       => $recipe_complete,
                 'image_ready'           => $image_ready,
+                'package_contract_enforced' => !empty($contract_checks['package_contract_enforced']),
+                'channel_contract_enforced' => !empty($contract_checks['channel_contract_enforced']),
+                'typed_contract_job'    => $typed_contract_job,
+                'legacy_contract_job'   => !empty($contract_meta['legacy_job']),
+                'strict_contract_mode'  => $strict_contract_mode,
                 'target_pages'          => $target_pages,
                 'social_variants'       => $social_variants,
                 'unique_social_variants'=> $unique_variants,
@@ -5254,125 +4159,6 @@ final class Kuchnia_Twist_Publisher
                 'duplicate_risk'        => $duplicate_risk,
             ],
         ];
-    }
-
-    private function sanitize_post_content_with_page_breaks(string $content_html): string
-    {
-        $content_html = trim($content_html);
-        if ($content_html === '') {
-            return '';
-        }
-
-        $pages = preg_split('/\s*<!--nextpage-->\s*/i', $content_html) ?: [];
-        $pages = array_values(array_filter(array_map(
-            static fn (string $page): string => trim(wp_kses_post($page)),
-            $pages
-        ), static fn (string $page): bool => $page !== ''));
-
-        if (empty($pages)) {
-            return '';
-        }
-
-        return implode("\n<!--nextpage-->\n", $pages);
-    }
-
-    private function validate_generated_publish_payload(array $params, array $generated, array $job): ?WP_Error
-    {
-        $content_html = (string) ($params['content_html'] ?? '');
-        $summary = $this->build_job_quality_summary($job, $generated, [
-            'title'             => sanitize_text_field($params['title'] ?? ''),
-            'slug'              => sanitize_title($params['slug'] ?? ''),
-            'excerpt'           => sanitize_text_field($params['excerpt'] ?? ''),
-            'seo_description'   => sanitize_text_field($params['seo_description'] ?? ''),
-            'content_html'      => $content_html,
-            'content_type'      => sanitize_key($params['content_type'] ?? $job['content_type']),
-            'featured_image_id' => (int) ($params['featured_image_id'] ?? 0),
-            'facebook_image_id' => (int) ($params['facebook_image_id'] ?? 0),
-        ]);
-        $blocking_checks = $summary['blocking_checks'] ?? [];
-        $messages = $this->quality_failed_check_messages();
-
-        if (in_array('missing_target_pages', $blocking_checks, true)) {
-            return new WP_Error('missing_facebook_pages', __('Article jobs must keep at least one target Facebook page attached before publish.', 'kuchnia-twist'), ['status' => 400]);
-        }
-
-        $settings = $this->get_settings();
-        if (($settings['image_generation_mode'] ?? '') === 'manual_only' && in_array('missing_manual_images', $blocking_checks, true)) {
-            return new WP_Error('launch_media_required', __('Manual-only image handling requires both real uploaded blog and Facebook images before publish.', 'kuchnia-twist'), ['status' => 400]);
-        }
-
-        if (in_array('duplicate_conflict', $blocking_checks, true)) {
-            return new WP_Error('duplicate_post', __('A post with the same title or slug already exists, so this generated article was blocked.', 'kuchnia-twist'), ['status' => 409]);
-        }
-
-        if (!empty($blocking_checks) || (($summary['quality_status'] ?? '') === 'block')) {
-            $first_failed = (string) ($blocking_checks[0] ?? 'quality_gate_failed');
-            return new WP_Error(
-                $first_failed,
-                $messages[$first_failed] ?? __('The generated article package did not meet the quality gate for publish.', 'kuchnia-twist'),
-                [
-                    'status'        => 400,
-                    'quality_score' => (int) ($summary['quality_score'] ?? 0),
-                    'failed_checks' => $blocking_checks,
-                ]
-            );
-        }
-
-        $active_pages = [];
-        foreach ($this->facebook_pages($settings, true, true) as $page) {
-            $active_pages[(string) ($page['page_id'] ?? '')] = true;
-        }
-
-        $selected_pages = $this->job_selected_pages($job);
-        $active_selected_pages = array_filter(
-            $selected_pages,
-            static function (array $page) use ($active_pages): bool {
-                $page_id = (string) ($page['page_id'] ?? '');
-                return $page_id !== '' && isset($active_pages[$page_id]);
-            }
-        );
-
-        if (!$active_selected_pages) {
-            return new WP_Error('inactive_facebook_pages', __('The selected Facebook pages are no longer active in Settings, so this recipe was blocked before publish.', 'kuchnia-twist'), ['status' => 400]);
-        }
-
-        return null;
-    }
-
-    private function count_internal_links(string $content_html): int
-    {
-        $shortcodes = preg_match_all('/\[kuchnia_twist_link\s+slug=/i', $content_html);
-        $anchors    = preg_match_all('/<a\s+[^>]*href=/i', $content_html);
-
-        return (int) $shortcodes + (int) $anchors;
-    }
-
-    private function render_notice(string $notice_key): void
-    {
-        $messages = [
-            'job_created'   => __('Publishing job queued. The background worker will pick it up shortly.', 'kuchnia-twist'),
-            'job_queued'    => __('Job queued again for processing.', 'kuchnia-twist'),
-            'job_missing'   => __('The selected job could not be found.', 'kuchnia-twist'),
-            'invalid_job'   => __('Please enter a valid dish name or working title before queueing the job.', 'kuchnia-twist'),
-            'invalid_schedule' => __('Enter a valid publish date and time in the WordPress timezone.', 'kuchnia-twist'),
-            'duplicate_job' => __('A matching job is already in progress, so the existing one was kept instead of creating a duplicate.', 'kuchnia-twist'),
-            'existing_post_conflict' => __('A published or queued post with the same topic/title already exists, so the duplicate launch article was blocked.', 'kuchnia-twist'),
-            'launch_title_required' => __('Launch mode requires a final title before a job can be queued.', 'kuchnia-twist'),
-            'launch_assets_required' => __('Manual-only image handling requires both a real blog hero image and a real Facebook image.', 'kuchnia-twist'),
-            'facebook_pages_required' => __('Select at least one active Facebook page before queueing an article job.', 'kuchnia-twist'),
-            'recipe_only_lane' => __('This job type is not active in the current typed content engine. Only recipe and food fact jobs can generate new content right now.', 'kuchnia-twist'),
-            'job_action_blocked' => __('That scheduling action is only available for scheduled article jobs.', 'kuchnia-twist'),
-            'job_publish_now' => __('The scheduled job will publish on the next worker pass.', 'kuchnia-twist'),
-            'job_schedule_updated' => __('The scheduled publish time was updated.', 'kuchnia-twist'),
-            'job_schedule_canceled' => __('The scheduled release was canceled and moved into needs attention.', 'kuchnia-twist'),
-        ];
-
-        if (!isset($messages[$notice_key])) {
-            return;
-        }
-
-        $class = in_array($notice_key, ['launch_title_required', 'launch_assets_required', 'facebook_pages_required', 'invalid_job', 'invalid_schedule', 'existing_post_conflict', 'job_schedule_canceled', 'recipe_only_lane', 'job_action_blocked'], true) ? 'notice notice-error' : 'notice notice-success';
-        echo '<div class="' . esc_attr($class) . '"><p>' . esc_html($messages[$notice_key]) . '</p></div>';
     }
 
     private function render_job_summary(array $job, array $system_status = []): void
@@ -5608,6 +4394,7 @@ final class Kuchnia_Twist_Publisher
             <section class="kt-detail-block">
                 <h4><?php esc_html_e('Request Snapshot', 'kuchnia-twist'); ?></h4>
                 <?php $selected_pages = $this->job_selected_pages($job); ?>
+                <?php $channel_targets = $this->job_channel_targets($job); ?>
                 <?php $request_payload = is_array($job['request_payload'] ?? null) ? $job['request_payload'] : []; ?>
                 <?php
                 $current_page_map = [];
@@ -5654,8 +4441,16 @@ final class Kuchnia_Twist_Publisher
                         <strong><?php echo esc_html($this->job_site_label($job)); ?></strong>
                     </div>
                     <div>
-                        <span><?php esc_html_e('Facebook pages', 'kuchnia-twist'); ?></span>
+                        <span><?php esc_html_e('Facebook targets', 'kuchnia-twist'); ?></span>
                         <strong><?php echo esc_html($selected_pages ? implode(', ', wp_list_pluck($selected_pages, 'label')) : __('None selected', 'kuchnia-twist')); ?></strong>
+                    </div>
+                    <div>
+                        <span><?php esc_html_e('Facebook Groups', 'kuchnia-twist'); ?></span>
+                        <strong><?php echo !empty($channel_targets['facebook_groups']['enabled']) ? esc_html($this->format_human_label((string) ($channel_targets['facebook_groups']['mode'] ?? 'manual_draft'))) : esc_html__('Dormant manual draft', 'kuchnia-twist'); ?></strong>
+                    </div>
+                    <div>
+                        <span><?php esc_html_e('Pinterest', 'kuchnia-twist'); ?></span>
+                        <strong><?php echo !empty($channel_targets['pinterest']['enabled']) ? esc_html($this->format_human_label((string) ($channel_targets['pinterest']['mode'] ?? 'draft'))) : esc_html__('Dormant draft', 'kuchnia-twist'); ?></strong>
                     </div>
                 </div>
                 <?php if ($inactive_selected_pages) : ?>
@@ -5827,16 +4622,46 @@ final class Kuchnia_Twist_Publisher
                                 <strong><?php echo esc_html($this->format_human_label((string) $generated_snapshot['facebook_adapter'])); ?></strong>
                             </div>
                         <?php endif; ?>
+                        <?php if (!empty($generated_snapshot['facebook_contract'])) : ?>
+                            <div>
+                                <span><?php esc_html_e('Facebook contract', 'kuchnia-twist'); ?></span>
+                                <strong><?php echo esc_html((string) $generated_snapshot['facebook_contract']); ?></strong>
+                            </div>
+                        <?php endif; ?>
                         <?php if (!empty($generated_snapshot['facebook_layer'])) : ?>
                             <div>
                                 <span><?php esc_html_e('Facebook layer', 'kuchnia-twist'); ?></span>
                                 <strong><?php echo esc_html($this->quality_status_label((string) $generated_snapshot['facebook_layer'])); ?></strong>
                             </div>
                         <?php endif; ?>
+                        <?php if (!empty($generated_snapshot['facebook_groups_adapter'])) : ?>
+                            <div>
+                                <span><?php esc_html_e('Facebook Groups adapter', 'kuchnia-twist'); ?></span>
+                                <strong><?php echo esc_html($this->format_human_label((string) $generated_snapshot['facebook_groups_adapter'])); ?></strong>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($generated_snapshot['facebook_groups_contract'])) : ?>
+                            <div>
+                                <span><?php esc_html_e('Facebook Groups contract', 'kuchnia-twist'); ?></span>
+                                <strong><?php echo esc_html((string) $generated_snapshot['facebook_groups_contract']); ?></strong>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($generated_snapshot['facebook_groups_ready'])) : ?>
+                            <div>
+                                <span><?php esc_html_e('Facebook Groups draft', 'kuchnia-twist'); ?></span>
+                                <strong><?php echo esc_html((string) $generated_snapshot['facebook_groups_ready']); ?></strong>
+                            </div>
+                        <?php endif; ?>
                         <?php if (!empty($generated_snapshot['pinterest_adapter'])) : ?>
                             <div>
                                 <span><?php esc_html_e('Pinterest adapter', 'kuchnia-twist'); ?></span>
                                 <strong><?php echo esc_html($this->format_human_label((string) $generated_snapshot['pinterest_adapter'])); ?></strong>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($generated_snapshot['pinterest_contract'])) : ?>
+                            <div>
+                                <span><?php esc_html_e('Pinterest contract', 'kuchnia-twist'); ?></span>
+                                <strong><?php echo esc_html((string) $generated_snapshot['pinterest_contract']); ?></strong>
                             </div>
                         <?php endif; ?>
                         <?php if (!empty($generated_snapshot['pinterest_ready'])) : ?>
@@ -6746,13 +5571,13 @@ final class Kuchnia_Twist_Publisher
                         <?php endforeach; ?>
                     </div>
                 </section>
-            <?php elseif (!empty($job['facebook_caption'])) : ?>
+            <?php elseif (!empty($this->derive_legacy_facebook_caption(is_array($job['generated_payload'] ?? null) ? $job['generated_payload'] : [], $job))) : ?>
                 <section class="kt-detail-block">
                     <div class="kt-detail-block__head">
                         <label for="kt-facebook-caption-<?php echo (int) $job['id']; ?>"><?php esc_html_e('Facebook Caption', 'kuchnia-twist'); ?></label>
                         <button type="button" class="button button-small kt-copy-button" data-copy-target="#kt-facebook-caption-<?php echo (int) $job['id']; ?>"><?php esc_html_e('Copy', 'kuchnia-twist'); ?></button>
                     </div>
-                    <textarea id="kt-facebook-caption-<?php echo (int) $job['id']; ?>" rows="5" readonly><?php echo esc_textarea($job['facebook_caption']); ?></textarea>
+                    <textarea id="kt-facebook-caption-<?php echo (int) $job['id']; ?>" rows="5" readonly><?php echo esc_textarea($this->derive_legacy_facebook_caption(is_array($job['generated_payload'] ?? null) ? $job['generated_payload'] : [], $job)); ?></textarea>
                 </section>
             <?php endif; ?>
 
@@ -6871,641 +5696,6 @@ final class Kuchnia_Twist_Publisher
             <?php endif; ?>
         </div>
         <?php
-    }
-
-    private function render_job_stage_rail(array $job): void
-    {
-        $steps = $this->job_stage_items($job);
-        if (!$steps) {
-            return;
-        }
-        ?>
-        <section class="kt-stage-rail" aria-label="<?php esc_attr_e('Job progress', 'kuchnia-twist'); ?>">
-            <?php foreach ($steps as $step) : ?>
-                <div class="kt-stage-step is-<?php echo esc_attr($step['state']); ?>">
-                    <span class="kt-stage-step__dot" aria-hidden="true"></span>
-                    <strong><?php echo esc_html($step['label']); ?></strong>
-                </div>
-            <?php endforeach; ?>
-        </section>
-        <?php
-    }
-
-    private function job_stage_items(array $job): array
-    {
-        $sequence = [
-            'queued'             => __('Queued', 'kuchnia-twist'),
-            'generating'         => __('Generating', 'kuchnia-twist'),
-            'scheduled'          => __('Scheduled', 'kuchnia-twist'),
-            'publishing_blog'    => __('WordPress', 'kuchnia-twist'),
-            'publishing_facebook'=> __('Facebook', 'kuchnia-twist'),
-        ];
-
-        $stage         = sanitize_key((string) ($job['stage'] ?? $job['status'] ?? 'queued'));
-        $status        = sanitize_key((string) ($job['status'] ?? 'queued'));
-        $current_index = array_search($stage, array_keys($sequence), true);
-        $current_index = $current_index === false ? 0 : (int) $current_index;
-        $items         = [];
-        $keys          = array_keys($sequence);
-
-        foreach ($sequence as $key => $label) {
-            $index = array_search($key, $keys, true);
-            $index = $index === false ? 0 : (int) $index;
-            $state = 'pending';
-
-            if ($status === 'completed') {
-                $state = 'complete';
-            } elseif (in_array($status, ['failed', 'partial_failure'], true)) {
-                if ($index < $current_index) {
-                    $state = 'complete';
-                } elseif ($index === $current_index) {
-                    $state = 'problem';
-                }
-            } else {
-                if ($index < $current_index) {
-                    $state = 'complete';
-                } elseif ($index === $current_index) {
-                    $state = 'current';
-                }
-            }
-
-            $items[] = [
-                'key'   => $key,
-                'label' => $label,
-                'state' => $state,
-            ];
-        }
-
-        $items[] = [
-            'key'   => 'outcome',
-            'label' => $status === 'completed'
-                ? __('Completed', 'kuchnia-twist')
-                : (in_array($status, ['failed', 'partial_failure'], true) ? __('Needs attention', 'kuchnia-twist') : __('In progress', 'kuchnia-twist')),
-            'state' => $status === 'completed' ? 'complete' : (in_array($status, ['failed', 'partial_failure'], true) ? 'problem' : 'current'),
-        ];
-
-        return $items;
-    }
-
-    private function render_job_asset_badges(array $job): void
-    {
-        $assets = [
-            'blog_image_id'         => __('Hero attached', 'kuchnia-twist'),
-            'facebook_image_id'     => __('Facebook image attached', 'kuchnia-twist'),
-            'featured_image_id'     => __('Featured image ready', 'kuchnia-twist'),
-            'facebook_image_result_id' => __('Facebook result ready', 'kuchnia-twist'),
-        ];
-
-        foreach ($assets as $key => $label) {
-            if (!empty($job[$key])) {
-                echo '<span class="kt-asset-pill">' . esc_html($label) . '</span>';
-            }
-        }
-
-        $selected_pages = $this->job_selected_pages($job);
-        if ($selected_pages) {
-            echo '<span class="kt-asset-pill">' . esc_html(sprintf(_n('%d page selected', '%d pages selected', count($selected_pages), 'kuchnia-twist'), count($selected_pages))) . '</span>';
-        }
-
-        $distribution = $this->job_facebook_distribution($job);
-        if (!empty($distribution['pages']) && is_array($distribution['pages'])) {
-            $completed = count(array_filter(
-                $distribution['pages'],
-                static fn (array $page): bool => ($page['status'] ?? '') === 'completed'
-            ));
-            echo '<span class="kt-asset-pill">' . esc_html(sprintf(__('Facebook %1$d/%2$d', 'kuchnia-twist'), $completed, count($distribution['pages']))) . '</span>';
-        }
-
-        $machine_meta = $this->job_content_machine_meta($job);
-        $distribution_source = (string) ($machine_meta['validator_summary']['distribution_source'] ?? '');
-        if ($distribution_source !== '') {
-            echo '<span class="kt-asset-pill">' . esc_html(sprintf(__('Copy %s', 'kuchnia-twist'), $this->format_human_label($distribution_source))) . '</span>';
-        }
-
-        $quality_status = (string) ($this->job_quality_summary($job)['quality_status'] ?? '');
-        if ($quality_status !== '') {
-            echo '<span class="kt-asset-pill kt-asset-pill--' . esc_attr($this->quality_status_class($quality_status)) . '">' . esc_html($this->quality_status_label($quality_status)) . '</span>';
-        }
-    }
-
-    private function job_has_media(array $job): bool
-    {
-        foreach (['blog_image', 'facebook_image', 'featured_image', 'facebook_image_result'] as $key) {
-            if (!empty($job[$key]['url'])) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function render_job_media_cards(array $job): void
-    {
-        $items = [
-            'blog_image'           => __('Queued Hero', 'kuchnia-twist'),
-            'facebook_image'       => __('Queued Facebook Image', 'kuchnia-twist'),
-            'featured_image'       => __('Published Featured Image', 'kuchnia-twist'),
-            'facebook_image_result'=> __('Published Facebook Result', 'kuchnia-twist'),
-        ];
-
-        foreach ($items as $key => $label) {
-            $media = $job[$key] ?? [];
-            if (empty($media['url'])) {
-                continue;
-            }
-            ?>
-            <article class="kt-media-card">
-                <img src="<?php echo esc_url($media['url']); ?>" alt="">
-                <div class="kt-media-card__body">
-                    <strong><?php echo esc_html($label); ?></strong>
-                    <?php if (!empty($media['title'])) : ?>
-                        <span><?php echo esc_html($media['title']); ?></span>
-                    <?php endif; ?>
-                </div>
-            </article>
-            <?php
-        }
-    }
-
-    private function job_author_label(array $job): string
-    {
-        if (!empty($job['created_by'])) {
-            $user = get_userdata((int) $job['created_by']);
-            if ($user instanceof WP_User && $user->display_name !== '') {
-                return $user->display_name;
-            }
-        }
-
-        return __('Unknown', 'kuchnia-twist');
-    }
-
-    private function job_requested_title(array $job): string
-    {
-        $request = is_array($job['request_payload'] ?? null) ? $job['request_payload'] : [];
-        $title = sanitize_text_field((string) ($request['title_override'] ?? $job['title_override'] ?? ''));
-
-        return $title !== '' ? $title : __('AI generated title', 'kuchnia-twist');
-    }
-
-    private function job_site_label(array $job): string
-    {
-        $request = is_array($job['request_payload'] ?? null) ? $job['request_payload'] : [];
-        $site = sanitize_text_field((string) ($request['site_name'] ?? ''));
-
-        return $site !== '' ? $site : get_bloginfo('name');
-    }
-
-    private function job_selected_pages(array $job): array
-    {
-        $request = is_array($job['request_payload'] ?? null) ? $job['request_payload'] : [];
-        $pages   = $request['selected_facebook_pages'] ?? [];
-        if (!is_array($pages)) {
-            return [];
-        }
-
-        return array_values(array_filter(array_map(
-            static function ($page): array {
-                if (!is_array($page)) {
-                    return [];
-                }
-
-                return array_filter([
-                    'page_id' => sanitize_text_field((string) ($page['page_id'] ?? $page['pageId'] ?? '')),
-                    'label'   => sanitize_text_field((string) ($page['label'] ?? '')),
-                ]);
-            },
-            $pages
-        )));
-    }
-
-    private function content_type_profile(string $content_type): array
-    {
-        $key = sanitize_key($content_type ?: 'recipe');
-        if (!in_array($key, ['recipe', 'food_fact', 'food_story'], true)) {
-            $key = 'recipe';
-        }
-
-        return [
-            'key'             => $key,
-            'contract_version'=> self::CONTENT_PACKAGE_CONTRACT_VERSION,
-            'package_shape'   => 'canonical_content_package',
-            'input_mode'      => $key === 'recipe' ? 'dish_name' : 'working_title',
-            'article_stage'   => $key . '_article',
-            'validation_mode' => $key === 'recipe' ? 'recipe_article' : 'editorial_article',
-            'rendering_mode'  => $key === 'recipe' ? 'recipe_multipage' : 'editorial_multipage',
-            'recipe_required' => $key === 'recipe',
-        ];
-    }
-
-    private function channel_profile(string $channel): array
-    {
-        if ($channel === 'pinterest') {
-            return [
-                'key'          => 'pinterest',
-                'contract_version' => self::CHANNEL_ADAPTER_CONTRACT_VERSION,
-                'live'         => false,
-                'adapter'      => 'draft_pin',
-                'output_shape' => 'pin_draft',
-                'input_package'=> 'content_package',
-            ];
-        }
-
-        return [
-            'key'          => 'facebook',
-            'contract_version' => self::CHANNEL_ADAPTER_CONTRACT_VERSION,
-            'live'         => true,
-            'adapter'      => 'page_distribution',
-            'output_shape' => 'social_pack',
-            'input_package'=> 'content_package',
-        ];
-    }
-
-    private function normalize_social_pack_variants(array $pack, string $content_type): array
-    {
-        return array_values(array_filter(array_map(
-            function ($variant) use ($content_type): array {
-                if (!is_array($variant)) {
-                    return [];
-                }
-
-                $normalized = array_filter([
-                    'id'           => sanitize_key((string) ($variant['id'] ?? '')),
-                    'angle_key'    => $this->normalize_hook_angle_key((string) ($variant['angle_key'] ?? $variant['angleKey'] ?? ''), $content_type),
-                    'hook'         => sanitize_text_field((string) ($variant['hook'] ?? '')),
-                    'caption'      => sanitize_textarea_field((string) ($variant['caption'] ?? '')),
-                    'cta_hint'     => sanitize_text_field((string) ($variant['cta_hint'] ?? $variant['ctaHint'] ?? '')),
-                    'post_message' => sanitize_textarea_field((string) ($variant['post_message'] ?? $variant['postMessage'] ?? '')),
-                ]);
-                if (empty($normalized['post_message'])) {
-                    $normalized['post_message'] = $this->build_facebook_post_preview($normalized);
-                }
-
-                return $normalized;
-            },
-            $pack
-        )));
-    }
-
-    private function normalize_facebook_distribution_payload($distribution, array $job = [], string $content_type = 'recipe'): array
-    {
-        $distribution = is_array($distribution) ? $distribution : [];
-        $pages = is_array($distribution['pages'] ?? null) ? $distribution['pages'] : [];
-        $normalized = [];
-
-        foreach ($pages as $page_id => $page) {
-            if (!is_array($page)) {
-                continue;
-            }
-
-            $id = sanitize_text_field((string) ($page['page_id'] ?? $page_id));
-            if ($id === '') {
-                continue;
-            }
-
-            $normalized[$id] = [
-                'page_id'         => $id,
-                'label'           => sanitize_text_field((string) ($page['label'] ?? '')),
-                'angle_key'       => $this->normalize_hook_angle_key((string) ($page['angle_key'] ?? $page['angleKey'] ?? ''), $content_type),
-                'hook'            => sanitize_text_field((string) ($page['hook'] ?? '')),
-                'caption'         => sanitize_textarea_field((string) ($page['caption'] ?? '')),
-                'cta_hint'        => sanitize_text_field((string) ($page['cta_hint'] ?? $page['ctaHint'] ?? '')),
-                'post_message'    => sanitize_textarea_field((string) ($page['post_message'] ?? $page['postMessage'] ?? '')),
-                'post_id'         => sanitize_text_field((string) ($page['post_id'] ?? $page['postId'] ?? '')),
-                'post_url'        => esc_url_raw((string) ($page['post_url'] ?? $page['postUrl'] ?? '')),
-                'comment_message' => sanitize_textarea_field((string) ($page['comment_message'] ?? $page['commentMessage'] ?? '')),
-                'comment_id'      => sanitize_text_field((string) ($page['comment_id'] ?? $page['commentId'] ?? '')),
-                'comment_url'     => esc_url_raw((string) ($page['comment_url'] ?? $page['commentUrl'] ?? '')),
-                'status'          => sanitize_key((string) ($page['status'] ?? '')),
-                'error'           => sanitize_text_field((string) ($page['error'] ?? '')),
-            ];
-
-            if ($normalized[$id]['post_message'] === '') {
-                $normalized[$id]['post_message'] = $this->build_facebook_post_preview($normalized[$id]);
-            }
-            if ($normalized[$id]['comment_message'] === '') {
-                $normalized[$id]['comment_message'] = $this->build_facebook_comment_preview($job, $normalized[$id]);
-            }
-        }
-
-        return ['pages' => $normalized];
-    }
-
-    private function normalized_generated_content_package(array $generated, array $job = []): array
-    {
-        $raw = is_array($generated['content_package'] ?? null) ? $generated['content_package'] : [];
-        $content_type = sanitize_key((string) ($raw['content_type'] ?? $generated['content_type'] ?? $job['content_type'] ?? 'recipe'));
-        if ($content_type === '') {
-            $content_type = 'recipe';
-        }
-
-        $content_html = (string) ($raw['content_html'] ?? $generated['content_html'] ?? '');
-        $content_pages = is_array($raw['content_pages'] ?? null) ? $raw['content_pages'] : (is_array($generated['content_pages'] ?? null) ? $generated['content_pages'] : []);
-        $content_pages = array_values(array_filter(array_map(
-            static fn ($page): string => trim((string) $page),
-            $content_pages
-        ), static fn ($page): bool => $page !== ''));
-        if (empty($content_pages) && $content_html !== '') {
-            $content_pages = array_values(array_filter(preg_split('/\s*<!--nextpage-->\s*/i', $content_html) ?: []));
-        }
-        if ($content_html === '' && !empty($content_pages)) {
-            $content_html = implode("\n<!--nextpage-->\n", $content_pages);
-        }
-        $content_html = $this->sanitize_post_content_with_page_breaks($content_html);
-
-        $page_flow = $this->normalize_generated_page_flow(
-            is_array($raw['page_flow'] ?? null) ? $raw['page_flow'] : (is_array($generated['page_flow'] ?? null) ? $generated['page_flow'] : []),
-            $content_pages
-        );
-        $profile = is_array($raw['profile'] ?? null)
-            ? array_replace($this->content_type_profile($content_type), $raw['profile'])
-            : $this->content_type_profile($content_type);
-        $package = [
-            'contract_version' => sanitize_text_field((string) ($raw['contract_version'] ?? self::CONTENT_PACKAGE_CONTRACT_VERSION)),
-            'package_shape'    => sanitize_key((string) ($raw['package_shape'] ?? 'canonical_content_package')),
-            'source_layer'     => sanitize_key((string) ($raw['source_layer'] ?? 'article_engine')),
-            'content_type'    => $content_type,
-            'topic_seed'      => sanitize_text_field((string) ($raw['topic_seed'] ?? $generated['topic_seed'] ?? $job['topic'] ?? '')),
-            'title'           => sanitize_text_field((string) ($raw['title'] ?? $generated['title'] ?? '')),
-            'slug'            => sanitize_title((string) ($raw['slug'] ?? $generated['slug'] ?? '')),
-            'excerpt'         => sanitize_text_field((string) ($raw['excerpt'] ?? $generated['excerpt'] ?? '')),
-            'seo_description' => sanitize_text_field((string) ($raw['seo_description'] ?? $generated['seo_description'] ?? '')),
-            'content_html'    => $content_html,
-            'content_pages'   => $content_pages,
-            'page_flow'       => $page_flow,
-            'image_prompt'    => sanitize_textarea_field((string) ($raw['image_prompt'] ?? $generated['image_prompt'] ?? '')),
-            'image_alt'       => sanitize_text_field((string) ($raw['image_alt'] ?? $generated['image_alt'] ?? '')),
-            'article_signals' => is_array($raw['article_signals'] ?? null) ? $raw['article_signals'] : [],
-            'quality_summary' => is_array($raw['quality_summary'] ?? null) ? $raw['quality_summary'] : [],
-            'profile'         => $profile,
-        ];
-
-        if ($content_type === 'recipe') {
-            $package['recipe'] = is_array($raw['recipe'] ?? null) ? $raw['recipe'] : (is_array($generated['recipe'] ?? null) ? $generated['recipe'] : []);
-        }
-
-        return $package;
-    }
-
-    private function build_pinterest_draft_from_package(array $package, array $existing = []): array
-    {
-        $signals = is_array($package['article_signals'] ?? null) ? $package['article_signals'] : [];
-        $keywords_source = implode(' ', array_filter([
-            $package['content_type'] ?? '',
-            $signals['heading_topic'] ?? '',
-            $signals['ingredient_focus'] ?? '',
-            $signals['meta_line'] ?? '',
-        ]));
-        $keywords = preg_split('/[\s,]+/', strtolower((string) $keywords_source)) ?: [];
-        $keywords = array_values(array_unique(array_filter(array_map(
-            static fn ($keyword): string => sanitize_title((string) $keyword),
-            $keywords
-        ), static fn ($keyword): bool => $keyword !== '' && strlen($keyword) > 2)));
-
-        return [
-            'pin_title'            => sanitize_text_field((string) ($existing['pin_title'] ?? $package['title'] ?? '')),
-            'pin_description'      => sanitize_textarea_field((string) ($existing['pin_description'] ?? $package['excerpt'] ?? '')),
-            'pin_keywords'         => !empty($existing['pin_keywords']) && is_array($existing['pin_keywords'])
-                ? array_values(array_filter(array_map('sanitize_title', $existing['pin_keywords'])))
-                : array_slice($keywords, 0, 12),
-            'image_prompt_override'=> sanitize_textarea_field((string) ($existing['image_prompt_override'] ?? trim(((string) ($package['image_prompt'] ?? '')) . "\nVertical Pinterest pin composition, 2:3 aspect ratio, clean focal hierarchy."))),
-            'image_format_hint'    => sanitize_text_field((string) ($existing['image_format_hint'] ?? '1000x1500 vertical pin')),
-            'overlay_text'         => sanitize_text_field((string) ($existing['overlay_text'] ?? $package['title'] ?? '')),
-        ];
-    }
-
-    private function generated_channels(array $generated, array $job = []): array
-    {
-        $package = $this->normalized_generated_content_package($generated, $job);
-        $raw_channels = is_array($generated['channels'] ?? null) ? $generated['channels'] : [];
-        $facebook_raw = is_array($raw_channels['facebook'] ?? null) ? $raw_channels['facebook'] : [];
-        $pinterest_raw = is_array($raw_channels['pinterest'] ?? null) ? $raw_channels['pinterest'] : [];
-
-        $facebook_candidates = $this->normalize_social_pack_variants(
-            is_array($facebook_raw['candidates'] ?? null)
-                ? $facebook_raw['candidates']
-                : (is_array($generated['social_candidates'] ?? null) ? $generated['social_candidates'] : []),
-            (string) ($package['content_type'] ?? 'recipe')
-        );
-        $facebook_selected = $this->normalize_social_pack_variants(
-            is_array($facebook_raw['selected'] ?? null)
-                ? $facebook_raw['selected']
-                : (is_array($generated['social_pack'] ?? null) ? $generated['social_pack'] : []),
-            (string) ($package['content_type'] ?? 'recipe')
-        );
-
-        return [
-            'facebook' => [
-                'channel'         => 'facebook',
-                'contract_version'=> sanitize_text_field((string) ($facebook_raw['contract_version'] ?? self::CHANNEL_ADAPTER_CONTRACT_VERSION)),
-                'live'            => true,
-                'profile'         => is_array($facebook_raw['profile'] ?? null) ? array_replace($this->channel_profile('facebook'), $facebook_raw['profile']) : $this->channel_profile('facebook'),
-                'input_package'   => sanitize_key((string) ($facebook_raw['input_package'] ?? 'content_package')),
-                'candidates'      => $facebook_candidates,
-                'selected'        => $facebook_selected,
-                'distribution'    => $this->normalize_facebook_distribution_payload(
-                    is_array($facebook_raw['distribution'] ?? null)
-                        ? $facebook_raw['distribution']
-                        : (is_array($generated['facebook_distribution'] ?? null) ? $generated['facebook_distribution'] : []),
-                    $job,
-                    (string) ($package['content_type'] ?? 'recipe')
-                ),
-                'quality_summary' => is_array($facebook_raw['quality_summary'] ?? null) ? $facebook_raw['quality_summary'] : [],
-            ],
-            'pinterest' => [
-                'channel'         => 'pinterest',
-                'contract_version'=> sanitize_text_field((string) ($pinterest_raw['contract_version'] ?? self::CHANNEL_ADAPTER_CONTRACT_VERSION)),
-                'live'            => false,
-                'profile'         => is_array($pinterest_raw['profile'] ?? null) ? array_replace($this->channel_profile('pinterest'), $pinterest_raw['profile']) : $this->channel_profile('pinterest'),
-                'input_package'   => sanitize_key((string) ($pinterest_raw['input_package'] ?? 'content_package')),
-                'draft'           => $this->build_pinterest_draft_from_package($package, is_array($pinterest_raw['draft'] ?? null) ? $pinterest_raw['draft'] : []),
-                'quality_summary' => is_array($pinterest_raw['quality_summary'] ?? null) ? $pinterest_raw['quality_summary'] : [],
-            ],
-        ];
-    }
-
-    private function job_social_pack(array $job): array
-    {
-        $generated = is_array($job['generated_payload'] ?? null) ? $job['generated_payload'] : [];
-        $channels = $this->generated_channels($generated, $job);
-
-        return is_array($channels['facebook']['selected'] ?? null) ? $channels['facebook']['selected'] : [];
-    }
-
-    private function strip_hook_echo_from_caption(string $hook, string $caption): string
-    {
-        $hook = sanitize_text_field($hook);
-        $lines = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $caption))));
-        if ($hook === '' || count($lines) < 2) {
-            return implode("\n", $lines);
-        }
-
-        if (sanitize_title($lines[0]) === sanitize_title($hook)) {
-            array_shift($lines);
-        }
-
-        return implode("\n", $lines);
-    }
-
-    private function build_facebook_post_preview(array $variant): string
-    {
-        $persisted = trim((string) ($variant['post_message'] ?? $variant['postMessage'] ?? ''));
-        if ($persisted !== '') {
-            return sanitize_textarea_field($persisted);
-        }
-
-        $hook = sanitize_text_field((string) ($variant['hook'] ?? ''));
-        $caption = $this->strip_hook_echo_from_caption($hook, (string) ($variant['caption'] ?? ''));
-
-        return trim(implode("\n\n", array_filter([$hook, $caption])));
-    }
-
-    private function build_facebook_comment_preview(array $job, array $page): string
-    {
-        $persisted = trim((string) ($page['comment_message'] ?? $page['commentMessage'] ?? ''));
-        if ($persisted !== '') {
-            return sanitize_textarea_field($persisted);
-        }
-
-        $permalink = esc_url_raw((string) ($job['permalink'] ?? ''));
-        if ($permalink === '') {
-            return '';
-        }
-
-        $settings = $this->get_settings();
-        $content_label = 'facebook_comment_' . sanitize_title((string) ($page['label'] ?? $page['page_id'] ?? 'page'));
-        $tracked_url = $this->build_tracked_distribution_url($permalink, $settings, $job, $content_label);
-        $cta = sanitize_text_field((string) ($settings['default_cta'] ?? ''));
-        $message = trim(implode(' ', array_filter([
-            $cta !== '' ? $cta : __('Read the full article on the blog.', 'kuchnia-twist'),
-            $tracked_url,
-        ])));
-
-        return sanitize_textarea_field($message);
-    }
-
-    private function build_tracked_distribution_url(string $permalink, array $settings, array $job, string $content_label): string
-    {
-        if ($permalink === '') {
-            return '';
-        }
-
-        $title_source = '';
-        if (!empty($job['generated_payload']) && is_array($job['generated_payload'])) {
-            $package = $this->normalized_generated_content_package($job['generated_payload'], $job);
-            $title_source = (string) (($package['slug'] ?? '') ?: ($package['title'] ?? '') ?: ($job['generated_payload']['slug'] ?? '') ?: ($job['generated_payload']['title'] ?? ''));
-        }
-        if ($title_source === '') {
-            $title_source = (string) ($job['topic'] ?? 'recipe');
-        }
-
-        return add_query_arg([
-            'utm_source'   => sanitize_key((string) ($settings['utm_source'] ?? 'facebook')) ?: 'facebook',
-            'utm_medium'   => 'social',
-            'utm_campaign' => substr(
-                sanitize_title((string) ($settings['utm_campaign_prefix'] ?? 'kuchnia-twist')) . '-' . sanitize_title($title_source),
-                0,
-                80
-            ),
-            'utm_content'  => sanitize_title($content_label),
-        ], $permalink);
-    }
-
-    private function job_facebook_distribution(array $job): array
-    {
-        $generated = is_array($job['generated_payload'] ?? null) ? $job['generated_payload'] : [];
-        $channels = $this->generated_channels($generated, $job);
-
-        return is_array($channels['facebook']['distribution'] ?? null)
-            ? $channels['facebook']['distribution']
-            : ['pages' => []];
-    }
-
-    private function job_generated_snapshot(array $job): array
-    {
-        $generated = is_array($job['generated_payload'] ?? null) ? $job['generated_payload'] : [];
-        if (!$generated) {
-            return [];
-        }
-
-        $content_package = $this->normalized_generated_content_package($generated, $job);
-        $channels = $this->generated_channels($generated, $job);
-        $facebook_channel = is_array($channels['facebook'] ?? null) ? $channels['facebook'] : [];
-        $pinterest_channel = is_array($channels['pinterest'] ?? null) ? $channels['pinterest'] : [];
-        $has_pinterest_scaffold = !empty($generated['channels']) && is_array($generated['channels']) && !empty($generated['channels']['pinterest']);
-        $content_html = (string) ($content_package['content_html'] ?? '');
-        $content_pages = is_array($content_package['content_pages'] ?? null) ? $content_package['content_pages'] : [];
-        $page_count = !empty($content_pages)
-            ? count(array_filter($content_pages, static fn ($page): bool => trim((string) $page) !== ''))
-            : max(1, count(array_filter(preg_split('/\s*<!--nextpage-->\s*/i', $content_html) ?: [])));
-        if (empty($content_pages) && $content_html !== '') {
-            $content_pages = array_values(array_filter(preg_split('/\s*<!--nextpage-->\s*/i', $content_html) ?: []));
-        }
-        $page_flow = $this->normalize_generated_page_flow(
-            is_array($content_package['page_flow'] ?? null) ? $content_package['page_flow'] : [],
-            $content_pages
-        );
-        $page_labels = $this->format_article_page_flow_labels($page_flow);
-        $word_count = $content_html !== '' ? str_word_count(wp_strip_all_tags($content_html)) : 0;
-        $h2_count = $content_html !== '' ? preg_match_all('/<h2\b/i', $content_html) : 0;
-        $internal_links = $content_html !== '' ? $this->count_internal_links($content_html) : 0;
-        $opening_paragraph = '';
-        if ($content_html !== '' && preg_match('/<p>(.*?)<\/p>/is', $content_html, $opening_match)) {
-            $opening_paragraph = sanitize_text_field(wp_strip_all_tags((string) ($opening_match[1] ?? '')));
-        }
-        $headings = [];
-        if ($content_html !== '' && preg_match_all('/<h2\b[^>]*>(.*?)<\/h2>/is', $content_html, $heading_matches)) {
-            $headings = array_values(array_filter(array_map(
-                static fn ($heading): string => sanitize_text_field(wp_strip_all_tags((string) $heading)),
-                (array) ($heading_matches[1] ?? [])
-            )));
-        }
-        $social_pack = is_array($facebook_channel['selected'] ?? null) ? $facebook_channel['selected'] : [];
-        $machine_meta = $this->job_content_machine_meta($job);
-        $validator_summary = $this->job_quality_summary($job);
-
-        return array_filter([
-            'title'           => sanitize_text_field((string) ($content_package['title'] ?? '')),
-            'slug'            => sanitize_title((string) ($content_package['slug'] ?? '')),
-            'excerpt'         => sanitize_text_field((string) ($content_package['excerpt'] ?? '')),
-            'seo_description' => sanitize_text_field((string) ($content_package['seo_description'] ?? '')),
-            'image_prompt'    => sanitize_textarea_field((string) ($content_package['image_prompt'] ?? '')),
-            'image_alt'       => sanitize_text_field((string) ($content_package['image_alt'] ?? '')),
-            'package_contract'=> sanitize_text_field((string) ($content_package['contract_version'] ?? '')),
-            'input_mode'      => sanitize_text_field((string) ($content_package['profile']['input_mode'] ?? '')),
-            'rendering_mode'  => sanitize_text_field((string) ($content_package['profile']['rendering_mode'] ?? '')),
-            'package_layer'   => sanitize_text_field((string) (($content_package['quality_summary']['stage_status'] ?? '') ?: ($validator_summary['package_quality']['stage_status'] ?? ''))),
-            'facebook_adapter'=> sanitize_text_field((string) ($facebook_channel['profile']['adapter'] ?? '')),
-            'facebook_layer'  => sanitize_text_field((string) (($facebook_channel['quality_summary']['pool_quality_status'] ?? '') ?: ($validator_summary['channel_quality']['facebook']['pool_quality_status'] ?? ''))),
-            'pinterest_adapter' => sanitize_text_field((string) ($pinterest_channel['profile']['adapter'] ?? '')),
-            'pinterest_ready' => $has_pinterest_scaffold && !empty($pinterest_channel['draft']) ? __('Prepared', 'kuchnia-twist') : '',
-            'word_count'      => $word_count,
-            'page_count'      => (int) ($validator_summary['page_count'] ?? $page_count),
-            'page_labels'     => $page_labels,
-            'page_flow'       => $page_flow,
-            'h2_count'        => (int) $h2_count,
-            'internal_links'  => (int) $internal_links,
-            'opening_paragraph' => $opening_paragraph,
-            'social_variants' => count($social_pack),
-            'shortest_page_words' => (int) ($validator_summary['shortest_page_words'] ?? 0),
-            'strong_page_openings' => (int) ($validator_summary['strong_page_openings'] ?? 0),
-            'unique_page_labels' => (int) ($validator_summary['unique_page_labels'] ?? 0),
-            'strong_page_labels' => (int) ($validator_summary['strong_page_labels'] ?? 0),
-            'strong_page_summaries' => (int) ($validator_summary['strong_page_summaries'] ?? 0),
-            'unique_social_hooks' => (int) ($validator_summary['unique_social_hooks'] ?? 0),
-            'unique_social_openings' => (int) ($validator_summary['unique_social_openings'] ?? 0),
-            'unique_social_angles' => (int) ($validator_summary['unique_social_angles'] ?? 0),
-            'strong_social_variants' => (int) ($validator_summary['strong_social_variants'] ?? 0),
-            'target_pages'    => (int) ($validator_summary['target_pages'] ?? 0),
-            'quality_status'  => sanitize_key((string) ($validator_summary['quality_status'] ?? '')),
-            'quality_score'   => isset($validator_summary['quality_score']) ? (int) $validator_summary['quality_score'] : 0,
-            'editorial_readiness' => sanitize_key((string) ($validator_summary['editorial_readiness'] ?? '')),
-            'editorial_highlights' => !empty($validator_summary['editorial_highlights']) && is_array($validator_summary['editorial_highlights']) ? array_values(array_filter(array_map('sanitize_text_field', $validator_summary['editorial_highlights']))) : [],
-            'editorial_watchouts' => !empty($validator_summary['editorial_watchouts']) && is_array($validator_summary['editorial_watchouts']) ? array_values(array_filter(array_map('sanitize_text_field', $validator_summary['editorial_watchouts']))) : [],
-            'blocking_checks' => !empty($validator_summary['blocking_checks']) && is_array($validator_summary['blocking_checks']) ? $validator_summary['blocking_checks'] : [],
-            'warning_checks'  => !empty($validator_summary['warning_checks']) && is_array($validator_summary['warning_checks']) ? $validator_summary['warning_checks'] : [],
-            'failed_checks'   => !empty($validator_summary['failed_checks']) && is_array($validator_summary['failed_checks']) ? $validator_summary['failed_checks'] : [],
-            'headings'        => $headings,
-        ]);
     }
 
     private function extract_article_page_labels(array $pages): array
@@ -7740,62 +5930,6 @@ final class Kuchnia_Twist_Publisher
         return preg_match('/^<(h2|blockquote|ul|ol)\b/i', $page_html) === 1;
     }
 
-    private function job_recipe_snapshot(array $job): array
-    {
-        $generated = is_array($job['generated_payload'] ?? null) ? $job['generated_payload'] : [];
-        $package = $this->normalized_generated_content_package($generated, $job);
-        $recipe = is_array($package['recipe'] ?? null) ? $package['recipe'] : [];
-        if (!$recipe) {
-            return [];
-        }
-
-        $ingredients = array_values(array_filter(array_map(
-            static fn ($item): string => sanitize_text_field((string) $item),
-            is_array($recipe['ingredients'] ?? null) ? $recipe['ingredients'] : []
-        )));
-        $instructions = array_values(array_filter(array_map(
-            static fn ($item): string => sanitize_text_field((string) $item),
-            is_array($recipe['instructions'] ?? null) ? $recipe['instructions'] : []
-        )));
-
-        return [
-            'prep_time'          => sanitize_text_field((string) ($recipe['prep_time'] ?? '')),
-            'cook_time'          => sanitize_text_field((string) ($recipe['cook_time'] ?? '')),
-            'total_time'         => sanitize_text_field((string) ($recipe['total_time'] ?? '')),
-            'yield'              => sanitize_text_field((string) ($recipe['yield'] ?? '')),
-            'ingredients_count'  => count($ingredients),
-            'instructions_count' => count($instructions),
-            'ingredients'        => $ingredients,
-            'instructions'       => $instructions,
-        ];
-    }
-
-    private function job_distribution_stats(array $job): array
-    {
-        $distribution = $this->job_facebook_distribution($job);
-        $pages = is_array($distribution['pages'] ?? null) ? $distribution['pages'] : [];
-
-        $stats = [
-            'total'     => count($pages),
-            'completed' => 0,
-            'failed'    => 0,
-        ];
-
-        foreach ($pages as $page) {
-            $status = (string) ($page['status'] ?? '');
-            if ($status === 'completed') {
-                $stats['completed'] += 1;
-                continue;
-            }
-
-            if (in_array($status, ['post_failed', 'comment_failed'], true)) {
-                $stats['failed'] += 1;
-            }
-        }
-
-        return $stats;
-    }
-
     private function format_admin_datetime(string $datetime): string
     {
         if ($datetime === '') {
@@ -7878,476 +6012,6 @@ final class Kuchnia_Twist_Publisher
     private function format_human_label(string $value): string
     {
         return ucwords(str_replace('_', ' ', $value));
-    }
-
-    private function quality_status_label(string $status): string
-    {
-        return match (sanitize_key($status)) {
-            'pass'  => __('Quality Pass', 'kuchnia-twist'),
-            'warn'  => __('Quality Warn', 'kuchnia-twist'),
-            'block' => __('Quality Block', 'kuchnia-twist'),
-            default => __('Quality Unknown', 'kuchnia-twist'),
-        };
-    }
-
-    private function quality_status_class(string $status): string
-    {
-        $normalized = sanitize_key($status);
-        if (!in_array($normalized, ['pass', 'warn', 'block'], true)) {
-            return 'quality-warn';
-        }
-
-        return 'quality-' . $normalized;
-    }
-
-    private function editorial_readiness_label(string $status): string
-    {
-        return match (sanitize_key($status)) {
-            'ready'   => __('Test Ready', 'kuchnia-twist'),
-            'review'  => __('Needs Review', 'kuchnia-twist'),
-            'blocked' => __('Blocked', 'kuchnia-twist'),
-            default   => __('Needs Review', 'kuchnia-twist'),
-        };
-    }
-
-    private function editorial_readiness_class(string $status): string
-    {
-        return match (sanitize_key($status)) {
-            'ready'   => 'quality-pass',
-            'blocked' => 'quality-block',
-            default   => 'quality-warn',
-        };
-    }
-
-    private function build_editorial_readiness_summary(array $args): array
-    {
-        $quality_status = sanitize_key((string) ($args['quality_status'] ?? 'warn'));
-        $quality_score = (int) ($args['quality_score'] ?? 0);
-        $title_strong = !empty($args['title_strong']);
-        $opening_alignment_score = (int) ($args['opening_alignment_score'] ?? 0);
-        $page_count = (int) ($args['page_count'] ?? 1);
-        $strong_page_openings = (int) ($args['strong_page_openings'] ?? 0);
-        $strong_page_summaries = (int) ($args['strong_page_summaries'] ?? 0);
-        $target_pages = (int) ($args['target_pages'] ?? 0);
-        $strong_social_variants = (int) ($args['strong_social_variants'] ?? 0);
-        $lead_social_score = (int) ($args['lead_social_score'] ?? 0);
-        $lead_social_specific = !empty($args['lead_social_specific']);
-        $lead_social_front_loaded = !empty($args['lead_social_front_loaded']);
-        $lead_social_promise_sync = !empty($args['lead_social_promise_sync']);
-        $blocking_checks = !empty($args['blocking_checks']) && is_array($args['blocking_checks']) ? array_values($args['blocking_checks']) : [];
-        $warning_checks = !empty($args['warning_checks']) && is_array($args['warning_checks']) ? array_values($args['warning_checks']) : [];
-
-        $readiness = 'review';
-        if ($quality_status === 'block') {
-            $readiness = 'blocked';
-        } elseif (
-            $quality_score >= 88
-            && $title_strong
-            && $opening_alignment_score >= 2
-            && $page_count >= 2
-            && $page_count <= 3
-            && $strong_page_openings >= $page_count
-            && $strong_page_summaries >= $page_count
-            && $strong_social_variants >= max(1, $target_pages)
-            && $lead_social_score >= 18
-            && $lead_social_specific
-            && $lead_social_front_loaded
-            && $lead_social_promise_sync
-        ) {
-            $readiness = 'ready';
-        }
-
-        $highlights = [];
-        if ($title_strong && $opening_alignment_score >= 2) {
-            $highlights[] = __('Headline and page-one opening land the same promise.', 'kuchnia-twist');
-        }
-        if ($page_count >= 2 && $page_count <= 3 && $strong_page_summaries >= $page_count) {
-            $highlights[] = sprintf(
-                /* translators: %d: page count */
-                __('Article flow feels intentional across %d pages.', 'kuchnia-twist'),
-                $page_count
-            );
-        }
-        if ($strong_social_variants >= max(1, $target_pages) && $lead_social_score >= 18) {
-            $highlights[] = __('Social pack has a strong lead and enough usable variants.', 'kuchnia-twist');
-        }
-        if (empty($highlights) && $quality_status !== 'block' && $quality_score >= 75) {
-            $highlights[] = __('Core package is usable for live testing.', 'kuchnia-twist');
-        }
-
-        $messages = $this->quality_failed_check_messages();
-        $watchouts = [];
-        foreach (array_slice(array_merge($blocking_checks, $warning_checks), 0, 3) as $failed_check) {
-            $watchouts[] = sanitize_text_field((string) ($messages[(string) $failed_check] ?? $this->format_human_label((string) $failed_check)));
-        }
-        if (empty($watchouts) && $readiness === 'ready') {
-            $watchouts[] = __('No major editorial warnings.', 'kuchnia-twist');
-        }
-
-        return [
-            'editorial_readiness' => $readiness,
-            'editorial_highlights' => array_values(array_filter($highlights, static fn ($item): bool => trim((string) $item) !== '')),
-            'editorial_watchouts' => array_values(array_filter($watchouts, static fn ($item): bool => trim((string) $item) !== '')),
-        ];
-    }
-
-    private function job_content_machine_meta(array $job): array
-    {
-        $generated = is_array($job['generated_payload'] ?? null) ? $job['generated_payload'] : [];
-        $request   = is_array($job['request_payload'] ?? null) ? $job['request_payload'] : [];
-        $meta = is_array($generated['content_machine'] ?? null)
-            ? $generated['content_machine']
-            : (is_array($request['content_machine'] ?? null) ? $request['content_machine'] : []);
-
-        return [
-            'prompt_version'      => sanitize_text_field((string) ($meta['prompt_version'] ?? '')),
-            'publication_profile' => sanitize_text_field((string) ($meta['publication_profile'] ?? '')),
-            'content_preset'      => sanitize_key((string) ($meta['content_preset'] ?? $job['content_type'] ?? '')),
-            'validator_summary'   => is_array($meta['validator_summary'] ?? null) ? $meta['validator_summary'] : [],
-        ];
-    }
-
-    private function job_quality_summary(array $job): array
-    {
-        $machine_meta = $this->job_content_machine_meta($job);
-        $validator_summary = is_array($machine_meta['validator_summary'] ?? null) ? $machine_meta['validator_summary'] : [];
-        $generated = is_array($job['generated_payload'] ?? null) ? $job['generated_payload'] : [];
-        $calculated = $generated ? $this->build_job_quality_summary($job, $generated) : [];
-
-        $quality_checks = is_array($validator_summary['quality_checks'] ?? null)
-            ? $validator_summary['quality_checks']
-            : [];
-        if (!$quality_checks && !empty($calculated['quality_checks'])) {
-            $quality_checks = $calculated['quality_checks'];
-        }
-
-        return [
-            'quality_score' => isset($validator_summary['quality_score'])
-                ? (int) $validator_summary['quality_score']
-                : (int) ($calculated['quality_score'] ?? 0),
-            'quality_status' => sanitize_key((string) ($validator_summary['quality_status'] ?? ($calculated['quality_status'] ?? ''))),
-            'package_quality' => is_array($validator_summary['package_quality'] ?? null)
-                ? $validator_summary['package_quality']
-                : (array) ($calculated['package_quality'] ?? []),
-            'channel_quality' => is_array($validator_summary['channel_quality'] ?? null)
-                ? $validator_summary['channel_quality']
-                : (array) ($calculated['channel_quality'] ?? []),
-            'blocking_checks' => !empty($validator_summary['blocking_checks']) && is_array($validator_summary['blocking_checks'])
-                ? $validator_summary['blocking_checks']
-                : (array) ($calculated['blocking_checks'] ?? []),
-            'warning_checks' => !empty($validator_summary['warning_checks']) && is_array($validator_summary['warning_checks'])
-                ? $validator_summary['warning_checks']
-                : (array) ($calculated['warning_checks'] ?? []),
-            'failed_checks' => !empty($validator_summary['failed_checks']) && is_array($validator_summary['failed_checks'])
-                ? $validator_summary['failed_checks']
-                : (array) ($calculated['failed_checks'] ?? []),
-            'editorial_readiness' => sanitize_key((string) ($validator_summary['editorial_readiness'] ?? ($calculated['editorial_readiness'] ?? ''))),
-            'editorial_highlights' => !empty($validator_summary['editorial_highlights']) && is_array($validator_summary['editorial_highlights'])
-                ? array_values(array_filter(array_map('sanitize_text_field', $validator_summary['editorial_highlights'])))
-                : (array) ($calculated['editorial_highlights'] ?? []),
-            'editorial_watchouts' => !empty($validator_summary['editorial_watchouts']) && is_array($validator_summary['editorial_watchouts'])
-                ? array_values(array_filter(array_map('sanitize_text_field', $validator_summary['editorial_watchouts'])))
-                : (array) ($calculated['editorial_watchouts'] ?? []),
-            'quality_checks' => $quality_checks,
-            'target_pages' => isset($validator_summary['target_pages'])
-                ? (int) $validator_summary['target_pages']
-                : (int) ($quality_checks['target_pages'] ?? 0),
-            'social_variants' => isset($validator_summary['social_variants'])
-                ? (int) $validator_summary['social_variants']
-                : (int) ($quality_checks['social_variants'] ?? 0),
-            'page_count' => isset($quality_checks['page_count'])
-                ? (int) $quality_checks['page_count']
-                : 0,
-            'shortest_page_words' => isset($quality_checks['shortest_page_words'])
-                ? (int) $quality_checks['shortest_page_words']
-                : 0,
-            'unique_page_labels' => isset($quality_checks['unique_page_labels'])
-                ? (int) $quality_checks['unique_page_labels']
-                : 0,
-            'strong_page_labels' => isset($quality_checks['strong_page_labels'])
-                ? (int) $quality_checks['strong_page_labels']
-                : 0,
-            'strong_page_summaries' => isset($quality_checks['strong_page_summaries'])
-                ? (int) $quality_checks['strong_page_summaries']
-                : 0,
-            'unique_social_hooks' => isset($validator_summary['unique_social_hooks'])
-                ? (int) $validator_summary['unique_social_hooks']
-                : (int) ($quality_checks['unique_social_hooks'] ?? 0),
-            'unique_social_openings' => isset($validator_summary['unique_social_openings'])
-                ? (int) $validator_summary['unique_social_openings']
-                : (int) ($quality_checks['unique_social_openings'] ?? 0),
-            'unique_social_angles' => isset($validator_summary['unique_social_angles'])
-                ? (int) $validator_summary['unique_social_angles']
-                : (int) ($quality_checks['unique_social_angles'] ?? 0),
-            'strong_social_variants' => isset($validator_summary['strong_social_variants'])
-                ? (int) $validator_summary['strong_social_variants']
-                : (int) ($quality_checks['strong_social_variants'] ?? 0),
-            'article_title_score' => isset($validator_summary['article_title_score'])
-                ? (int) $validator_summary['article_title_score']
-                : (int) ($quality_checks['title_score'] ?? 0),
-            'article_title_strong' => array_key_exists('article_title_strong', $validator_summary)
-                ? !empty($validator_summary['article_title_strong'])
-                : !empty($quality_checks['title_strong']),
-            'article_title_front_load_score' => isset($validator_summary['article_title_front_load_score'])
-                ? (int) $validator_summary['article_title_front_load_score']
-                : (int) ($quality_checks['title_front_load_score'] ?? 0),
-            'article_opening_alignment_score' => isset($validator_summary['article_opening_alignment_score'])
-                ? (int) $validator_summary['article_opening_alignment_score']
-                : (int) ($quality_checks['opening_alignment_score'] ?? 0),
-            'article_opening_front_load_score' => isset($validator_summary['article_opening_front_load_score'])
-                ? (int) $validator_summary['article_opening_front_load_score']
-                : (int) ($quality_checks['opening_front_load_score'] ?? 0),
-            'article_excerpt_signal_score' => isset($validator_summary['article_excerpt_signal_score'])
-                ? (int) $validator_summary['article_excerpt_signal_score']
-                : (int) ($quality_checks['excerpt_signal_score'] ?? 0),
-            'article_excerpt_front_load_score' => isset($validator_summary['article_excerpt_front_load_score'])
-                ? (int) $validator_summary['article_excerpt_front_load_score']
-                : (int) ($quality_checks['excerpt_front_load_score'] ?? 0),
-            'article_seo_signal_score' => isset($validator_summary['article_seo_signal_score'])
-                ? (int) $validator_summary['article_seo_signal_score']
-                : (int) ($quality_checks['seo_signal_score'] ?? 0),
-            'article_seo_front_load_score' => isset($validator_summary['article_seo_front_load_score'])
-                ? (int) $validator_summary['article_seo_front_load_score']
-                : (int) ($quality_checks['seo_front_load_score'] ?? 0),
-            'article_excerpt_adds_value' => array_key_exists('article_excerpt_adds_value', $validator_summary)
-                ? !empty($validator_summary['article_excerpt_adds_value'])
-                : !empty($quality_checks['excerpt_adds_value']),
-            'article_opening_adds_value' => array_key_exists('article_opening_adds_value', $validator_summary)
-                ? !empty($validator_summary['article_opening_adds_value'])
-                : !empty($quality_checks['opening_adds_value']),
-            'social_pool_size' => isset($validator_summary['social_pool_size'])
-                ? (int) $validator_summary['social_pool_size']
-                : (int) ($quality_checks['social_pool_size'] ?? 0),
-            'strong_social_candidates' => isset($validator_summary['strong_social_candidates'])
-                ? (int) $validator_summary['strong_social_candidates']
-                : (int) ($quality_checks['strong_social_candidates'] ?? 0),
-            'specific_social_candidates' => isset($validator_summary['specific_social_candidates'])
-                ? (int) $validator_summary['specific_social_candidates']
-                : (int) ($quality_checks['specific_social_candidates'] ?? 0),
-            'unique_hook_form_candidates' => isset($validator_summary['unique_hook_form_candidates'])
-                ? (int) $validator_summary['unique_hook_form_candidates']
-                : (int) ($quality_checks['unique_hook_form_candidates'] ?? 0),
-            'immediacy_social_candidates' => isset($validator_summary['immediacy_social_candidates'])
-                ? (int) $validator_summary['immediacy_social_candidates']
-                : (int) ($quality_checks['immediacy_social_candidates'] ?? 0),
-            'promise_sync_candidates' => isset($validator_summary['promise_sync_candidates'])
-                ? (int) $validator_summary['promise_sync_candidates']
-                : (int) ($quality_checks['promise_sync_candidates'] ?? 0),
-            'relatable_social_candidates' => isset($validator_summary['relatable_social_candidates'])
-                ? (int) $validator_summary['relatable_social_candidates']
-                : (int) ($quality_checks['relatable_social_candidates'] ?? 0),
-            'recognition_social_candidates' => isset($validator_summary['recognition_social_candidates'])
-                ? (int) $validator_summary['recognition_social_candidates']
-                : (int) ($quality_checks['recognition_social_candidates'] ?? 0),
-            'conversation_social_candidates' => isset($validator_summary['conversation_social_candidates'])
-                ? (int) $validator_summary['conversation_social_candidates']
-                : (int) ($quality_checks['conversation_social_candidates'] ?? 0),
-            'savvy_social_candidates' => isset($validator_summary['savvy_social_candidates'])
-                ? (int) $validator_summary['savvy_social_candidates']
-                : (int) ($quality_checks['savvy_social_candidates'] ?? 0),
-            'identity_shift_social_candidates' => isset($validator_summary['identity_shift_social_candidates'])
-                ? (int) $validator_summary['identity_shift_social_candidates']
-                : (int) ($quality_checks['identity_shift_social_candidates'] ?? 0),
-            'proof_social_candidates' => isset($validator_summary['proof_social_candidates'])
-                ? (int) $validator_summary['proof_social_candidates']
-                : (int) ($quality_checks['proof_social_candidates'] ?? 0),
-            'actionable_social_candidates' => isset($validator_summary['actionable_social_candidates'])
-                ? (int) $validator_summary['actionable_social_candidates']
-                : (int) ($quality_checks['actionable_social_candidates'] ?? 0),
-            'consequence_social_candidates' => isset($validator_summary['consequence_social_candidates'])
-                ? (int) $validator_summary['consequence_social_candidates']
-                : (int) ($quality_checks['consequence_social_candidates'] ?? 0),
-            'habit_shift_social_candidates' => isset($validator_summary['habit_shift_social_candidates'])
-                ? (int) $validator_summary['habit_shift_social_candidates']
-                : (int) ($quality_checks['habit_shift_social_candidates'] ?? 0),
-            'focused_social_candidates' => isset($validator_summary['focused_social_candidates'])
-                ? (int) $validator_summary['focused_social_candidates']
-                : (int) ($quality_checks['focused_social_candidates'] ?? 0),
-            'scannable_social_candidates' => isset($validator_summary['scannable_social_candidates'])
-                ? (int) $validator_summary['scannable_social_candidates']
-                : (int) ($quality_checks['scannable_social_candidates'] ?? 0),
-            'two_step_social_candidates' => isset($validator_summary['two_step_social_candidates'])
-                ? (int) $validator_summary['two_step_social_candidates']
-                : (int) ($quality_checks['two_step_social_candidates'] ?? 0),
-            'anchored_social_candidates' => isset($validator_summary['anchored_social_candidates'])
-                ? (int) $validator_summary['anchored_social_candidates']
-                : (int) ($quality_checks['anchored_social_candidates'] ?? 0),
-            'novelty_social_candidates' => isset($validator_summary['novelty_social_candidates'])
-                ? (int) $validator_summary['novelty_social_candidates']
-                : (int) ($quality_checks['novelty_social_candidates'] ?? 0),
-            'front_loaded_social_candidates' => isset($validator_summary['front_loaded_social_candidates'])
-                ? (int) $validator_summary['front_loaded_social_candidates']
-                : (int) ($quality_checks['front_loaded_social_candidates'] ?? 0),
-            'curiosity_social_candidates' => isset($validator_summary['curiosity_social_candidates'])
-                ? (int) $validator_summary['curiosity_social_candidates']
-                : (int) ($quality_checks['curiosity_social_candidates'] ?? 0),
-            'resolution_social_candidates' => isset($validator_summary['resolution_social_candidates'])
-                ? (int) $validator_summary['resolution_social_candidates']
-                : (int) ($quality_checks['resolution_social_candidates'] ?? 0),
-            'contrast_social_candidates' => isset($validator_summary['contrast_social_candidates'])
-                ? (int) $validator_summary['contrast_social_candidates']
-                : (int) ($quality_checks['contrast_social_candidates'] ?? 0),
-            'pain_point_social_candidates' => isset($validator_summary['pain_point_social_candidates'])
-                ? (int) $validator_summary['pain_point_social_candidates']
-                : (int) ($quality_checks['pain_point_social_candidates'] ?? 0),
-            'payoff_social_candidates' => isset($validator_summary['payoff_social_candidates'])
-                ? (int) $validator_summary['payoff_social_candidates']
-                : (int) ($quality_checks['payoff_social_candidates'] ?? 0),
-            'high_scoring_social_candidates' => isset($validator_summary['high_scoring_social_candidates'])
-                ? (int) $validator_summary['high_scoring_social_candidates']
-                : (int) ($quality_checks['high_scoring_social_candidates'] ?? 0),
-            'specific_social_variants' => isset($validator_summary['specific_social_variants'])
-                ? (int) $validator_summary['specific_social_variants']
-                : (int) ($quality_checks['specific_social_variants'] ?? 0),
-            'unique_social_hook_forms' => isset($validator_summary['unique_social_hook_forms'])
-                ? (int) $validator_summary['unique_social_hook_forms']
-                : (int) ($quality_checks['unique_social_hook_forms'] ?? 0),
-            'anchored_variants' => isset($validator_summary['anchored_variants'])
-                ? (int) $validator_summary['anchored_variants']
-                : (int) ($quality_checks['anchored_variants'] ?? 0),
-            'novelty_variants' => isset($validator_summary['novelty_variants'])
-                ? (int) $validator_summary['novelty_variants']
-                : (int) ($quality_checks['novelty_variants'] ?? 0),
-            'relatable_variants' => isset($validator_summary['relatable_variants'])
-                ? (int) $validator_summary['relatable_variants']
-                : (int) ($quality_checks['relatable_variants'] ?? 0),
-            'recognition_variants' => isset($validator_summary['recognition_variants'])
-                ? (int) $validator_summary['recognition_variants']
-                : (int) ($quality_checks['recognition_variants'] ?? 0),
-            'conversation_variants' => isset($validator_summary['conversation_variants'])
-                ? (int) $validator_summary['conversation_variants']
-                : (int) ($quality_checks['conversation_variants'] ?? 0),
-            'savvy_variants' => isset($validator_summary['savvy_variants'])
-                ? (int) $validator_summary['savvy_variants']
-                : (int) ($quality_checks['savvy_variants'] ?? 0),
-            'identity_shift_variants' => isset($validator_summary['identity_shift_variants'])
-                ? (int) $validator_summary['identity_shift_variants']
-                : (int) ($quality_checks['identity_shift_variants'] ?? 0),
-            'proof_variants' => isset($validator_summary['proof_variants'])
-                ? (int) $validator_summary['proof_variants']
-                : (int) ($quality_checks['proof_variants'] ?? 0),
-            'actionable_variants' => isset($validator_summary['actionable_variants'])
-                ? (int) $validator_summary['actionable_variants']
-                : (int) ($quality_checks['actionable_variants'] ?? 0),
-            'immediacy_variants' => isset($validator_summary['immediacy_variants'])
-                ? (int) $validator_summary['immediacy_variants']
-                : (int) ($quality_checks['immediacy_variants'] ?? 0),
-            'promise_sync_variants' => isset($validator_summary['promise_sync_variants'])
-                ? (int) $validator_summary['promise_sync_variants']
-                : (int) ($quality_checks['promise_sync_variants'] ?? 0),
-            'consequence_variants' => isset($validator_summary['consequence_variants'])
-                ? (int) $validator_summary['consequence_variants']
-                : (int) ($quality_checks['consequence_variants'] ?? 0),
-            'habit_shift_variants' => isset($validator_summary['habit_shift_variants'])
-                ? (int) $validator_summary['habit_shift_variants']
-                : (int) ($quality_checks['habit_shift_variants'] ?? 0),
-            'focused_variants' => isset($validator_summary['focused_variants'])
-                ? (int) $validator_summary['focused_variants']
-                : (int) ($quality_checks['focused_variants'] ?? 0),
-            'scannable_variants' => isset($validator_summary['scannable_variants'])
-                ? (int) $validator_summary['scannable_variants']
-                : (int) ($quality_checks['scannable_variants'] ?? 0),
-            'two_step_variants' => isset($validator_summary['two_step_variants'])
-                ? (int) $validator_summary['two_step_variants']
-                : (int) ($quality_checks['two_step_variants'] ?? 0),
-            'front_loaded_social_variants' => isset($validator_summary['front_loaded_social_variants'])
-                ? (int) $validator_summary['front_loaded_social_variants']
-                : (int) ($quality_checks['front_loaded_social_variants'] ?? 0),
-            'curiosity_variants' => isset($validator_summary['curiosity_variants'])
-                ? (int) $validator_summary['curiosity_variants']
-                : (int) ($quality_checks['curiosity_variants'] ?? 0),
-            'resolution_variants' => isset($validator_summary['resolution_variants'])
-                ? (int) $validator_summary['resolution_variants']
-                : (int) ($quality_checks['resolution_variants'] ?? 0),
-            'contrast_variants' => isset($validator_summary['contrast_variants'])
-                ? (int) $validator_summary['contrast_variants']
-                : (int) ($quality_checks['contrast_variants'] ?? 0),
-            'pain_point_variants' => isset($validator_summary['pain_point_variants'])
-                ? (int) $validator_summary['pain_point_variants']
-                : (int) ($quality_checks['pain_point_variants'] ?? 0),
-            'payoff_variants' => isset($validator_summary['payoff_variants'])
-                ? (int) $validator_summary['payoff_variants']
-                : (int) ($quality_checks['payoff_variants'] ?? 0),
-            'selected_social_average_score' => isset($validator_summary['selected_social_average_score'])
-                ? (float) $validator_summary['selected_social_average_score']
-                : (float) ($quality_checks['selected_social_average_score'] ?? 0),
-            'lead_social_score' => isset($validator_summary['lead_social_score'])
-                ? (int) $validator_summary['lead_social_score']
-                : (int) ($quality_checks['lead_social_score'] ?? 0),
-            'lead_social_hook_form' => !empty($validator_summary['lead_social_hook_form'])
-                ? sanitize_key((string) $validator_summary['lead_social_hook_form'])
-                : sanitize_key((string) ($quality_checks['lead_social_hook_form'] ?? '')),
-            'lead_social_specific' => array_key_exists('lead_social_specific', $validator_summary)
-                ? !empty($validator_summary['lead_social_specific'])
-                : !empty($quality_checks['lead_social_specific']),
-            'lead_social_anchored' => array_key_exists('lead_social_anchored', $validator_summary)
-                ? !empty($validator_summary['lead_social_anchored'])
-                : !empty($quality_checks['lead_social_anchored']),
-            'lead_social_novelty' => array_key_exists('lead_social_novelty', $validator_summary)
-                ? !empty($validator_summary['lead_social_novelty'])
-                : !empty($quality_checks['lead_social_novelty']),
-            'lead_social_relatable' => array_key_exists('lead_social_relatable', $validator_summary)
-                ? !empty($validator_summary['lead_social_relatable'])
-                : !empty($quality_checks['lead_social_relatable']),
-            'lead_social_recognition' => array_key_exists('lead_social_recognition', $validator_summary)
-                ? !empty($validator_summary['lead_social_recognition'])
-                : !empty($quality_checks['lead_social_recognition']),
-            'lead_social_conversation' => array_key_exists('lead_social_conversation', $validator_summary)
-                ? !empty($validator_summary['lead_social_conversation'])
-                : !empty($quality_checks['lead_social_conversation']),
-            'lead_social_savvy' => array_key_exists('lead_social_savvy', $validator_summary)
-                ? !empty($validator_summary['lead_social_savvy'])
-                : !empty($quality_checks['lead_social_savvy']),
-            'lead_social_identity_shift' => array_key_exists('lead_social_identity_shift', $validator_summary)
-                ? !empty($validator_summary['lead_social_identity_shift'])
-                : !empty($quality_checks['lead_social_identity_shift']),
-            'lead_social_proof' => array_key_exists('lead_social_proof', $validator_summary)
-                ? !empty($validator_summary['lead_social_proof'])
-                : !empty($quality_checks['lead_social_proof']),
-            'lead_social_actionable' => array_key_exists('lead_social_actionable', $validator_summary)
-                ? !empty($validator_summary['lead_social_actionable'])
-                : !empty($quality_checks['lead_social_actionable']),
-            'lead_social_immediacy' => array_key_exists('lead_social_immediacy', $validator_summary)
-                ? !empty($validator_summary['lead_social_immediacy'])
-                : !empty($quality_checks['lead_social_immediacy']),
-            'lead_social_promise_sync' => array_key_exists('lead_social_promise_sync', $validator_summary)
-                ? !empty($validator_summary['lead_social_promise_sync'])
-                : !empty($quality_checks['lead_social_promise_sync']),
-            'lead_social_consequence' => array_key_exists('lead_social_consequence', $validator_summary)
-                ? !empty($validator_summary['lead_social_consequence'])
-                : !empty($quality_checks['lead_social_consequence']),
-            'lead_social_habit_shift' => array_key_exists('lead_social_habit_shift', $validator_summary)
-                ? !empty($validator_summary['lead_social_habit_shift'])
-                : !empty($quality_checks['lead_social_habit_shift']),
-            'lead_social_focused' => array_key_exists('lead_social_focused', $validator_summary)
-                ? !empty($validator_summary['lead_social_focused'])
-                : !empty($quality_checks['lead_social_focused']),
-            'lead_social_scannable' => array_key_exists('lead_social_scannable', $validator_summary)
-                ? !empty($validator_summary['lead_social_scannable'])
-                : !empty($quality_checks['lead_social_scannable']),
-            'lead_social_two_step' => array_key_exists('lead_social_two_step', $validator_summary)
-                ? !empty($validator_summary['lead_social_two_step'])
-                : !empty($quality_checks['lead_social_two_step']),
-            'lead_social_curiosity' => array_key_exists('lead_social_curiosity', $validator_summary)
-                ? !empty($validator_summary['lead_social_curiosity'])
-                : !empty($quality_checks['lead_social_curiosity']),
-            'lead_social_resolved' => array_key_exists('lead_social_resolved', $validator_summary)
-                ? !empty($validator_summary['lead_social_resolved'])
-                : !empty($quality_checks['lead_social_resolved']),
-            'lead_social_contrast' => array_key_exists('lead_social_contrast', $validator_summary)
-                ? !empty($validator_summary['lead_social_contrast'])
-                : !empty($quality_checks['lead_social_contrast']),
-            'lead_social_front_loaded' => array_key_exists('lead_social_front_loaded', $validator_summary)
-                ? !empty($validator_summary['lead_social_front_loaded'])
-                : !empty($quality_checks['lead_social_front_loaded']),
-            'lead_social_pain_point' => array_key_exists('lead_social_pain_point', $validator_summary)
-                ? !empty($validator_summary['lead_social_pain_point'])
-                : !empty($quality_checks['lead_social_pain_point']),
-            'lead_social_payoff' => array_key_exists('lead_social_payoff', $validator_summary)
-                ? !empty($validator_summary['lead_social_payoff'])
-                : !empty($quality_checks['lead_social_payoff']),
-            'distribution_source' => sanitize_key((string) ($validator_summary['distribution_source'] ?? '')),
-        ];
     }
 
     private function retry_link(array $job): string
@@ -8789,493 +6453,9 @@ final class Kuchnia_Twist_Publisher
     private function parse_topics(string $topics_text): array
     {
         $topics = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $topics_text)));
-        return $topics ?: kuchnia_twist_launch_topics();
+        return $topics ?: kuchnia_twist_active_launch_topics();
     }
 
-    private function content_types(): array
-    {
-        return [
-            'recipe'     => __('Recipe', 'kuchnia-twist'),
-            'food_fact'  => __('Food Fact', 'kuchnia-twist'),
-            'food_story' => __('Food Story', 'kuchnia-twist'),
-        ];
-    }
-
-    private function queueable_content_types(): array
-    {
-        return [
-            'recipe' => $this->content_types()['recipe'],
-            'food_fact' => $this->content_types()['food_fact'],
-        ];
-    }
-
-    private function default_publication_role(): string
-    {
-        return implode("\n", [
-            'You are the lead editorial writer for Kuchnia Twist.',
-            'Write for a food publication that wants strong clicks, honest payoff, and articles that feel worth the visit.',
-            'Your job is to produce publishable recipe articles and food explainers that sound human, specific, and confident.',
-            'Win the click with real value, then reward the visit with clear structure, useful detail, and sharp editorial judgment.',
-        ]);
-    }
-
-    private function default_voice_brief(): string
-    {
-        return implode("\n", [
-            'Warm, practical, craveable, and trustworthy.',
-            'Write for real home cooks and curious food readers who want reliable recipes, sharper kitchen understanding, and a concrete payoff after the click.',
-            'Lead with usefulness, appetite, and honest curiosity.',
-            'The tone should feel premium, human, and editorial rather than robotic, spammy, or overhyped.',
-        ]);
-    }
-
-    private function default_global_guardrails(): string
-    {
-        return implode("\n", [
-            'No fake personal stories, invented reporting, fabricated authority, or made-up facts.',
-            'No filler SEO intros, generic throat-clearing, or padded explanations.',
-            'No spammy clickbait, fake cliffhangers, or hollow viral language.',
-            'No medical, nutrition, detox, or expert claims beyond ordinary kitchen guidance.',
-            'Keep paragraphs short, specific, and human.',
-            'Every promise in the title, hook, excerpt, or caption must be honestly supported by the article.',
-            'Do not use generic openers like "when it comes to" or "in today\'s busy world."',
-        ]);
-    }
-
-    private function default_recipe_master_direction(): string
-    {
-        return implode("\n", [
-            'Turn a dish name into a publishable multi-page recipe article package.',
-            'Focus this stage on title quality, excerpt, SEO description, article pages, page flow, recipe-card readiness, and image direction.',
-            'Make the article highly clickable without being misleading.',
-            'Keep the recipe practical, credible, and worth publishing on a real food site.',
-            'Social candidate generation is handled separately, so prioritize article quality and reading momentum here.',
-        ]);
-    }
-
-    private function default_recipe_article_guidance(): string
-    {
-        return implode("\n", [
-            'Open fast with appetite, concrete payoff, and a real reason to care.',
-            'Prefer title and opening combinations that signal a specific payoff like speed, texture, comfort, convenience, or a useful shortcut.',
-            'Use 1 to 2 short opening paragraphs, then H2 sections for why this recipe works, ingredient notes, practical method, and serving or storage tips.',
-            'Build the article as 2 to 3 intentional pages: page 1 hooks, page 2 carries the deepest useful detail, and page 3, if needed, should feel earned and lead naturally into the recipe card.',
-            'Keep the recipe realistic, cookable, and repeatable for home kitchens.',
-            'Prioritize taste, texture, convenience, comfort, and kitchen usefulness over fluff.',
-            'Do not paste the full ingredient list and full numbered method into the article body; let the recipe card carry the full recipe.',
-        ]);
-    }
-
-    private function default_food_fact_article_guidance(): string
-    {
-        return implode("\n", [
-            'Treat the entered title as a working topic, not a locked final headline.',
-            'Lead with a direct answer and improve the final publish title if a clearer, sharper version exists.',
-            'Prefer title and opening combinations that frame a real kitchen pain point, mistake, misunderstanding, or practical payoff instead of vague listicle energy.',
-            'Use H2 sections for the direct answer, what most people get wrong, what is actually happening, and the practical takeaway.',
-            'Build the article as 2 to 3 intentional pages: page 1 answers fast, page 2 explains what is really happening or what people get wrong, and page 3 only appears if it delivers a strong practical takeaway.',
-            'Stay in editorial explainer territory only and focus on kitchen truth, clarity, and click-worthy payoff instead of vague listicle filler.',
-            'Do not output ingredients, instructions, or recipe-style metadata for food facts.',
-        ]);
-    }
-
-    private function default_facebook_variant_guidance(): string
-    {
-        return implode("\n", [
-            'Generate a strong pool of recipe Facebook candidates, not clones.',
-            'The final selected set must give each selected page a different angle such as quick dinner, comfort food, budget-friendly, beginner-friendly, crowd-pleaser, or better-than-takeout.',
-            'Hooks should be short, specific, and interruptive without fake hype or title echo.',
-            'Favor hooks and captions that name a real payoff, shortcut, texture, timing, or cooking relief point instead of vague excitement.',
-            'Captions should be 2 to 5 short lines that add real taste, texture, ease, timing, or payoff.',
-            'Make at least some hooks feel sharper than safe generic social copy while staying honest and specific.',
-            'No links, hashtags, emoji clutter, or repeated hook-as-caption openings.',
-        ]);
-    }
-
-    private function default_food_fact_social_guidance(): string
-    {
-        return implode("\n", [
-            'Generate a strong pool of food-fact Facebook candidates that feel myth-busting, surprising, corrective, or practically useful.',
-            'The final selected set should vary angles such as surprising truth, kitchen mistake, smarter shortcut, ingredient truth, or what most people get wrong.',
-            'Hooks should be short, specific, and curiosity-led without fake bait or title echo.',
-            'Favor hooks and captions that name a real pain point, mistake, misunderstanding, or practical fix instead of broad curiosity alone.',
-            'Captions should be 2 to 5 short lines that reveal the payoff or practical takeaway.',
-            'Make at least some hooks feel punchy enough to stop scrolling, but avoid hollow listicle hype or obvious bait phrasing.',
-            'No links, hashtags, emoji clutter, or empty listicle hype.',
-        ]);
-    }
-
-    private function default_image_style_brief(): string
-    {
-        return implode("\n", [
-            'Use realistic, appetizing food photography with natural light, clean composition, believable texture, and no text overlays.',
-            'For recipes, bias toward finished-dish hero imagery.',
-            'For food explainers, use the most useful food subject for the article, which may be an ingredient, prep scene, or finished food rather than a plated dish.',
-        ]);
-    }
-
-    private function legacy_guardrails_text(array $settings): string
-    {
-        return trim(implode("\n", array_filter([
-            trim((string) ($settings['editorial_do_guidance'] ?? '')),
-            trim((string) ($settings['editorial_dont_guidance'] ?? '')),
-            trim((string) ($settings['banned_claim_guidance'] ?? '')),
-        ])));
-    }
-
-    private function default_settings(): array
-    {
-        return [
-            'topics_text'                => implode("\n", kuchnia_twist_launch_topics()),
-            'publication_profile_name'   => 'Kuchnia Twist',
-            'publication_role'           => $this->default_publication_role(),
-            'brand_voice'                => $this->default_voice_brief(),
-            'global_guardrails'          => $this->default_global_guardrails(),
-            'editorial_do_guidance'      => 'Lead with concrete kitchen detail, use helpful headings, and keep the tone calm, specific, and useful.',
-            'editorial_dont_guidance'    => 'Avoid filler openings, AI mention, fabricated first-person memories, and unsupported expert language.',
-            'banned_claim_guidance'      => 'Avoid medical, nutritional, or safety claims beyond ordinary kitchen guidance the publication can reasonably support.',
-            'shared_link_policy'         => 'Include at least three relevant internal Kuchnia Twist links inside the article body.',
-            'recipe_master_prompt'       => $this->default_recipe_master_direction(),
-            'article_prompt'             => $this->default_recipe_article_guidance(),
-            'food_fact_article_prompt'   => $this->default_food_fact_article_guidance(),
-            'recipe_preset_guidance'     => 'Create dependable, craveable, and realistic home-cooking recipes with believable timings, coherent ingredient amounts, repeatable results, and enough practical value to reward the click.',
-            'food_fact_preset_guidance'  => 'Treat the entered title as a working topic, answer it directly, correct common confusion, explain what is really happening, and finish with a practical takeaway.',
-            'food_story_preset_guidance' => 'Write a publication-voice essay with a clear observation, practical home-cooking meaning, and a reflective close without fake memoir.',
-            'facebook_caption_guidance'  => $this->default_facebook_variant_guidance(),
-            'food_fact_facebook_caption_guidance' => $this->default_food_fact_social_guidance(),
-            'group_share_guidance'       => 'Write a useful manual-share blurb that feels natural in food groups and leaves the link to the operator or tracked follow-up.',
-            'default_cta'                => 'Read the full article on the blog.',
-            'editor_name'                => '',
-            'editor_role'                => 'Founding editor',
-            'editor_bio'                 => 'Kuchnia Twist is edited as a warm home-cooking journal focused on practical recipes, useful ingredient explainers, and slower story-led kitchen essays.',
-            'editor_public_email'        => '',
-            'editor_business_email'      => '',
-            'editor_photo_id'            => 0,
-            'social_instagram_url'       => '',
-            'social_facebook_url'        => '',
-            'social_pinterest_url'       => '',
-            'social_tiktok_url'          => '',
-            'social_follow_label'        => 'Follow Kuchnia Twist',
-            'openai_model'               => 'gpt-5-mini',
-            'openai_image_model'         => 'gpt-image-1.5',
-            'openai_api_key'             => '',
-            'image_style'                => $this->default_image_style_brief(),
-            'image_generation_mode'      => 'uploaded_first_generate_missing',
-            'daily_publish_time'         => '09:00',
-            'repair_enabled'             => '1',
-            'repair_attempts'            => 1,
-            'facebook_graph_version'     => 'v22.0',
-            'facebook_page_id'           => '',
-            'facebook_page_access_token' => '',
-            'facebook_pages'             => [],
-            'utm_source'                 => 'facebook',
-            'utm_campaign_prefix'        => 'kuchnia-twist',
-        ];
-    }
-
-    private function get_settings(): array
-    {
-        $settings = wp_parse_args(get_option(self::OPTION_KEY, []), $this->default_settings());
-        $settings['image_generation_mode'] = $this->sanitize_image_generation_mode($settings['image_generation_mode'] ?? 'uploaded_first_generate_missing');
-
-        $legacy_publication_role_defaults = [
-            implode("\n", [
-                'You are the lead editorial writer for Kuchnia Twist.',
-                'Write for a food publication that wants strong clicks, honest payoff, and articles that feel worth the visit.',
-                'Your job is to produce publishable recipe articles and food explainers that sound human, specific, and confident.',
-            ]),
-        ];
-        $legacy_voice_defaults = [
-            'Warm, practical, calm, and editorial. The site should sound like a trusted home-cooking publication rather than a generic SEO blog.',
-            'Warm, practical, craveable, and trustworthy. Write for real home cooks who want clear steps, reliable results, and recipes worth repeating.',
-            implode("\n", [
-                'Warm, practical, craveable, and trustworthy.',
-                'Write for real home cooks who want clear steps, reliable results, and recipes worth repeating.',
-                'The tone should feel premium and human, not robotic, spammy, or overhyped.',
-            ]),
-            implode("\n", [
-                'Warm, practical, craveable, and trustworthy.',
-                'Write for real home cooks who want clear steps, reliable results, and recipes worth repeating.',
-                'Lead with appetite, usefulness, and honest payoff so every click feels earned.',
-                'The tone should feel premium and human, not robotic, spammy, or overhyped.',
-            ]),
-        ];
-        $legacy_guardrail_defaults = [
-            implode("\n", [
-                'No fake personal stories or invented family memories.',
-                'No filler SEO intros, generic throat-clearing, or padded explanations.',
-                'No spammy clickbait, fake cliffhangers, or weak viral language.',
-                'No medical, nutrition, weight-loss, detox, or expert claims beyond ordinary kitchen guidance.',
-                'Keep paragraphs short, specific, and human.',
-                'Every promise in the hook or title must be honestly supported by the recipe.',
-            ]),
-            implode("\n", [
-                'No fake personal stories or invented family memories.',
-                'No filler SEO intros, generic throat-clearing, or padded explanations.',
-                'No spammy clickbait, fake cliffhangers, or weak viral language.',
-                'No medical, nutrition, weight-loss, detox, or expert claims beyond ordinary kitchen guidance.',
-                'Keep paragraphs short, specific, and human.',
-                'Every promise in the hook or title must be honestly supported by the recipe.',
-                'Do not use generic openers like "when it comes to" or "in today\'s busy world."',
-            ]),
-        ];
-        $legacy_master_defaults = [
-            'Generate a premium, practical recipe article from the dish name. Return a complete blog package, recipe card data, image direction, and a strong multi-page Facebook social pack with one unique hook-led variant per selected page.',
-            'Turn the dish name into a complete premium recipe package with a strong title, excerpt, SEO description, useful article body, structured recipe card, image direction, and one unique Facebook variant per selected page.',
-            implode("\n", [
-                'Turn the dish name into one complete premium recipe package.',
-                'Return a strong title, excerpt, SEO description, useful article body, structured recipe card, image direction, and one unique Facebook variant per selected page.',
-                'Make the recipe feel highly clickable without being misleading.',
-                'Make the output original, practical, cookable, and worth publishing on a real food site.',
-            ]),
-            implode("\n", [
-                'Turn the dish name into one complete premium recipe package.',
-                'Return a strong title, excerpt, SEO description, useful article body, structured recipe card, image direction, and one unique Facebook variant per selected page.',
-                'Make the recipe feel highly clickable without being misleading.',
-                'Make the output original, practical, cookable, and worth publishing on a real food site.',
-                'Keep the blog article strong enough to justify the click and the Facebook variants sharp enough to earn it.',
-            ]),
-        ];
-        $legacy_article_defaults = [
-            'Write original, useful, and substantial home-cooking content with clean headings, specific guidance, and no filler.',
-            'Open with appetite and payoff. Use H2 sections for why this recipe works, ingredient notes, practical method, and serving or storage tips. Keep the recipe realistic, cookable, and repeatable for home kitchens.',
-            implode("\n", [
-                'Open with appetite, payoff, and a clear reason to care.',
-                'Use H2 sections for why this recipe works, ingredient notes, practical method, and serving or storage tips.',
-                'Keep the recipe realistic, cookable, and repeatable for home kitchens.',
-                'Prioritize taste, texture, convenience, comfort, and kitchen usefulness over fluff.',
-                'Do not paste the full ingredient list and full numbered method into the article body; keep those in the recipe card.',
-            ]),
-            implode("\n", [
-                'Open with appetite, payoff, and a clear reason to care.',
-                'Use 1 to 2 short opening paragraphs, then H2 sections for why this recipe works, ingredient notes, practical method, and serving or storage tips.',
-                'Build the article as 2 to 3 intentional pages: page 1 hooks the reader, page 2 deepens the useful detail, and page 3, if needed, should feel earned and lead naturally into the recipe card.',
-                'Keep the recipe realistic, cookable, and repeatable for home kitchens.',
-                'Prioritize taste, texture, convenience, comfort, and kitchen usefulness over fluff.',
-                'Do not paste the full ingredient list and full numbered method into the article body; keep those in the recipe card.',
-            ]),
-        ];
-        $legacy_food_fact_article_defaults = [
-            implode("\n", [
-                'Lead with a direct answer, not a slow introduction.',
-                'Use H2 sections for the direct answer, what most people get wrong, what is actually happening, and the practical takeaway.',
-                'Build the article as 2 to 3 intentional pages: page 1 answers the question fast, page 2 explains the why, and page 3, if needed, lands the practical takeaway.',
-                'Keep the piece useful, specific, and strongly editorial without drifting into recipe-card structure.',
-                'Focus on kitchen truth, clarity, and click-worthy payoff instead of vague listicle filler.',
-                'Do not output ingredients, instructions, or recipe-style metadata for food facts.',
-            ]),
-        ];
-        $legacy_social_defaults = [
-            'Write a short, hook-led Facebook caption that feels conversational and never includes the link.',
-            'Generate one distinct variant per selected Facebook page. Use short curiosity-led hooks and 2 to 5 short caption lines. Vary the angle across pages: quick dinner, comfort food, budget-friendly, beginner-friendly, crowd-pleasing, or better-than-takeout. No links, hashtags, or fake cliffhangers.',
-            implode("\n", [
-                'Generate one distinct Facebook variant per selected page.',
-                'Each variant must have a short hook plus a 2 to 5 line caption.',
-                'Vary the angle across pages: quick dinner, comfort food, budget-friendly, beginner-friendly, crowd-pleasing, or better-than-takeout.',
-                'Hooks must feel curiosity-led and high-performing without sounding fake or low-trust.',
-                'No links, hashtags, emoji clutter, or fake cliffhangers.',
-                'Do not repeat the same sentence pattern across all variants.',
-            ]),
-            implode("\n", [
-                'Generate one distinct Facebook variant per selected page.',
-                'Each variant must have a short hook plus a 2 to 5 line caption.',
-                'Vary the angle across pages: quick dinner, comfort food, budget-friendly, beginner-friendly, crowd-pleasing, or better-than-takeout.',
-                'Keep the variant order aligned with the selected Facebook pages so each page receives one distinct angle.',
-                'Hooks should usually stay within roughly 4 to 18 words and should not just repeat the title.',
-                'Captions should expand the hook with taste, ease, texture, payoff, or usefulness, then close with a light CTA.',
-                'Do not repeat the hook as the first caption line.',
-                'No links, hashtags, emoji clutter, or fake cliffhangers.',
-                'Do not repeat the same sentence pattern across all variants.',
-            ]),
-            implode("\n", [
-                'Generate one distinct Facebook variant per selected page.',
-                'Each variant must have a short hook plus a 2 to 5 line caption.',
-                'Vary the angle across pages: quick dinner, comfort food, budget-friendly, beginner-friendly, crowd-pleasing, or better-than-takeout.',
-                'Keep the variant order aligned with the selected Facebook pages so each page receives one distinct angle.',
-                'Hooks should usually stay within roughly 4 to 18 words and should not just repeat the title.',
-                'Captions should expand the hook with taste, ease, texture, payoff, or usefulness, then close with a light CTA.',
-                'Make at least some hooks feel sharper and more interruptive than a safe generic social post, while staying honest and specific.',
-                'Do not repeat the hook as the first caption line.',
-                'No links, hashtags, emoji clutter, fake cliffhangers, or generic hooks like "you need to try this" or "best ever."',
-                'Do not repeat the same sentence pattern across all variants.',
-            ]),
-        ];
-        $legacy_food_fact_social_defaults = [
-            implode("\n", [
-                'Generate one distinct Facebook variant per selected page for title-first food explainers.',
-                'Use angles like myth busting, surprising truth, kitchen mistake, smarter shortcut, ingredient truth, or what most people get wrong.',
-                'Hooks should be short, curiosity-led, and specific without sounding fake or low-trust.',
-                'Captions should be 2 to 5 short lines that explain the payoff, reveal the mistake, or promise a practical takeaway.',
-                'Make at least some hooks feel punchy enough to stop scrolling, but avoid hollow listicle hype or obvious bait phrasing.',
-                'No links, hashtags, emoji clutter, or empty listicle hype.',
-            ]),
-        ];
-        $legacy_image_defaults = [
-            'Natural food photography, editorial light, appetizing detail, no text overlays, premium magazine look.',
-            'Realistic, appetizing food photography with natural light, warm editorial tone, clean plating, and no text overlays.',
-            implode("\n", [
-                'Realistic, appetizing food photography.',
-                'Natural light, warm editorial tone, clean plating, and no text overlays.',
-                'Make the dish look premium, craveable, and believable for a food blog and Facebook feed.',
-            ]),
-            implode("\n", [
-                'Realistic, appetizing food photography.',
-                'Natural light, warm editorial tone, clean plating, believable texture, and no text overlays.',
-                'Make the dish look premium, craveable, and believable for a food blog hero or Facebook feed.',
-            ]),
-        ];
-        $legacy_cta_defaults = [
-            'Read the full recipe on the blog.',
-            'Read the full article on the blog.',
-        ];
-
-        $settings['publication_role'] = trim((string) ($settings['publication_role'] ?? ''));
-        if ($settings['publication_role'] === '' || in_array($settings['publication_role'], $legacy_publication_role_defaults, true)) {
-            $settings['publication_role'] = $this->default_publication_role();
-        }
-
-        $settings['brand_voice'] = trim((string) ($settings['brand_voice'] ?? ''));
-        if ($settings['brand_voice'] === '' || in_array($settings['brand_voice'], $legacy_voice_defaults, true)) {
-            $settings['brand_voice'] = $this->default_voice_brief();
-        }
-
-        $settings['global_guardrails'] = trim((string) ($settings['global_guardrails'] ?? ''));
-        if ($settings['global_guardrails'] === '' || in_array($settings['global_guardrails'], $legacy_guardrail_defaults, true)) {
-            $settings['global_guardrails'] = $this->legacy_guardrails_text($settings) ?: $this->default_global_guardrails();
-        }
-
-        $settings['recipe_master_prompt'] = trim((string) ($settings['recipe_master_prompt'] ?? ''));
-        if ($settings['recipe_master_prompt'] === '' || in_array($settings['recipe_master_prompt'], $legacy_master_defaults, true)) {
-            $settings['recipe_master_prompt'] = $this->default_recipe_master_direction();
-        }
-
-        $settings['article_prompt'] = trim((string) ($settings['article_prompt'] ?? ''));
-        if ($settings['article_prompt'] === '' || in_array($settings['article_prompt'], $legacy_article_defaults, true)) {
-            $settings['article_prompt'] = $this->default_recipe_article_guidance();
-        }
-
-        $settings['food_fact_article_prompt'] = trim((string) ($settings['food_fact_article_prompt'] ?? ''));
-        if ($settings['food_fact_article_prompt'] === '' || in_array($settings['food_fact_article_prompt'], $legacy_food_fact_article_defaults, true)) {
-            $settings['food_fact_article_prompt'] = $this->default_food_fact_article_guidance();
-        }
-
-        $settings['facebook_caption_guidance'] = trim((string) ($settings['facebook_caption_guidance'] ?? ''));
-        if ($settings['facebook_caption_guidance'] === '' || in_array($settings['facebook_caption_guidance'], $legacy_social_defaults, true)) {
-            $settings['facebook_caption_guidance'] = $this->default_facebook_variant_guidance();
-        }
-
-        $settings['food_fact_facebook_caption_guidance'] = trim((string) ($settings['food_fact_facebook_caption_guidance'] ?? ''));
-        if ($settings['food_fact_facebook_caption_guidance'] === '' || in_array($settings['food_fact_facebook_caption_guidance'], $legacy_food_fact_social_defaults, true)) {
-            $settings['food_fact_facebook_caption_guidance'] = $this->default_food_fact_social_guidance();
-        }
-
-        $settings['image_style'] = trim((string) ($settings['image_style'] ?? ''));
-        if ($settings['image_style'] === '' || in_array($settings['image_style'], $legacy_image_defaults, true)) {
-            $settings['image_style'] = $this->default_image_style_brief();
-        }
-
-        $settings['default_cta'] = trim((string) ($settings['default_cta'] ?? ''));
-        if ($settings['default_cta'] === '' || in_array($settings['default_cta'], $legacy_cta_defaults, true)) {
-            $settings['default_cta'] = 'Read the full article on the blog.';
-        }
-
-        $settings['facebook_pages'] = $this->facebook_pages($settings, false, false);
-        return $settings;
-    }
-
-    private function facebook_pages(array $settings, bool $active_only = false, bool $strip_tokens = false): array
-    {
-        $pages = [];
-        $raw_pages = $settings['facebook_pages'] ?? [];
-
-        if (is_array($raw_pages)) {
-            foreach ($raw_pages as $page) {
-                if (!is_array($page)) {
-                    continue;
-                }
-
-                $page_id = sanitize_text_field((string) ($page['page_id'] ?? ''));
-                $label = sanitize_text_field((string) ($page['label'] ?? ''));
-                $token = trim((string) ($page['access_token'] ?? ''));
-                $active = !empty($page['active']);
-
-                if ($page_id === '' || $label === '') {
-                    continue;
-                }
-
-                $pages[$page_id] = [
-                    'page_id'      => $page_id,
-                    'label'        => $label,
-                    'access_token' => $token,
-                    'active'       => $active,
-                ];
-            }
-        }
-
-        $legacy_page_id = sanitize_text_field((string) ($settings['facebook_page_id'] ?? ''));
-        $legacy_token   = trim((string) ($settings['facebook_page_access_token'] ?? ''));
-        if ($legacy_page_id !== '' && !isset($pages[$legacy_page_id])) {
-            $pages[$legacy_page_id] = [
-                'page_id'      => $legacy_page_id,
-                'label'        => __('Primary Page', 'kuchnia-twist'),
-                'access_token' => $legacy_token,
-                'active'       => $legacy_token !== '',
-            ];
-        }
-
-        $pages = array_values($pages);
-
-        if ($active_only) {
-            $pages = array_values(array_filter(
-                $pages,
-                static fn (array $page): bool => !empty($page['active']) && $page['page_id'] !== '' && $page['access_token'] !== ''
-            ));
-        }
-
-        if ($strip_tokens) {
-            $pages = array_map(
-                static function (array $page): array {
-                    unset($page['access_token']);
-                    return $page;
-                },
-                $pages
-            );
-        }
-
-        return $pages;
-    }
-
-    private function sanitize_facebook_pages_input($raw_pages): array
-    {
-        if (!is_array($raw_pages)) {
-            return [];
-        }
-
-        $pages = [];
-        foreach ($raw_pages as $page) {
-            if (!is_array($page)) {
-                continue;
-            }
-
-            $page_id = sanitize_text_field((string) ($page['page_id'] ?? ''));
-            $label = sanitize_text_field((string) ($page['label'] ?? ''));
-            $token = trim((string) ($page['access_token'] ?? ''));
-            $active = !empty($page['active']);
-
-            if ($page_id === '' || $label === '') {
-                continue;
-            }
-
-            $pages[$page_id] = [
-                'page_id'      => $page_id,
-                'label'        => $label,
-                'access_token' => $token,
-                'active'       => $active,
-            ];
-        }
-
-        return array_values($pages);
-    }
 
     private function table_name(): string
     {

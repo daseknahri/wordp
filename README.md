@@ -6,6 +6,7 @@ This repo now ships a typed publishing system for `Kuchnia Twist`:
 - a background worker that picks up queued jobs from WordPress
 - one canonical multi-page article package for each generated post
 - Facebook Page posting with the blog link added as the first comment
+- a dormant Facebook Groups manual-share adapter scaffold
 - a dormant Pinterest draft adapter scaffold for later expansion
 
 The workflow is intentionally small and upgrade-friendly. WordPress stays the control panel, the worker does the background execution, and platform-specific social output hangs off a stable content package instead of being mixed into the article engine.
@@ -26,6 +27,17 @@ The workflow is intentionally small and upgrade-friendly. WordPress stays the co
   - queued job storage
   - job event storage
   - internal REST endpoints for the worker
+  - modular internals split between:
+    - `includes/class-kuchnia-twist-publisher.php` for orchestration and module delegation
+    - `includes/class-kuchnia-twist-publisher-base.php` for shared plugin constants
+    - `includes/class-kuchnia-twist-publisher-module.php` for module base wiring
+    - `includes/Settings/` for defaults, normalization, and content-machine settings
+    - `includes/Contracts/` for canonical package/channel normalization and compatibility mirrors
+    - `includes/Jobs/` for job queries, job events, filters, pagination, and payload records
+    - `includes/Admin/` for selected-job review helpers, notice rendering, and admin presentation helpers
+    - `includes/Publishing/` for canonical publish payloads, post-content sanitizing, and publish-time validation
+    - `includes/Rest/` for worker-facing REST routes and publish/progress endpoints
+    - `includes/Quality/` for editorial quality summaries and review snapshots
 - `autopost/`
   - queue worker that:
     - claims jobs from WordPress
@@ -35,9 +47,66 @@ The workflow is intentionally small and upgrade-friendly. WordPress stays the co
     - publishes the WordPress post immediately when no future schedule is set
     - waits for `publish_on` when a job is scheduled for later
     - generates channel-specific output from the canonical package
+  - modular internals split between:
+    - `src/content/` for article-stage generation and typed content profiles
+    - `src/contracts/generated-payload.mjs` for generated payload normalization and legacy parsing helpers
+    - `src/contracts/channel-adapters.mjs` for canonical package + channel adapter normalization
+    - `src/contracts/channel-drafts.mjs` for Pinterest/Facebook Groups draft builders
+    - `src/contracts/helpers.mjs` for composing contract helpers
+    - `src/quality/validator-summary.mjs` for validator summary merges and quality-gate errors
+    - `src/quality/article-repair.mjs` for article-stage repair guidance
+    - `src/quality/article-validator.mjs` for article-stage validation rules
+    - `src/quality/entrypoints.mjs` for quality and social selection entrypoints
+    - `src/content/article-quality.mjs` for article-stage quality checks and pagination diagnostics
+    - `src/content/prompts.mjs` for publication-profile prompt assembly helpers
+    - `src/content/internal-links.mjs` for internal link targeting helpers
+    - `src/content/social-signals.mjs` for article-derived social signal helpers
+    - `src/content/quality-utils.mjs` for title/excerpt/SEO scoring helpers
+    - `src/content/helpers.mjs` for composing content pipeline helpers
+    - `src/content/page-flow.mjs` for page-flow label/summary helpers
+    - `src/content/article-text.mjs` for opening-paragraph extraction helpers
+    - `src/content/article-quality.mjs` for article-stage quality checks
+    - `src/content/image-prompts.mjs` for image prompt assembly helpers
+    - `src/content/image-assets.mjs` for image generation/upload helpers
+    - `src/content/pages.mjs` for page merge and internal-link helpers
+    - `src/content/page-splitting.mjs` for page splitting and content extraction helpers
+    - `src/content/generation-runner.mjs` for generation + social-candidate runner helpers
+    - `src/channels/facebook/` for Facebook candidate generation and quality/selection logic
+    - `src/channels/facebook/angles.mjs` for Facebook social angle helpers
+    - `src/channels/facebook/adapter-utils.mjs` for Facebook adapter normalization helpers
+    - `src/channels/facebook/helpers.mjs` for composing Facebook adapter, publish, and distribution helpers
+    - `src/channels/facebook/api.mjs` for Facebook publish API helpers
+    - `src/channels/facebook/distribution.mjs` for page selection + legacy distribution helpers
+    - `src/channels/facebook/fingerprints.mjs` for social fingerprint helpers
+    - `src/channels/facebook/publish.mjs` for Facebook publishing flow helpers
+    - `src/channels/facebook/social-variants.mjs` for Facebook hook/caption scoring and signal helpers
+    - `src/jobs/wordpress-jobs.mjs` for WordPress job claim/progress/heartbeat helpers
+    - `src/jobs/helpers.mjs` for composing job orchestration helpers
+    - `src/jobs/package-generator.mjs` for canonical package + channel draft generation
+    - `src/jobs/orchestrator.mjs` for claim + publish orchestration
+    - `src/runtime/settings.mjs` for content-machine and worker settings assembly
+    - `src/runtime/normalizers.mjs` for shared normalization helpers
+    - `src/runtime/text.mjs` for text cleanup and slug helpers
+    - `src/runtime/lists.mjs` for list, caption, and similarity helpers
+    - `src/runtime/html.mjs` for HTML normalization helpers
+    - `src/runtime/job-utils.mjs` for job-level helpers and distribution checks
+    - `src/runtime/time.mjs` for timestamp helpers
+    - `src/runtime/core.mjs` for core runtime helpers
+    - `src/runtime/worker-runner.mjs` for the main worker loop
+    - `src/quality/` for package and adapter quality summaries
+    - `src/clients/` for WordPress, OpenAI, and Facebook API clients
+    - `src/runtime/` for config and shared runtime utilities
     - publishes the Facebook Page post
     - adds the CTA link as the first comment
     - sends heartbeat updates back to WordPress
+  - modular worker internals under `autopost/src/`:
+    - `runtime/` for config, env parsing, and shared utilities
+    - `content/` for content-type profiles and article-stage generation
+    - `channels/` for channel adapter profiles and social-stage generation
+    - `quality/` for package/channel quality summaries and contract-drift helpers
+    - `contracts/` for shared contract exports
+    - `clients/` for network clients such as WordPress/Facebook/OpenAI requests
+    - `jobs/` for WordPress job clients and package generation helpers
 
 ## Local development
 
@@ -95,9 +164,12 @@ WORDPRESS_URL=https://kuchniatwist.pl
 OPENAI_API_KEY=sk-...
 OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_MODEL=gpt-5-mini
+AUTOPOST_STRICT_CONTRACT_MODE=0
 ```
 
 `CONTENT_PIPELINE_SHARED_SECRET` must be the same for both the `wordpress` and `autopost` containers because the worker authenticates to the plugin with that secret.
+`AUTOPOST_STRICT_CONTRACT_MODE` is optional and stays `0` by default. When enabled later, new typed-contract jobs escalate contract drift from warnings to blocking failures instead of silently relying on legacy-field rebuilds.
+Typed-contract jobs are explicitly marked in `content_machine.contracts` so legacy jobs can still hydrate from flat fields without triggering drift warnings.
 
 ## WordPress setup
 
@@ -128,6 +200,39 @@ Then open `Kuchnia Twist` and create a job:
 
 The worker will pick up the queued job in the background.
 
+## Media guidance (platform-aware)
+
+The image prompt engine composes guidance from three layers:
+
+- content-type rules (`recipe` vs `food_fact`)
+- topic signals (from `article_signals`)
+- platform rules (blog vs Facebook vs Pinterest)
+
+You can keep this in one clean settings block under `content_machine.channel_presets.image` and optionally add per-platform overrides:
+
+```json
+{
+  "content_machine": {
+    "channel_presets": {
+      "image": {
+        "guidance": "Use realistic, appetizing food photography with natural light, clean composition, believable texture, and no text overlays.",
+        "platforms": {
+          "blog": "Landscape editorial hero framing with clean negative space for headers.",
+          "facebook": "Square crop, tight subject framing, and strong contrast for feed clarity.",
+          "pinterest": "Vertical pin-friendly framing with a clean area for optional overlay text (do not add text)."
+        }
+      }
+    }
+  }
+}
+```
+
+Notes:
+
+- `image_style` in wp-admin still feeds the base `image.guidance` value.
+- Platform overrides are optional; if omitted, the default platform guidance is used.
+- This block is designed for future channels so the media logic stays isolated and easy to update.
+
 ## Publishing behavior
 
 For each job:
@@ -142,6 +247,7 @@ For each job:
    - typed data such as recipe fields when the content type is `recipe`
 4. The worker then builds channel adapters from that package:
    - `channels.facebook` for live Facebook variants and distribution
+   - `channels.facebook_groups` as a dormant manual-share draft scaffold
    - `channels.pinterest` as a dormant draft scaffold only
 5. If the Facebook pack is weak or missing, the worker falls back to deterministic local variants so the article can still move forward.
 6. If image handling is `Uploaded First` and one or both image slots are missing, the worker generates only the missing slot(s).

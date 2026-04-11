@@ -1399,10 +1399,10 @@ summary:focus-visible {
 
 .article-progress {
   display: grid;
-  gap: 12px;
-  padding: 16px 18px;
+  gap: 8px;
+  padding: 10px 12px;
   border: 1px solid rgba(38, 23, 15, 0.08);
-  border-radius: 24px;
+  border-radius: 20px;
   background:
     linear-gradient(135deg, rgba(255, 250, 242, 0.96), rgba(255, 252, 247, 0.9)),
     rgba(255, 252, 247, 0.92);
@@ -1414,7 +1414,7 @@ summary:focus-visible {
   flex-wrap: wrap;
   align-items: end;
   justify-content: space-between;
-  gap: 12px 18px;
+  gap: 6px 12px;
 }
 
 .article-progress__head > div {
@@ -1439,7 +1439,7 @@ summary:focus-visible {
 .article-progress__track {
   position: relative;
   overflow: hidden;
-  height: 8px;
+  height: 6px;
   border-radius: 999px;
   background: rgba(38, 23, 15, 0.08);
 }
@@ -1724,6 +1724,19 @@ summary:focus-visible {
   display: grid;
   gap: 16px;
   margin-top: 28px;
+}
+
+.article-support--fact {
+  padding: 12px 14px;
+  margin-top: 20px;
+}
+
+.article-support--fact .article-support__editor {
+  gap: 6px;
+}
+
+.article-support--fact .article-support__editor p {
+  margin: 0;
 }
 
 .article-support__editor {

@@ -20,6 +20,20 @@ function kuchnia_twist_launch_topics(): array
     ];
 }
 
+function kuchnia_twist_active_launch_topics(): array
+{
+    return [
+        'Crispy Sheet-Pan Chicken with Caramelized Onions and Potatoes',
+        'Creamy Mushroom Barley Soup for Busy Evenings',
+        'Tomato Butter Beans on Toast with Garlic and Lemon',
+        'Roasted Carrot and Feta Couscous Salad',
+        'Why Onions Need More Time Than Most Recipes Admit',
+        'What Tomato Paste Actually Does in a Pan',
+        'How to Keep Roasted Potatoes Crisp Instead of Steaming',
+        'Fresh Garlic vs Roasted Garlic: When Each One Wins',
+    ];
+}
+
 function kuchnia_twist_launch_core_pages(): array
 {
     return [
