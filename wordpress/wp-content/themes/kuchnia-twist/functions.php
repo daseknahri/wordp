@@ -1116,7 +1116,7 @@ function kuchnia_twist_archive_context()
     if (is_home()) {
         $context['eyebrow'] = __('Latest posts', 'kuchnia-twist');
         $context['title'] = __('The latest from Kuchnia Twist', 'kuchnia-twist');
-        $context['description'] = __('The newest recipes, food facts, and essays from Kuchnia Twist, gathered in one clean feed.', 'kuchnia-twist');
+        $context['description'] = __('The newest recipes, food facts, and stories from Kuchnia Twist, gathered in one clean feed.', 'kuchnia-twist');
     } elseif (is_search()) {
         $query_text = trim((string) get_search_query());
         $match_count = $wp_query instanceof WP_Query ? (int) $wp_query->found_posts : 0;

@@ -269,7 +269,7 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
     <section class="follow-panel section" id="follow-journal" data-reveal>
         <div class="follow-panel__copy">
             <h2><?php echo esc_html($follow_label); ?></h2>
-            <p><?php esc_html_e('New recipes, explainers, and quiet kitchen essays; no noise, just the journal.', 'kuchnia-twist'); ?></p>
+            <p><?php esc_html_e('New recipes, explainers, and quiet kitchen stories; no noise, just the journal.', 'kuchnia-twist'); ?></p>
         </div>
         <div class="follow-panel__actions">
             <?php if ($has_social) : ?>
