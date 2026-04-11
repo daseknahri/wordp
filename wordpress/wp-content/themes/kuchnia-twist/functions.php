@@ -1252,7 +1252,7 @@ function kuchnia_twist_page_profile($post = null)
     $profiles = [
         'about' => [
             'eyebrow' => __('About the journal', 'kuchnia-twist'),
-            'intro' => __('Kuchnia Twist is a home-cooking journal focused on cookable recipes, clear food facts, and quiet essays rooted in real kitchens.', 'kuchnia-twist'),
+            'intro' => __('Kuchnia Twist is a home-cooking journal focused on cookable recipes, clear food facts, and quiet stories rooted in real kitchens.', 'kuchnia-twist'),
             'highlights' => [
                 __('Recipes are written to be cooked, not just browsed.', 'kuchnia-twist'),
                 __('Food facts stay specific, plainspoken, and useful.', 'kuchnia-twist'),
@@ -1261,7 +1261,7 @@ function kuchnia_twist_page_profile($post = null)
             'sections' => [
                 [
                     'title' => __('What readers will find here', 'kuchnia-twist'),
-                    'body' => __('Every post lives in one of three clear categories so the promise is obvious before you click.', 'kuchnia-twist'),
+                    'body' => __('Every post sits in one of three clear categories so the promise is obvious before you click.', 'kuchnia-twist'),
                     'items' => [
                         __('Recipes written for real kitchens with clear steps and practical payoff.', 'kuchnia-twist'),
                         __('Food facts that explain techniques, ingredients, and kitchen myths without filler.', 'kuchnia-twist'),
@@ -1280,7 +1280,7 @@ function kuchnia_twist_page_profile($post = null)
         ],
         'contact' => [
             'eyebrow' => __('Reach the editor', 'kuchnia-twist'),
-            'intro' => __('Use this page for recipe questions, corrections, sourcing notes, or partnership inquiries that genuinely fit the journal.', 'kuchnia-twist'),
+            'intro' => __('Use this page for recipe questions, corrections, sourcing notes, or partnership inquiries that fit the journal.', 'kuchnia-twist'),
             'highlights' => [
                 __('Recipe questions and corrections are welcome.', 'kuchnia-twist'),
                 __('The contact email stays public and easy to find.', 'kuchnia-twist'),
@@ -1289,7 +1289,7 @@ function kuchnia_twist_page_profile($post = null)
             'sections' => [
                 [
                     'title' => __('Why readers write', 'kuchnia-twist'),
-                    'body' => __('The most useful messages improve clarity, correct an error, or open a partnership that fits the journal without distracting from its food focus.', 'kuchnia-twist'),
+                    'body' => __('The most useful messages improve clarity, correct an error, or open a partnership idea that fits the journal without distracting from its food focus.', 'kuchnia-twist'),
                     'items' => [
                         __('Recipe clarification or kitchen troubleshooting.', 'kuchnia-twist'),
                         __('Corrections, sourcing notes, or factual updates.', 'kuchnia-twist'),
@@ -1300,17 +1300,17 @@ function kuchnia_twist_page_profile($post = null)
                     'title' => __('How the contact routes work', 'kuchnia-twist'),
                     'body' => $business_email !== ''
                         ? sprintf(__('The journal keeps one public contact email at %1$s and a separate business route at %2$s, so readers and partners have a clear way to reach the right person.', 'kuchnia-twist'), $public_email, $business_email)
-                        : sprintf(__('The journal keeps one public contact email at %s so readers always have a visible route back to the editor.', 'kuchnia-twist'), $public_email),
+                        : sprintf(__('The journal keeps one public contact email at %s so readers always have a clear route back to the editor.', 'kuchnia-twist'), $public_email),
                 ],
                 [
                     'title' => __('Corrections matter', 'kuchnia-twist'),
-                    'body' => __('A clear contact page makes it easier for readers to flag unclear steps, factual errors, or missing context before those problems linger.', 'kuchnia-twist'),
+                    'body' => __('A clear contact page makes it easier for readers to flag unclear steps, factual errors, or missing context before those problems linger in the archive.', 'kuchnia-twist'),
                 ],
             ],
         ],
         'privacy-policy' => [
             'eyebrow' => __('Privacy policy', 'kuchnia-twist'),
-            'intro' => __('This page explains the limited data handling involved in running the site right now and the tools that are intentionally not active.', 'kuchnia-twist'),
+            'intro' => __('This page explains the limited data handling involved in running the site today and the tools that are intentionally off.', 'kuchnia-twist'),
             'highlights' => [
                 __('Basic hosting and security data may be processed to serve the site.', 'kuchnia-twist'),
                 __('No newsletter, advertising, affiliate, or third-party analytics tools are active right now.', 'kuchnia-twist'),
@@ -1318,7 +1318,7 @@ function kuchnia_twist_page_profile($post = null)
             ],
             'sections' => [
                 [
-                    'title' => __('What is in use today', 'kuchnia-twist'),
+                    'title' => __('What is in use now', 'kuchnia-twist'),
                     'body' => __('The site relies on ordinary hosting, security, and reader contact handling rather than on tracking-heavy marketing systems.', 'kuchnia-twist'),
                 ],
                 [
@@ -1356,11 +1356,11 @@ function kuchnia_twist_page_profile($post = null)
         ],
         'editorial-policy' => [
             'eyebrow' => __('Editorial standards', 'kuchnia-twist'),
-            'intro' => __('This page explains how the journal handles recipes, explainers, essays, corrections, and commercial disclosure.', 'kuchnia-twist'),
+            'intro' => __('This page explains how the journal handles recipes, explainers, stories, corrections, and commercial disclosure.', 'kuchnia-twist'),
             'highlights' => [
                 __('Recipes aim to be practical and reader-first.', 'kuchnia-twist'),
                 __('Food facts stay careful, specific, and plainspoken.', 'kuchnia-twist'),
-                __('Essays use a clear voice, not invented authority.', 'kuchnia-twist'),
+                __('Stories use a clear voice, not invented authority.', 'kuchnia-twist'),
             ],
             'sections' => [
                 [
