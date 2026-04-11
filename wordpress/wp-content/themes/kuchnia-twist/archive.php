@@ -97,16 +97,15 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
             </div>
         </div>
     <?php else : ?>
-        <div class="search-rescue search-rescue--text-only">
-            <div class="search-rescue__copy">
-                <p class="empty-state"><?php esc_html_e('Nothing is filed here yet. Jump back into one of the pillars to keep browsing.', 'kuchnia-twist'); ?></p>
-                <div class="chip-links">
-                    <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>
-                        <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
+        <?php
+        kuchnia_twist_render_listing_empty_state(
+            __('Nothing is filed here yet. Jump back into one of the pillars to keep browsing.', 'kuchnia-twist'),
+            [
+                'eyebrow' => __('Archive empty', 'kuchnia-twist'),
+                'title'   => __('There is nothing in this archive yet', 'kuchnia-twist'),
+            ]
+        );
+        ?>
     <?php endif; ?>
 </section>
 

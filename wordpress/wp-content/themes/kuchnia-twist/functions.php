@@ -1167,14 +1167,28 @@ function kuchnia_twist_archive_context()
     return $context;
 }
 
-function kuchnia_twist_render_listing_empty_state(string $message)
+function kuchnia_twist_render_listing_empty_state(string $message, array $args = [])
 {
+    $eyebrow   = trim((string) ($args['eyebrow'] ?? __('Nothing here yet', 'kuchnia-twist')));
+    $title     = trim((string) ($args['title'] ?? __('Keep exploring the journal', 'kuchnia-twist')));
+    $show_home = !empty($args['show_home']);
     ?>
     <div class="search-rescue search-rescue--text-only">
         <div class="search-rescue__copy">
+            <?php if ($eyebrow !== '') : ?>
+                <span class="eyebrow"><?php echo esc_html($eyebrow); ?></span>
+            <?php endif; ?>
+            <?php if ($title !== '') : ?>
+                <h2><?php echo esc_html($title); ?></h2>
+            <?php endif; ?>
             <p class="empty-state"><?php echo esc_html($message); ?></p>
-            <div class="rescue-links">
-                <?php kuchnia_twist_pillar_links(); ?>
+            <div class="search-rescue__actions">
+                <?php if ($show_home) : ?>
+                    <a class="button button--primary" href="<?php echo esc_url(home_url('/')); ?>"><?php esc_html_e('Go home', 'kuchnia-twist'); ?></a>
+                <?php endif; ?>
+                <div class="rescue-links">
+                    <?php kuchnia_twist_pillar_links(); ?>
+                </div>
             </div>
         </div>
     </div>

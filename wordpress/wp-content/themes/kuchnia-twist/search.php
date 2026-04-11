@@ -105,16 +105,15 @@ $query_text = trim((string) get_search_query());
             </div>
         </div>
     <?php else : ?>
-        <div class="search-rescue search-rescue--text-only">
-            <div class="search-rescue__copy">
-                <p class="empty-state"><?php esc_html_e('No matches for this search yet. Try a broader ingredient, a technique, or one of the main sections below.', 'kuchnia-twist'); ?></p>
-                <div class="chip-links">
-                    <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>
-                        <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
+        <?php
+        kuchnia_twist_render_listing_empty_state(
+            __('No matches for this search yet. Try a broader ingredient, a technique, or one of the main sections below.', 'kuchnia-twist'),
+            [
+                'eyebrow' => __('No results', 'kuchnia-twist'),
+                'title'   => __('Nothing matched this search', 'kuchnia-twist'),
+            ]
+        );
+        ?>
     <?php endif; ?>
 </section>
 

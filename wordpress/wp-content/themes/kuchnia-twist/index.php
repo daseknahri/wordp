@@ -99,16 +99,16 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
             </div>
         </div>
     <?php else : ?>
-        <div class="search-rescue search-rescue--text-only">
-            <div class="search-rescue__copy">
-                <p class="empty-state"><?php esc_html_e('No posts are published in this feed right now. Try one of the main sections below.', 'kuchnia-twist'); ?></p>
-                <div class="chip-links">
-                    <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>
-                        <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
+        <?php
+        kuchnia_twist_render_listing_empty_state(
+            __('No posts are published in this feed right now. Try one of the main sections below.', 'kuchnia-twist'),
+            [
+                'eyebrow' => __('Nothing published yet', 'kuchnia-twist'),
+                'title'   => __('The main feed is quiet right now', 'kuchnia-twist'),
+                'show_home' => true,
+            ]
+        );
+        ?>
     <?php endif; ?>
 </section>
 
