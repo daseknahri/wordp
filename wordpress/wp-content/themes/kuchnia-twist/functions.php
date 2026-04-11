@@ -1253,6 +1253,11 @@ function kuchnia_twist_page_profile($post = null)
         'about' => [
             'eyebrow' => __('About the journal', 'kuchnia-twist'),
             'intro' => __('Kuchnia Twist is a home-cooking journal focused on cookable recipes, clear food facts, and quiet stories rooted in real kitchens.', 'kuchnia-twist'),
+            'body' => [
+                __('Kuchnia Twist stays close to real kitchens: recipes you can cook, food facts you can use, and short stories that add context without losing the thread.', 'kuchnia-twist'),
+                __('Every post is edited to be practical and clear. Ingredients are chosen with intention, steps are written to avoid guesswork, and explanations stay focused on what helps you cook.', 'kuchnia-twist'),
+                __('If something needs a correction or more detail, the contact page is always open.', 'kuchnia-twist'),
+            ],
             'highlights' => [
                 __('Recipes are written to be cooked, not just browsed.', 'kuchnia-twist'),
                 __('Food facts stay specific, plainspoken, and useful.', 'kuchnia-twist'),
@@ -1281,6 +1286,12 @@ function kuchnia_twist_page_profile($post = null)
         'contact' => [
             'eyebrow' => __('Reach the editor', 'kuchnia-twist'),
             'intro' => __('Use this page for recipe questions, corrections, sourcing notes, or partnership inquiries that fit the journal.', 'kuchnia-twist'),
+            'body' => [
+                __('We read every message and keep the feedback loop tight.', 'kuchnia-twist'),
+                __('For recipe help, include the recipe name, the step you were on, and what went wrong so we can answer quickly.', 'kuchnia-twist'),
+                __('For partnerships, share the brand, timeline, and how the collaboration fits a home-cooking journal.', 'kuchnia-twist'),
+                __('Replies typically land within a few business days.', 'kuchnia-twist'),
+            ],
             'highlights' => [
                 __('Recipe questions and corrections are welcome.', 'kuchnia-twist'),
                 __('The contact email stays public and easy to find.', 'kuchnia-twist'),
@@ -1310,10 +1321,16 @@ function kuchnia_twist_page_profile($post = null)
         ],
         'privacy-policy' => [
             'eyebrow' => __('Privacy policy', 'kuchnia-twist'),
-            'intro' => __('This page explains the limited data handling involved in running the site today and the tools that are intentionally off.', 'kuchnia-twist'),
+            'intro' => __('This page explains the data handling involved in running the site today and what changes if ads or analytics are added later.', 'kuchnia-twist'),
+            'body' => [
+                __('Kuchnia Twist collects the minimum data needed to serve pages, prevent abuse, and respond to messages. That can include standard server logs and basic WordPress cookies.', 'kuchnia-twist'),
+                __('We do not sell personal information and we avoid unnecessary tracking tools.', 'kuchnia-twist'),
+                __('This site may display ads provided by third-party networks. Those vendors may use cookies or similar technologies to personalize or measure ads based on visits to this and other websites.', 'kuchnia-twist'),
+                __('You can control cookies in your browser settings and manage ad personalization in your ad settings.', 'kuchnia-twist'),
+            ],
             'highlights' => [
                 __('Basic hosting and security data may be processed to serve the site.', 'kuchnia-twist'),
-                __('No newsletter, advertising, affiliate, or third-party analytics tools are active right now.', 'kuchnia-twist'),
+                __('No newsletter, affiliate, or third-party analytics tools are active right now.', 'kuchnia-twist'),
                 __('If the toolset changes, this page changes with it.', 'kuchnia-twist'),
             ],
             'sections' => [
@@ -1334,9 +1351,15 @@ function kuchnia_twist_page_profile($post = null)
         'cookie-policy' => [
             'eyebrow' => __('Cookie guide', 'kuchnia-twist'),
             'intro' => __('This page explains the limited cookie use connected to the site right now and what would change if the toolset expands later.', 'kuchnia-twist'),
+            'body' => [
+                __('Cookies are small files stored by your browser that help a site remember preferences and keep essential features working.', 'kuchnia-twist'),
+                __('Right now, cookies are expected to come from WordPress itself (for example, comment form preferences) and from the hosting stack.', 'kuchnia-twist'),
+                __('If advertising is enabled, third-party ad vendors may set cookies to measure performance or personalize ads.', 'kuchnia-twist'),
+                __('You can block or delete cookies in your browser settings, but some features may not work as intended.', 'kuchnia-twist'),
+            ],
             'highlights' => [
                 __('Only essential platform and hosting cookies are expected right now.', 'kuchnia-twist'),
-                __('No advertising, affiliate, or third-party analytics cookies are part of the current setup.', 'kuchnia-twist'),
+                __('No affiliate or third-party analytics cookies are part of the current setup.', 'kuchnia-twist'),
                 __('If tracking or ad technology is added later, this page is updated at the same time.', 'kuchnia-twist'),
             ],
             'sections' => [
@@ -1357,6 +1380,12 @@ function kuchnia_twist_page_profile($post = null)
         'editorial-policy' => [
             'eyebrow' => __('Editorial standards', 'kuchnia-twist'),
             'intro' => __('This page explains how the journal handles recipes, explainers, stories, corrections, and commercial disclosure.', 'kuchnia-twist'),
+            'body' => [
+                __('Every post is edited for clarity, accuracy, and usefulness. We would rather publish fewer posts than let a confusing one through.', 'kuchnia-twist'),
+                __('Recipes are tested and rewritten until the steps are unambiguous. Measurements, timing, and yields are updated when a better method is found.', 'kuchnia-twist'),
+                __('Food facts are written to explain one idea at a time. We avoid medical claims and overstated certainty; when something changes, we update the post.', 'kuchnia-twist'),
+                __('If a post includes sponsorship or affiliate links, it is clearly labeled.', 'kuchnia-twist'),
+            ],
             'highlights' => [
                 __('Recipes aim to be practical and reader-first.', 'kuchnia-twist'),
                 __('Food facts stay careful, specific, and plainspoken.', 'kuchnia-twist'),

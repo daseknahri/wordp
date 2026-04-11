@@ -6,14 +6,17 @@ get_header();
 ?>
 <?php while (have_posts()) : the_post(); ?>
     <?php
-    $profile       = kuchnia_twist_page_profile(get_post());
-    $has_body      = kuchnia_twist_page_has_meaningful_body(get_post());
-    $action_links  = $profile ? kuchnia_twist_page_action_links(get_post_field('post_name', get_the_ID())) : [];
-    $public_email  = kuchnia_twist_public_contact_email();
-    $editor_profile = kuchnia_twist_editor_profile();
-    $page_slug     = get_post_field('post_name', get_the_ID());
-    $page_art      = '';
-    $updated_label = get_the_modified_date();
+    $profile          = kuchnia_twist_page_profile(get_post());
+    $has_body         = kuchnia_twist_page_has_meaningful_body(get_post());
+    $action_links     = $profile ? kuchnia_twist_page_action_links(get_post_field('post_name', get_the_ID())) : [];
+    $public_email     = kuchnia_twist_public_contact_email();
+    $editor_profile   = kuchnia_twist_editor_profile();
+    $page_slug        = get_post_field('post_name', get_the_ID());
+    $page_art         = '';
+    $updated_label    = get_the_modified_date();
+    $profile_body     = $profile['body'] ?? [];
+    $profile_body_list = $profile['body_list'] ?? [];
+    $has_profile_body = !$has_body && (!empty($profile_body) || !empty($profile_body_list));
 
     if (has_post_thumbnail()) {
         $page_art = get_the_post_thumbnail(get_the_ID(), 'kuchnia-twist-hero', [
@@ -60,9 +63,22 @@ get_header();
             <?php endif; ?>
         </header>
 
-        <?php if ($has_body) : ?>
+        <?php if ($has_body || $has_profile_body) : ?>
             <div class="prose trust-shell__prose">
-                <?php the_content(); ?>
+                <?php if ($has_body) : ?>
+                    <?php the_content(); ?>
+                <?php else : ?>
+                    <?php foreach ($profile_body as $paragraph) : ?>
+                        <p><?php echo esc_html($paragraph); ?></p>
+                    <?php endforeach; ?>
+                    <?php if (!empty($profile_body_list)) : ?>
+                        <ul>
+                            <?php foreach ($profile_body_list as $item) : ?>
+                                <li><?php echo esc_html($item); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 
