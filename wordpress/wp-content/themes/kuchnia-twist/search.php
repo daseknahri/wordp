@@ -107,10 +107,10 @@ $query_text = trim((string) get_search_query());
     <?php else : ?>
         <?php
         kuchnia_twist_render_listing_empty_state(
-            __('No matches for this search yet. Try a broader ingredient, a technique, or one of the main sections below.', 'kuchnia-twist'),
+            __('No matches yet. Try an ingredient, technique, or broader phrase.', 'kuchnia-twist'),
             [
                 'eyebrow' => __('No results', 'kuchnia-twist'),
-                'title'   => __('Nothing matched this search', 'kuchnia-twist'),
+                'title'   => __('No matches for this search', 'kuchnia-twist'),
             ]
         );
         ?>

@@ -101,10 +101,10 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
     <?php else : ?>
         <?php
         kuchnia_twist_render_listing_empty_state(
-            __('No posts are published in this feed right now. Try one of the main sections below.', 'kuchnia-twist'),
+            __('No posts are published here yet. Start with a pillar while the feed builds.', 'kuchnia-twist'),
             [
                 'eyebrow' => __('Nothing published yet', 'kuchnia-twist'),
-                'title'   => __('The main feed is quiet right now', 'kuchnia-twist'),
+                'title'   => __('The main feed is quiet for now', 'kuchnia-twist'),
                 'show_home' => true,
             ]
         );

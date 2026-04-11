@@ -99,10 +99,10 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
     <?php else : ?>
         <?php
         kuchnia_twist_render_listing_empty_state(
-            __('Nothing is filed here yet. Jump back into one of the pillars to keep browsing.', 'kuchnia-twist'),
+            __('No stories are filed here yet. Pick a pillar to keep reading.', 'kuchnia-twist'),
             [
                 'eyebrow' => __('Archive empty', 'kuchnia-twist'),
-                'title'   => __('There is nothing in this archive yet', 'kuchnia-twist'),
+                'title'   => __('Nothing in this archive yet', 'kuchnia-twist'),
             ]
         );
         ?>
