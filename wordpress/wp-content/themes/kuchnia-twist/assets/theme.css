@@ -360,7 +360,7 @@ summary:focus-visible {
 }
 
 .site-search-sheet__copy {
-  margin: -2px 0 2px;
+  margin: -2px 0 0;
   max-width: 42ch;
   color: var(--muted-strong);
 }
