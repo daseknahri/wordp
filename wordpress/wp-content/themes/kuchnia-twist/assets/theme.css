@@ -1628,6 +1628,11 @@ summary:focus-visible {
     display: none;
   }
 
+  .site-header {
+    z-index: 1600;
+    background: rgba(255, 250, 243, 0.96);
+  }
+
   .site-header__bar {
     padding-block: 10px;
   }
