@@ -243,14 +243,26 @@
   const toggle = $(".kt-auto-refresh-toggle[data-seconds]");
   const label = $("[data-auto-refresh-label]");
 
-  if (adminRoot.length && toggle.length) {
+  if (adminRoot.length && toggle.length && !window.__ktAutoRefreshInit) {
+    window.__ktAutoRefreshInit = true;
+
     const refreshSeconds = Number(adminRoot.attr("data-auto-refresh-seconds") || toggle.attr("data-seconds") || 0);
+    const safeRefreshSeconds = Number.isFinite(refreshSeconds) && refreshSeconds >= 10 ? refreshSeconds : 0;
     let paused = window.sessionStorage?.getItem(autoRefreshStorageKey) === "1";
-    let remaining = refreshSeconds;
+    let remaining = safeRefreshSeconds;
+    let tickTimer = null;
+    let reloadPending = false;
 
     const isInteractiveFocus = () => {
       const active = document.activeElement;
       return Boolean(active && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(active.tagName));
+    };
+
+    const clearTickTimer = () => {
+      if (tickTimer) {
+        window.clearTimeout(tickTimer);
+        tickTimer = null;
+      }
     };
 
     const renderRefreshState = () => {
@@ -266,51 +278,66 @@
         return;
       }
 
+      if (safeRefreshSeconds <= 0) {
+        label.text("Auto refresh unavailable");
+        return;
+      }
+
       label.text(`Refreshing in ${remaining}s while jobs are active`);
     };
 
-    toggle.on("click", function (event) {
-      event.preventDefault();
-      paused = !paused;
-      remaining = refreshSeconds;
+    const scheduleNextTick = () => {
+      clearTickTimer();
 
-      if (window.sessionStorage) {
-        window.sessionStorage.setItem(autoRefreshStorageKey, paused ? "1" : "0");
+      if (paused || reloadPending || safeRefreshSeconds <= 0) {
+        renderRefreshState();
+        return;
       }
 
-      renderRefreshState();
-      announce(paused ? "Auto refresh paused" : "Auto refresh resumed");
-    });
-
-    renderRefreshState();
-
-    if (refreshSeconds > 0) {
-      window.setInterval(() => {
-        if (paused) {
-          return;
-        }
-
-        if (document.hidden) {
-          remaining = refreshSeconds;
+      tickTimer = window.setTimeout(() => {
+        if (document.hidden || isInteractiveFocus()) {
+          remaining = Math.max(5, remaining);
           renderRefreshState();
-          return;
-        }
-
-        if (isInteractiveFocus()) {
-          remaining = Math.min(refreshSeconds, Math.max(5, remaining));
-          renderRefreshState();
+          scheduleNextTick();
           return;
         }
 
         remaining -= 1;
 
         if (remaining <= 0) {
+          reloadPending = true;
+          if (label.length) {
+            label.text("Refreshing now…");
+          }
           window.location.reload();
           return;
         }
 
         renderRefreshState();
+        scheduleNextTick();
       }, 1000);
-    }
+    };
+
+    toggle.on("click", function (event) {
+      event.preventDefault();
+      paused = !paused;
+      remaining = safeRefreshSeconds;
+
+      if (window.sessionStorage) {
+        window.sessionStorage.setItem(autoRefreshStorageKey, paused ? "1" : "0");
+      }
+
+      renderRefreshState();
+      scheduleNextTick();
+      announce(paused ? "Auto refresh paused" : "Auto refresh resumed");
+    });
+
+    window.addEventListener("beforeunload", () => {
+      reloadPending = true;
+      clearTickTimer();
+    });
+
+    renderRefreshState();
+    scheduleNextTick();
   }
 })(jQuery);

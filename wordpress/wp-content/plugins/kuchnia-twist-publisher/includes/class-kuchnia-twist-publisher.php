@@ -202,7 +202,7 @@ final class Kuchnia_Twist_Publisher extends Kuchnia_Twist_Publisher_Base
         $worker_last_job      = !empty($system_status['last_job_id']) ? $this->get_job((int) $system_status['last_job_id']) : null;
         $next_scheduled_job   = $this->next_scheduled_job();
         $scheduled_waiting    = $this->count_ready_waiting_jobs();
-        $auto_refresh_seconds = ($counts['queued'] + $counts['running']) > 0 ? 20 : 0;
+        $auto_refresh_seconds = ($selected_id === 0 && ($counts['queued'] + $counts['running']) > 0) ? 20 : 0;
         ?>
         <div class="wrap kt-admin"<?php echo $auto_refresh_seconds > 0 ? ' data-auto-refresh-seconds="' . esc_attr((string) $auto_refresh_seconds) . '"' : ''; ?>>
             <div class="kt-page-head">
