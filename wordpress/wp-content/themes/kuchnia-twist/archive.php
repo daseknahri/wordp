@@ -27,13 +27,6 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
             </div>
         <?php endif; ?>
         <div class="archive-shell__tools">
-            <div class="archive-shell__tool-card archive-shell__tool-card--search">
-                <div class="archive-shell__tool-intro">
-                    <span class="eyebrow"><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></span>
-                    <p><?php esc_html_e('Search a dish, ingredient, or explainer without leaving the archive.', 'kuchnia-twist'); ?></p>
-                </div>
-                <?php get_search_form(); ?>
-            </div>
             <div class="archive-shell__tool-card archive-shell__tool-card--browse">
                 <div class="archive-shell__tool-intro">
                     <span class="eyebrow"><?php esc_html_e('Browse the pillars', 'kuchnia-twist'); ?></span>

@@ -88,13 +88,6 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
 
 <section class="discovery-rail section" data-reveal>
     <div class="discovery-rail__grid">
-        <div class="discovery-rail__panel discovery-rail__panel--search">
-            <div class="discovery-rail__intro">
-                <span class="eyebrow"><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></span>
-                <p><?php esc_html_e('Find a dish, ingredient, or technique in one quick search.', 'kuchnia-twist'); ?></p>
-            </div>
-            <?php get_search_form(); ?>
-        </div>
         <div class="discovery-rail__panel discovery-rail__panel--browse">
             <div class="discovery-rail__intro">
                 <span class="eyebrow"><?php esc_html_e('Browse by pillar', 'kuchnia-twist'); ?></span>

@@ -10,13 +10,6 @@ get_header();
         <h1><?php esc_html_e('This page slipped out of the pantry.', 'kuchnia-twist'); ?></h1>
         <p><?php esc_html_e('Try a quick search, head back home, or jump into one of the editorial pillars below.', 'kuchnia-twist'); ?></p>
         <div class="archive-shell__tools">
-            <div class="archive-shell__tool-card archive-shell__tool-card--search">
-                <div class="archive-shell__tool-intro">
-                    <span class="eyebrow"><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></span>
-                    <p><?php esc_html_e('Try a dish name, ingredient, or topic to get back on track.', 'kuchnia-twist'); ?></p>
-                </div>
-                <?php get_search_form(); ?>
-            </div>
             <div class="archive-shell__tool-card archive-shell__tool-card--browse">
                 <div class="archive-shell__tool-intro">
                     <span class="eyebrow"><?php esc_html_e('Browse the pillars', 'kuchnia-twist'); ?></span>
