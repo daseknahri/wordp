@@ -86,22 +86,6 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
     </div>
 </section>
 
-<section class="discovery-rail section" data-reveal>
-    <div class="discovery-rail__grid">
-        <div class="discovery-rail__panel discovery-rail__panel--browse">
-            <div class="discovery-rail__intro">
-                <span class="eyebrow"><?php esc_html_e('Browse by pillar', 'kuchnia-twist'); ?></span>
-                <p><?php esc_html_e('Step into recipes, food facts, or long-form kitchen stories.', 'kuchnia-twist'); ?></p>
-            </div>
-            <div class="chip-links chip-links--wide">
-                <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>
-                    <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    </div>
-</section>
-
 <section class="trust-note-strip section" data-reveal>
     <div class="trust-note-strip__grid">
         <article class="trust-note">

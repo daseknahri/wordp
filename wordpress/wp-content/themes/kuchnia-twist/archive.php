@@ -26,19 +26,6 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
                 <span><?php esc_html_e('In this archive', 'kuchnia-twist'); ?></span>
             </div>
         <?php endif; ?>
-        <div class="archive-shell__tools">
-            <div class="archive-shell__tool-card archive-shell__tool-card--browse">
-                <div class="archive-shell__tool-intro">
-                    <span class="eyebrow"><?php esc_html_e('Browse the pillars', 'kuchnia-twist'); ?></span>
-                    <p><?php esc_html_e('Move between the main reading lanes in one tap.', 'kuchnia-twist'); ?></p>
-                </div>
-                <div class="chip-links">
-                    <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>
-                        <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
     </div>
 
     <?php if ($lead_post instanceof WP_Post) : ?>
