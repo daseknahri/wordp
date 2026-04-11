@@ -2200,13 +2200,13 @@ summary:focus-visible {
 }
 
 .article-support--fact {
-  padding: 14px 16px;
-  margin-top: 20px;
+  padding: 12px 14px;
+  margin-top: 16px;
   background: linear-gradient(140deg, rgba(255, 248, 241, 0.96), rgba(252, 244, 236, 0.92));
 }
 
 .article-support--fact .article-support__editor {
-  gap: 6px;
+  gap: 4px;
 }
 
 .article-support--fact .article-support__editor p {
@@ -2221,7 +2221,7 @@ summary:focus-visible {
 .article-support__caption {
   margin: 0;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.88rem;
 }
 
 .article-support__links-wrap {
