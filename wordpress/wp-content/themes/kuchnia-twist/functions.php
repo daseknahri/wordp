@@ -1369,7 +1369,7 @@ function kuchnia_twist_page_profile($post = null)
                 ],
                 [
                     'title' => __('Food facts and sourcing', 'kuchnia-twist'),
-                    'body' => __('Fact-led articles should avoid invented claims, shallow summary writing, and fake precision. If a point needs sourcing, explain it carefully and update it when necessary.', 'kuchnia-twist'),
+                    'body' => __('Fact-led posts should avoid invented claims, shallow summary writing, and fake precision. If a point needs sourcing, explain it carefully and update it when necessary.', 'kuchnia-twist'),
                 ],
                 [
                     'title' => __('Corrections and updates', 'kuchnia-twist'),
