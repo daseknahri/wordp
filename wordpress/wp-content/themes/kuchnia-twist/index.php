@@ -7,6 +7,7 @@ get_header();
 global $wp_query;
 $context   = kuchnia_twist_archive_context();
 $posts     = $wp_query instanceof WP_Query ? $wp_query->posts : [];
+$found_posts = $wp_query instanceof WP_Query ? (int) $wp_query->found_posts : count($posts);
 $lead_post = $posts[0] ?? null;
 $feed_posts = $lead_post ? array_slice($posts, 1) : [];
 ?>
@@ -16,7 +17,17 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
         <?php kuchnia_twist_render_breadcrumbs(); ?>
         <span class="eyebrow"><?php echo esc_html($context['eyebrow'] ?? __('Latest posts', 'kuchnia-twist')); ?></span>
         <h1><?php echo esc_html($context['title'] ?? get_bloginfo('name')); ?></h1>
-        <p><?php echo esc_html($context['description'] ?? ''); ?></p>
+        <?php if (!empty($context['description'])) : ?>
+            <p><?php echo esc_html($context['description']); ?></p>
+        <?php else : ?>
+            <p><?php esc_html_e('A running feed of the newest stories, recipes, and explainers published in the journal.', 'kuchnia-twist'); ?></p>
+        <?php endif; ?>
+        <?php if ($found_posts > 0) : ?>
+            <div class="archive-shell__status">
+                <span><?php echo esc_html(sprintf(_n('%s published piece', '%s published pieces', $found_posts, 'kuchnia-twist'), number_format_i18n($found_posts))); ?></span>
+                <span><?php esc_html_e('Available to browse', 'kuchnia-twist'); ?></span>
+            </div>
+        <?php endif; ?>
         <div class="archive-shell__tools">
             <div class="archive-shell__tool-card archive-shell__tool-card--search">
                 <div class="archive-shell__tool-intro">

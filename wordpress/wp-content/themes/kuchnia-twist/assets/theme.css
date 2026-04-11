@@ -1231,6 +1231,18 @@ summary:focus-visible {
   gap: 12px;
 }
 
+.archive-shell__status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .archive-shell__tools {
   display: grid;
   gap: 14px;
