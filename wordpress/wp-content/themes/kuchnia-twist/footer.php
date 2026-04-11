@@ -26,9 +26,6 @@ $follow_label_id = 'site-footer-follow-label';
                     </div>
                 </div>
                 <div class="site-footer__lead-actions">
-                    <?php if ($public_email) : ?>
-                        <a class="site-footer__lead-link" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php esc_html_e('Contact the journal', 'kuchnia-twist'); ?></a>
-                    <?php endif; ?>
                     <?php if (!empty($trust_nav[0]['url']) && !empty($trust_nav[0]['label'])) : ?>
                         <a class="site-footer__lead-link site-footer__lead-link--muted" href="<?php echo esc_url($trust_nav[0]['url']); ?>"><?php echo esc_html($trust_nav[0]['label']); ?></a>
                     <?php endif; ?>
