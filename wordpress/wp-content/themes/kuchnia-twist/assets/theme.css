@@ -1535,11 +1535,11 @@ summary:focus-visible {
   .archive-shell,
   .trust-shell,
   .section {
-    margin-top: 32px;
+    margin-top: 28px;
   }
 
   .article-hero {
-    gap: 10px;
+    gap: 8px;
   }
 
   .article-hero h1 {
@@ -1555,6 +1555,10 @@ summary:focus-visible {
     gap: 8px 12px;
     font-size: 0.76rem;
     letter-spacing: 0.06em;
+  }
+
+  .article-hero__trust {
+    gap: 8px;
   }
 
   .article-utility {
@@ -1586,17 +1590,103 @@ summary:focus-visible {
   }
 
   .home-hero__content {
-    padding-top: 96px;
-    padding-bottom: 22px;
+    gap: 18px;
+    padding-top: 90px;
+    padding-bottom: 18px;
   }
 
   .home-hero__feature {
-    padding: 16px;
-    border-radius: 20px;
+    padding: 14px;
+    border-radius: 18px;
   }
 
   .home-hero__feature h2 {
     font-size: clamp(1.6rem, 7.4vw, 2.2rem);
+  }
+
+  .section-heading {
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .section-heading--split .text-link {
+    margin-top: 2px;
+  }
+
+  .discovery-rail__panel,
+  .archive-shell__tool-card,
+  .feature-story,
+  .mini-feed__lead,
+  .mini-feed__item,
+  .archive-feed__lead,
+  .archive-item,
+  .follow-panel,
+  .support-strip,
+  .trust-note,
+  .article-support,
+  .article-rail,
+  .story-nav__item,
+  .article-pagination {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .discovery-rail__panel,
+  .archive-shell__tool-card {
+    gap: 10px;
+  }
+
+  .discovery-rail__intro p,
+  .archive-shell__tool-intro p {
+    font-size: 0.95rem;
+  }
+
+  .mini-feed {
+    gap: 12px;
+  }
+
+  .mini-feed__lead,
+  .mini-feed__item {
+    gap: 8px;
+  }
+
+  .feature-story {
+    gap: 14px;
+  }
+
+  .story-nav {
+    margin-top: 26px;
+  }
+
+  .article-pagination__links {
+    align-items: stretch;
+  }
+
+  .article-pagination__links a,
+  .article-pagination__spacer {
+    width: 100%;
+  }
+
+  .site-footer__lead {
+    gap: 14px;
+  }
+
+  .site-footer__lead-actions {
+    display: grid;
+    gap: 10px;
+  }
+
+  .site-footer__lead-link {
+    width: 100%;
+  }
+
+  .site-footer__section summary {
+    min-height: 46px;
+  }
+
+  .site-footer__links {
+    gap: 8px;
+    padding-bottom: 12px;
   }
 }
 
