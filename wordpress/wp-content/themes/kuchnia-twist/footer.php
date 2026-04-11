@@ -51,19 +51,6 @@ $follow_label_id = 'site-footer-follow-label';
                     </nav>
                 </details>
 
-                <?php if ($has_social || $public_email) : ?>
-                    <details class="site-footer__section" open>
-                        <summary id="<?php echo esc_attr($follow_label_id); ?>"><?php echo esc_html($follow_label); ?></summary>
-                        <div class="site-footer__links site-footer__links--social" aria-labelledby="<?php echo esc_attr($follow_label_id); ?>">
-                            <?php if ($has_social) : ?>
-                                <?php kuchnia_twist_render_social_links('social-links--footer', true); ?>
-                            <?php endif; ?>
-                            <?php if ($public_email) : ?>
-                                <a class="site-footer__email" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
-                            <?php endif; ?>
-                        </div>
-                    </details>
-                <?php endif; ?>
             </div>
 
             <div class="site-footer__bottom">
