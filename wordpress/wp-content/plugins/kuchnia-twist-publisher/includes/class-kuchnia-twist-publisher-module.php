@@ -34,6 +34,14 @@ abstract class Kuchnia_Twist_Publisher_Module extends Kuchnia_Twist_Publisher_Ba
             throw new BadMethodCallException(sprintf('Method %s not found on module.', $name));
         }
 
-        return $this->{$name}(...$arguments);
+        $invoker = \Closure::bind(
+            function (...$invoke_arguments) use ($name) {
+                return $this->{$name}(...$invoke_arguments);
+            },
+            $this,
+            get_class($this)
+        );
+
+        return $invoker(...$arguments);
     }
 }
