@@ -91,14 +91,14 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
         <div class="discovery-rail__panel discovery-rail__panel--search">
             <div class="discovery-rail__intro">
                 <span class="eyebrow"><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></span>
-                <p><?php esc_html_e('Look up a dish, ingredient, or kitchen question in one step.', 'kuchnia-twist'); ?></p>
+                <p><?php esc_html_e('Find a dish, ingredient, or technique in one quick search.', 'kuchnia-twist'); ?></p>
             </div>
             <?php get_search_form(); ?>
         </div>
         <div class="discovery-rail__panel discovery-rail__panel--browse">
             <div class="discovery-rail__intro">
                 <span class="eyebrow"><?php esc_html_e('Browse by pillar', 'kuchnia-twist'); ?></span>
-                <p><?php esc_html_e('Move straight into recipes, explainers, or slower editorial reading.', 'kuchnia-twist'); ?></p>
+                <p><?php esc_html_e('Step into recipes, food facts, or long-form kitchen stories.', 'kuchnia-twist'); ?></p>
             </div>
             <div class="chip-links chip-links--wide">
                 <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>
@@ -113,13 +113,13 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
     <div class="trust-note-strip__grid">
         <article class="trust-note">
             <span class="eyebrow"><?php esc_html_e('Editorial focus', 'kuchnia-twist'); ?></span>
-            <h2><?php esc_html_e('A real home-cooking publication, not a thin content shell.', 'kuchnia-twist'); ?></h2>
-            <p><?php esc_html_e('The journal is structured around recipes, explainers, and slower editorial pieces so readers can understand what the site covers at a glance.', 'kuchnia-twist'); ?></p>
+            <h2><?php esc_html_e('A home-cooking journal built for real kitchens.', 'kuchnia-twist'); ?></h2>
+            <p><?php esc_html_e('Every post is written to be cooked, understood, or remembered, not just clicked.', 'kuchnia-twist'); ?></p>
         </article>
         <article class="trust-note">
             <span class="eyebrow"><?php esc_html_e('Standards', 'kuchnia-twist'); ?></span>
-            <h2><?php esc_html_e('Policy, contact, and editorial pages stay visible.', 'kuchnia-twist'); ?></h2>
-            <p><?php esc_html_e('Clear standards pages and direct contact paths help readers and reviewers understand who is behind the site and how it operates.', 'kuchnia-twist'); ?></p>
+            <h2><?php esc_html_e('Policies and contact stay visible, always.', 'kuchnia-twist'); ?></h2>
+            <p><?php esc_html_e('Editorial standards, identity, and correction paths are never buried.', 'kuchnia-twist'); ?></p>
             <?php if ($trust_nav) : ?>
                 <div class="chip-links">
                     <?php foreach ($trust_nav as $item) : ?>
@@ -132,10 +132,10 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
 </section>
 
 <section class="editorial-module section" data-reveal>
-    <div class="section-heading section-heading--split">
+        <div class="section-heading section-heading--split">
         <div>
             <h2><?php esc_html_e('Recipes', 'kuchnia-twist'); ?></h2>
-            <p><?php esc_html_e('Cookable recipes written for real kitchens, with clear structure and practical payoff.', 'kuchnia-twist'); ?></p>
+            <p><?php esc_html_e('Cookable recipes with clear steps, practical timing, and real payoff.', 'kuchnia-twist'); ?></p>
         </div>
         <?php if ($recipes_url !== '') : ?>
             <a class="text-link" href="<?php echo esc_url($recipes_url); ?>"><?php esc_html_e('See all recipes', 'kuchnia-twist'); ?></a>
@@ -186,10 +186,10 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
 </section>
 
 <section class="editorial-module section" data-reveal>
-    <div class="section-heading section-heading--split">
+        <div class="section-heading section-heading--split">
         <div>
             <h2><?php esc_html_e('Food Facts', 'kuchnia-twist'); ?></h2>
-            <p><?php esc_html_e('Useful explainers that turn ingredient myths and kitchen habits into sharper everyday decisions.', 'kuchnia-twist'); ?></p>
+            <p><?php esc_html_e('Short explainers that fix myths and sharpen everyday cooking decisions.', 'kuchnia-twist'); ?></p>
         </div>
         <?php $facts_url = kuchnia_twist_category_url_by_slug('food-facts'); ?>
         <?php if ($facts_url !== '') : ?>
@@ -223,7 +223,7 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
         <div class="section-heading section-heading--split">
             <div>
                 <h2><?php esc_html_e('Food Stories', 'kuchnia-twist'); ?></h2>
-                <p><?php esc_html_e('Slower editorial pieces about home cooking, trust, and the quiet details that shape a good kitchen life.', 'kuchnia-twist'); ?></p>
+                <p><?php esc_html_e('Slower pieces about kitchen life, memory, and the people behind the meals.', 'kuchnia-twist'); ?></p>
             </div>
             <?php $stories_url = kuchnia_twist_category_url_by_slug('food-stories'); ?>
             <?php if ($stories_url !== '') : ?>
@@ -269,7 +269,7 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
     <section class="follow-panel section" id="follow-journal" data-reveal>
         <div class="follow-panel__copy">
             <h2><?php echo esc_html($follow_label); ?></h2>
-            <p><?php esc_html_e('Follow along for new recipes, kitchen notes, and story-led essays from the journal.', 'kuchnia-twist'); ?></p>
+            <p><?php esc_html_e('New recipes, explainers, and quiet kitchen essays—no noise, just the journal.', 'kuchnia-twist'); ?></p>
         </div>
         <div class="follow-panel__actions">
             <?php if ($has_social) : ?>

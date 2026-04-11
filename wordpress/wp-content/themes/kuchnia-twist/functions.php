@@ -1110,13 +1110,13 @@ function kuchnia_twist_archive_context()
     $context = [
         'eyebrow'     => __('Latest posts', 'kuchnia-twist'),
         'title'       => get_bloginfo('name'),
-        'description' => __('New recipes, kitchen notes, and essays from a home-cooking journal that values clarity over noise.', 'kuchnia-twist'),
+        'description' => __('New recipes, food facts, and essays from a home-cooking journal that values clarity over noise.', 'kuchnia-twist'),
     ];
 
     if (is_home()) {
         $context['eyebrow'] = __('Latest posts', 'kuchnia-twist');
         $context['title'] = __('The latest from Kuchnia Twist', 'kuchnia-twist');
-        $context['description'] = __('The newest recipes, explainers, and essays from Kuchnia Twist, gathered in one clean running feed.', 'kuchnia-twist');
+        $context['description'] = __('The newest recipes, food facts, and essays from Kuchnia Twist, gathered in one clean feed.', 'kuchnia-twist');
     } elseif (is_search()) {
         $query_text = trim((string) get_search_query());
         $match_count = $wp_query instanceof WP_Query ? (int) $wp_query->found_posts : 0;
@@ -1144,13 +1144,13 @@ function kuchnia_twist_archive_context()
 
             $pillar_map = [
                 'recipes' => [
-                    'description' => __('Recipe articles are written to feel cookable, calm, and genuinely worth saving for later.', 'kuchnia-twist'),
+                    'description' => __('Cookable recipes with clear steps, realistic timing, and dependable results.', 'kuchnia-twist'),
                 ],
                 'food-facts' => [
-                    'description' => __('Food facts break down ingredients, techniques, and kitchen questions in a way that stays concrete and readable.', 'kuchnia-twist'),
+                    'description' => __('Short explainers that clear myths and sharpen everyday cooking decisions.', 'kuchnia-twist'),
                 ],
                 'food-stories' => [
-                    'description' => __('Food stories give the journal warmth, memory, and a more human rhythm.', 'kuchnia-twist'),
+                    'description' => __('Slow stories about kitchen life, memory, and the people behind meals.', 'kuchnia-twist'),
                 ],
             ];
 
@@ -1161,7 +1161,7 @@ function kuchnia_twist_archive_context()
     } elseif (is_archive()) {
         $context['eyebrow'] = __('Archive', 'kuchnia-twist');
         $context['title'] = wp_strip_all_tags(get_the_archive_title());
-        $context['description'] = wp_strip_all_tags(get_the_archive_description()) ?: __('A grouped view into the journal, with the same calm, readable structure carried across each archive page.', 'kuchnia-twist');
+        $context['description'] = wp_strip_all_tags(get_the_archive_description()) ?: __('A calm, readable index of the journal, grouped by time and theme.', 'kuchnia-twist');
     }
 
     return $context;
