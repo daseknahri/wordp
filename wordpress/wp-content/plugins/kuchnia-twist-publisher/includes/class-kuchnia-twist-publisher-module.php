@@ -17,12 +17,12 @@ abstract class Kuchnia_Twist_Publisher_Module extends Kuchnia_Twist_Publisher_Ba
             return $this->{$name}(...$arguments);
         }
 
-        if (method_exists($this->plugin, $name)) {
+        if (is_callable([$this->plugin, $name])) {
             return $this->plugin->{$name}(...$arguments);
         }
 
-        if (method_exists($this->plugin, '__call')) {
-            return $this->plugin->__call($name, $arguments);
+        if (method_exists($this->plugin, 'invoke_module_method')) {
+            return $this->plugin->invoke_module_method($name, $arguments, $this);
         }
 
         throw new BadMethodCallException(sprintf('Method %s not found on module or plugin.', $name));

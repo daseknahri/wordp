@@ -83,7 +83,16 @@ final class Kuchnia_Twist_Publisher extends Kuchnia_Twist_Publisher_Base
 
     public function __call(string $name, array $arguments)
     {
+        return $this->invoke_module_method($name, $arguments);
+    }
+
+    public function invoke_module_method(string $name, array $arguments, ?Kuchnia_Twist_Publisher_Module $caller = null)
+    {
         foreach ($this->modules as $module) {
+            if ($caller !== null && $module === $caller) {
+                continue;
+            }
+
             if (method_exists($module, $name)) {
                 return $module->invoke($name, $arguments);
             }
