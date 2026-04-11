@@ -38,7 +38,7 @@ get_header();
                 <?php if ($profile && !empty($profile['highlights'])) : ?>
                     <div class="chip-links">
                         <?php foreach ($profile['highlights'] as $highlight) : ?>
-                            <span class="chip-link"><?php echo esc_html($highlight); ?></span>
+                            <span class="chip-link chip-link--static"><?php echo esc_html($highlight); ?></span>
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
