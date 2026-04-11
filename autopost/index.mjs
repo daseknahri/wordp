@@ -105,6 +105,7 @@ const listHelpers = createListHelpers({
   ensureStringArray,
   normalizeSlug,
 });
+const buildFallbackCaption = (...args) => listHelpers.buildFallbackCaption(...args);
 const joinNaturalList = (...args) => listHelpers.joinNaturalList(...args);
 const sharedWordsRatio = (...args) => listHelpers.sharedWordsRatio(...args);
 
@@ -779,6 +780,7 @@ const jobsHelpers = createJobsHelpers({
   assertQualityGate,
   assertRecipeDistributionTargets,
   buildFallbackFacebookCaption,
+  buildFallbackCaption,
   buildQualitySummary,
   ensureJobImages,
   ensureOpenAiConfigured,
