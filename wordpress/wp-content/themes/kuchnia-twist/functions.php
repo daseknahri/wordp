@@ -669,12 +669,12 @@ function kuchnia_twist_share_links($post_id = 0)
         ],
         [
             'slug'  => 'email',
-            'label' => __('Email this article', 'kuchnia-twist'),
+            'label' => __('Email this post', 'kuchnia-twist'),
             'url'   => 'mailto:?subject=' . rawurlencode($title) . '&body=' . rawurlencode($url),
         ],
         [
             'slug'  => 'copy',
-            'label' => __('Copy article link', 'kuchnia-twist'),
+            'label' => __('Copy post link', 'kuchnia-twist'),
             'url'   => $url,
         ],
     ];
@@ -1140,7 +1140,7 @@ function kuchnia_twist_archive_context()
         if ($term instanceof WP_Term) {
             $context['eyebrow'] = __('Journal pillar', 'kuchnia-twist');
             $context['title'] = single_cat_title('', false);
-            $context['description'] = wp_strip_all_tags(category_description($term)) ?: __('A focused archive of articles gathered around one kitchen theme.', 'kuchnia-twist');
+            $context['description'] = wp_strip_all_tags(category_description($term)) ?: __('A focused archive of posts gathered around one kitchen theme.', 'kuchnia-twist');
 
             $pillar_map = [
                 'recipes' => [
