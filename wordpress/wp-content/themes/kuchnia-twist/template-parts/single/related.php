@@ -24,7 +24,7 @@ $story_links = is_array($context['story_links'] ?? null) ? $context['story_links
                         esc_html($category->name)
                     );
                 } else {
-                    esc_html_e('A few more pieces to keep the reading flow going.', 'kuchnia-twist');
+                    esc_html_e('A few more reads to keep the flow going.', 'kuchnia-twist');
                 }
                 ?>
             </p>

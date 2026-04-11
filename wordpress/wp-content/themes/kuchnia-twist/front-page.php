@@ -223,7 +223,7 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
         <div class="section-heading section-heading--split">
             <div>
                 <h2><?php esc_html_e('Food Stories', 'kuchnia-twist'); ?></h2>
-                <p><?php esc_html_e('Slower pieces about kitchen life, memory, and the people behind the meals.', 'kuchnia-twist'); ?></p>
+                <p><?php esc_html_e('Slower stories about kitchen life, memory, and the people behind the meals.', 'kuchnia-twist'); ?></p>
             </div>
             <?php $stories_url = kuchnia_twist_category_url_by_slug('food-stories'); ?>
             <?php if ($stories_url !== '') : ?>

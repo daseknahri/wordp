@@ -1110,7 +1110,7 @@ function kuchnia_twist_archive_context()
     $context = [
         'eyebrow'     => __('Latest posts', 'kuchnia-twist'),
         'title'       => get_bloginfo('name'),
-        'description' => __('New recipes, food facts, and essays from a home-cooking journal that values clarity over noise.', 'kuchnia-twist'),
+        'description' => __('New recipes, food facts, and stories from a home-cooking journal that values clarity over noise.', 'kuchnia-twist'),
     ];
 
     if (is_home()) {

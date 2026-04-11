@@ -24,7 +24,7 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
         <?php endif; ?>
         <?php if ($found_posts > 0) : ?>
             <div class="archive-shell__status">
-                <span><?php echo esc_html(sprintf(_n('%s published piece', '%s published pieces', $found_posts, 'kuchnia-twist'), number_format_i18n($found_posts))); ?></span>
+                <span><?php echo esc_html(sprintf(_n('%s published post', '%s published posts', $found_posts, 'kuchnia-twist'), number_format_i18n($found_posts))); ?></span>
                 <span><?php esc_html_e('Ready to read', 'kuchnia-twist'); ?></span>
             </div>
         <?php endif; ?>
