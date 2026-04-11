@@ -17,6 +17,7 @@ if ($content_type !== 'food_fact') {
     <section class="article-support article-support--fact">
         <div class="article-support__editor">
             <span class="eyebrow"><?php esc_html_e('Quick takeaway', 'kuchnia-twist'); ?></span>
+            <p class="article-support__caption"><?php esc_html_e('The short version to remember before you move on.', 'kuchnia-twist'); ?></p>
             <p><?php echo esc_html($summary); ?></p>
         </div>
     </section>

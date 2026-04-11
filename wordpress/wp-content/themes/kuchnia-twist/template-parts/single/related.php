@@ -16,6 +16,18 @@ $story_links = is_array($context['story_links'] ?? null) ? $context['story_links
     <div class="section-heading section-heading--split">
         <div>
             <h2><?php esc_html_e('Keep reading', 'kuchnia-twist'); ?></h2>
+            <p>
+                <?php
+                if ($category instanceof WP_Term) {
+                    printf(
+                        esc_html__('More from %s, selected to keep the reading flow going.', 'kuchnia-twist'),
+                        esc_html($category->name)
+                    );
+                } else {
+                    esc_html_e('A few more pieces from the journal if you want to stay in the flow.', 'kuchnia-twist');
+                }
+                ?>
+            </p>
         </div>
     </div>
     <div class="story-grid">
@@ -37,6 +49,12 @@ $story_links = is_array($context['story_links'] ?? null) ? $context['story_links
 
 <?php if ($story_links) : ?>
     <section class="story-nav">
+        <div class="section-heading">
+            <div>
+                <h2><?php esc_html_e('Next in the journal', 'kuchnia-twist'); ?></h2>
+                <p><?php esc_html_e('Jump to the next suggested read without returning to the archive.', 'kuchnia-twist'); ?></p>
+            </div>
+        </div>
         <div class="story-nav__grid">
             <?php foreach ($story_links as $story_link) : ?>
                 <a class="story-nav__item" href="<?php echo esc_url($story_link['url']); ?>">

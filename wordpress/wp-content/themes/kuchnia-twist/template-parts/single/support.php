@@ -23,7 +23,9 @@ $public_email = sanitize_email((string) ($context['public_email'] ?? ''));
         <?php endif; ?>
         <p><?php echo esc_html((string) ($editor_profile['bio'] ?? '')); ?></p>
     </div>
-    <div class="article-support__links">
+    <div class="article-support__links-wrap">
+        <p class="article-support__caption"><?php esc_html_e('Editorial standards, contact, and background pages stay visible on every article.', 'kuchnia-twist'); ?></p>
+        <div class="article-support__links">
         <?php if ($about_page instanceof WP_Post) : ?>
             <a class="chip-link" href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('About', 'kuchnia-twist'); ?></a>
         <?php endif; ?>
@@ -36,5 +38,6 @@ $public_email = sanitize_email((string) ($context['public_email'] ?? ''));
         <?php if (is_email($public_email)) : ?>
             <a class="chip-link" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
         <?php endif; ?>
+        </div>
     </div>
 </section>
