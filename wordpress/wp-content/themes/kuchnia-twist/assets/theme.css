@@ -2512,16 +2512,16 @@ summary:focus-visible {
 
 .trust-shell__actions {
   display: grid;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid rgba(38, 23, 15, 0.08);
-  border-radius: 24px;
-  background: rgba(255, 252, 247, 0.86);
-  box-shadow: var(--shadow-sm);
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .trust-shell__actions .chip-links {
-  gap: 12px;
+  gap: 10px;
 }
 
 .site-footer {
