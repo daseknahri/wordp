@@ -1691,8 +1691,8 @@ summary:focus-visible {
 
   .share-links--inline .share-links__item,
   .social-links--inline .social-links__item {
-    width: 34px;
-    min-height: 34px;
+    width: 32px;
+    min-height: 32px;
   }
 
   .home-hero__content {
