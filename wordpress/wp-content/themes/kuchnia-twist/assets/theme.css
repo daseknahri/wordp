@@ -1499,6 +1499,11 @@ summary:focus-visible {
   border-top: 1px solid rgba(38, 23, 15, 0.08);
 }
 
+.article-utility__group:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+
 .article-utility__label,
 .article-rail__label {
   display: inline-flex;
