@@ -83,7 +83,20 @@ final class Kuchnia_Twist_Publisher extends Kuchnia_Twist_Publisher_Base
 
     public function __call(string $name, array $arguments)
     {
+        if (method_exists($this, $name)) {
+            return $this->invoke_local_method($name, $arguments);
+        }
+
         return $this->invoke_module_method($name, $arguments);
+    }
+
+    public function invoke_local_method(string $name, array $arguments)
+    {
+        if (!method_exists($this, $name)) {
+            throw new BadMethodCallException(sprintf('Method %s not found on publisher.', $name));
+        }
+
+        return $this->{$name}(...$arguments);
     }
 
     public function invoke_module_method(string $name, array $arguments, ?Kuchnia_Twist_Publisher_Module $caller = null)

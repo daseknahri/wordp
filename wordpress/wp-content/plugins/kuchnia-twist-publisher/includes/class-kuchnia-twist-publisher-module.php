@@ -17,6 +17,10 @@ abstract class Kuchnia_Twist_Publisher_Module extends Kuchnia_Twist_Publisher_Ba
             return $this->{$name}(...$arguments);
         }
 
+        if (method_exists($this->plugin, $name) && method_exists($this->plugin, 'invoke_local_method')) {
+            return $this->plugin->invoke_local_method($name, $arguments);
+        }
+
         if (is_callable([$this->plugin, $name])) {
             return $this->plugin->{$name}(...$arguments);
         }
