@@ -82,18 +82,16 @@ while (have_posts()) :
             <?php endif; ?>
         </header>
 
-        <div class="article-utility">
-            <div class="article-utility__actions">
-                <?php if ($is_recipe && $recipe_jump_url !== '') : ?>
+        <div class="article-utility<?php echo $is_recipe && $recipe_jump_url !== '' ? ' article-utility--with-jump' : ''; ?>">
+            <?php if ($is_recipe && $recipe_jump_url !== '') : ?>
+                <div class="article-utility__jump">
                     <a class="button button--primary" href="<?php echo esc_url($recipe_jump_url); ?>"><?php esc_html_e('Jump to recipe', 'kuchnia-twist'); ?></a>
-                <?php endif; ?>
-            </div>
+                </div>
+            <?php endif; ?>
 
-            <div class="article-utility__share">
+            <div class="article-utility__group article-utility__group--share">
+                <span class="article-utility__label"><?php esc_html_e('Share this article', 'kuchnia-twist'); ?></span>
                 <?php kuchnia_twist_render_share_links($post_id, 'share-links--inline'); ?>
-                <?php if ($has_social) : ?>
-                    <?php kuchnia_twist_render_social_links('social-links--inline'); ?>
-                <?php endif; ?>
             </div>
         </div>
 
@@ -198,10 +196,16 @@ while (have_posts()) :
                 <?php endif; ?>
 
                 <section class="article-rail">
-                    <span class="eyebrow"><?php esc_html_e('Share or follow', 'kuchnia-twist'); ?></span>
-                    <?php kuchnia_twist_render_share_links($post_id, 'share-links--rail'); ?>
+                    <span class="eyebrow"><?php esc_html_e('Share and follow', 'kuchnia-twist'); ?></span>
+                    <div class="article-rail__group">
+                        <span class="article-rail__label"><?php esc_html_e('Share this article', 'kuchnia-twist'); ?></span>
+                        <?php kuchnia_twist_render_share_links($post_id, 'share-links--rail'); ?>
+                    </div>
                     <?php if ($has_social) : ?>
-                        <?php kuchnia_twist_render_social_links('social-links--rail', true); ?>
+                        <div class="article-rail__group">
+                            <span class="article-rail__label"><?php esc_html_e('Follow the journal', 'kuchnia-twist'); ?></span>
+                            <?php kuchnia_twist_render_social_links('social-links--rail', true); ?>
+                        </div>
                     <?php endif; ?>
                     <?php if ($public_email) : ?>
                         <a class="article-rail__mail" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>

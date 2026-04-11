@@ -1083,7 +1083,6 @@ summary:focus-visible {
 .trust-note,
 .archive-feed__lead,
 .archive-item,
-.article-utility,
 .article-support,
 .article-rail,
 .trust-shell__card,
@@ -1347,16 +1346,54 @@ summary:focus-visible {
 
 .article-utility {
   display: grid;
-  gap: 16px;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   align-items: start;
 }
 
-.article-utility__actions,
-.article-utility__share {
+.article-utility__jump {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+}
+
+.article-utility__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid rgba(38, 23, 15, 0.1);
+}
+
+.article-utility__label,
+.article-rail__label {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.article-utility__label {
+  margin-right: 4px;
+}
+
+.article-rail__group {
+  display: grid;
+  gap: 10px;
+}
+
+.article-rail__group + .article-rail__group {
+  padding-top: 10px;
+  border-top: 1px solid rgba(38, 23, 15, 0.08);
 }
 
 .share-links--inline .share-links__item,
@@ -1468,30 +1505,24 @@ summary:focus-visible {
   }
 
   .article-utility {
-    gap: 12px;
-    padding: 14px;
-    border-radius: 22px;
-  }
-
-  .article-utility__actions,
-  .article-utility__share {
     width: 100%;
-    justify-content: flex-start;
+    gap: 10px;
   }
 
-  .article-utility__actions .button {
+  .article-utility__jump .button {
     flex: 1 1 100%;
   }
 
-  .article-utility__share {
-    gap: 8px;
+  .article-utility__group {
+    align-items: flex-start;
   }
 
-  .article-utility__share .social-links--inline {
-    display: none;
+  .article-utility__label {
+    width: 100%;
+    margin-right: 0;
   }
 
-  .article-utility__share .share-links--inline {
+  .article-utility .share-links--inline {
     gap: 8px;
   }
 
@@ -2523,6 +2554,14 @@ summary:focus-visible {
   .article-utility {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
+  }
+
+  .article-utility:not(.article-utility--with-jump) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .article-utility__group--share {
+    justify-content: flex-end;
   }
 
   .article-layout__rail {
