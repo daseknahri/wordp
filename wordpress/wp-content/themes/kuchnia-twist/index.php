@@ -20,26 +20,26 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
         <?php if (!empty($context['description'])) : ?>
             <p><?php echo esc_html($context['description']); ?></p>
         <?php else : ?>
-            <p><?php esc_html_e('A running feed of the newest stories, recipes, and explainers published in the journal.', 'kuchnia-twist'); ?></p>
+            <p><?php esc_html_e('A running feed of the newest stories, recipes, and explainers from the journal.', 'kuchnia-twist'); ?></p>
         <?php endif; ?>
         <?php if ($found_posts > 0) : ?>
             <div class="archive-shell__status">
                 <span><?php echo esc_html(sprintf(_n('%s published piece', '%s published pieces', $found_posts, 'kuchnia-twist'), number_format_i18n($found_posts))); ?></span>
-                <span><?php esc_html_e('Available to browse', 'kuchnia-twist'); ?></span>
+                <span><?php esc_html_e('Ready to read', 'kuchnia-twist'); ?></span>
             </div>
         <?php endif; ?>
         <div class="archive-shell__tools">
             <div class="archive-shell__tool-card archive-shell__tool-card--search">
                 <div class="archive-shell__tool-intro">
                     <span class="eyebrow"><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></span>
-                    <p><?php esc_html_e('Jump straight to a dish, ingredient, or explainer if you already know what you want.', 'kuchnia-twist'); ?></p>
+                    <p><?php esc_html_e('Jump to a dish, ingredient, or explainer if you already know what you want.', 'kuchnia-twist'); ?></p>
                 </div>
                 <?php get_search_form(); ?>
             </div>
             <div class="archive-shell__tool-card archive-shell__tool-card--browse">
                 <div class="archive-shell__tool-intro">
                     <span class="eyebrow"><?php esc_html_e('Browse by pillar', 'kuchnia-twist'); ?></span>
-                    <p><?php esc_html_e('Use the main lanes below to move into recipes, food facts, or slower editorial reading.', 'kuchnia-twist'); ?></p>
+                    <p><?php esc_html_e('Use the main lanes below to move into recipes, food facts, or slower reading.', 'kuchnia-twist'); ?></p>
                 </div>
                 <div class="chip-links">
                     <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>

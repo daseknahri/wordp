@@ -8,12 +8,12 @@ get_header();
     <div class="archive-shell__header">
         <span class="eyebrow"><?php esc_html_e('Not found', 'kuchnia-twist'); ?></span>
         <h1><?php esc_html_e('This page slipped out of the pantry.', 'kuchnia-twist'); ?></h1>
-        <p><?php esc_html_e('Try a quick search, jump back to the homepage, or head straight into one of the editorial pillars below.', 'kuchnia-twist'); ?></p>
+        <p><?php esc_html_e('Try a quick search, head back home, or jump into one of the editorial pillars below.', 'kuchnia-twist'); ?></p>
         <div class="archive-shell__tools">
             <div class="archive-shell__tool-card archive-shell__tool-card--search">
                 <div class="archive-shell__tool-intro">
                     <span class="eyebrow"><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></span>
-                    <p><?php esc_html_e('Try a dish name, ingredient, or article topic to get back on track.', 'kuchnia-twist'); ?></p>
+                    <p><?php esc_html_e('Try a dish name, ingredient, or topic to get back on track.', 'kuchnia-twist'); ?></p>
                 </div>
                 <?php get_search_form(); ?>
             </div>

@@ -23,21 +23,21 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
         <?php if ($found_posts > 0) : ?>
             <div class="archive-shell__status">
                 <span><?php echo esc_html(sprintf(_n('%s story', '%s stories', $found_posts, 'kuchnia-twist'), number_format_i18n($found_posts))); ?></span>
-                <span><?php esc_html_e('Filed in this archive', 'kuchnia-twist'); ?></span>
+                <span><?php esc_html_e('In this archive', 'kuchnia-twist'); ?></span>
             </div>
         <?php endif; ?>
         <div class="archive-shell__tools">
             <div class="archive-shell__tool-card archive-shell__tool-card--search">
                 <div class="archive-shell__tool-intro">
                     <span class="eyebrow"><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></span>
-                    <p><?php esc_html_e('Search another dish, ingredient, or explainer without leaving the archive.', 'kuchnia-twist'); ?></p>
+                    <p><?php esc_html_e('Search a dish, ingredient, or explainer without leaving the archive.', 'kuchnia-twist'); ?></p>
                 </div>
                 <?php get_search_form(); ?>
             </div>
             <div class="archive-shell__tool-card archive-shell__tool-card--browse">
                 <div class="archive-shell__tool-intro">
                     <span class="eyebrow"><?php esc_html_e('Browse the pillars', 'kuchnia-twist'); ?></span>
-                    <p><?php esc_html_e('Switch between the main reading lanes of the journal in one tap.', 'kuchnia-twist'); ?></p>
+                    <p><?php esc_html_e('Move between the main reading lanes in one tap.', 'kuchnia-twist'); ?></p>
                 </div>
                 <div class="chip-links">
                     <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>

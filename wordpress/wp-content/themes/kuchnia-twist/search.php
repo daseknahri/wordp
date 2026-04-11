@@ -38,14 +38,14 @@ $query_text = trim((string) get_search_query());
             <div class="archive-shell__tool-card archive-shell__tool-card--search">
                 <div class="archive-shell__tool-intro">
                     <span class="eyebrow"><?php esc_html_e('Refine the search', 'kuchnia-twist'); ?></span>
-                    <p><?php esc_html_e('Try a tighter phrase, an ingredient, or a recipe name to find a closer match.', 'kuchnia-twist'); ?></p>
+                    <p><?php esc_html_e('Try a tighter phrase, an ingredient, or a recipe name for a closer match.', 'kuchnia-twist'); ?></p>
                 </div>
                 <?php get_search_form(); ?>
             </div>
             <div class="archive-shell__tool-card archive-shell__tool-card--browse">
                 <div class="archive-shell__tool-intro">
                     <span class="eyebrow"><?php esc_html_e('Browse instead', 'kuchnia-twist'); ?></span>
-                    <p><?php esc_html_e('Move into one of the main reading lanes if you want to keep exploring.', 'kuchnia-twist'); ?></p>
+                    <p><?php esc_html_e('Move into one of the main reading lanes to keep exploring.', 'kuchnia-twist'); ?></p>
                 </div>
                 <div class="chip-links">
                     <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>
