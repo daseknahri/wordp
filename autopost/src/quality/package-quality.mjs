@@ -292,6 +292,532 @@ export function filterChannelWarningChecks(checks, channel = "facebook") {
   return [];
 }
 
+export function buildQualitySummary({
+  job,
+  generated,
+  settings = {},
+  options = {},
+  deps,
+}) {
+  const contentPackage = deps.resolveCanonicalContentPackage(generated, job);
+  const facebookChannel = deps.resolveFacebookChannelAdapter(generated, job);
+  const contentType = deps.cleanText(contentPackage.content_type || job?.content_type || "recipe") || "recipe";
+  const articleSignals = deps.isPlainObject(contentPackage.article_signals)
+    ? contentPackage.article_signals
+    : deps.buildArticleSocialSignals(contentPackage, contentType);
+  const contentHtml = String(contentPackage.content_html || "");
+  const contentPages = Array.isArray(contentPackage.content_pages) && contentPackage.content_pages.length
+    ? contentPackage.content_pages
+      .map((page) => String(page || ""))
+      .filter((page) => deps.cleanText(page.replace(/<[^>]+>/g, " ")) !== "")
+    : deps.splitHtmlIntoPages(contentHtml, contentType).slice(0, 3);
+  const pageFlow = deps.normalizeGeneratedPageFlow(
+    Array.isArray(contentPackage.page_flow) ? contentPackage.page_flow : [],
+    contentPages,
+  );
+  const pageWordCounts = contentPages.map((page) => deps.cleanText(page.replace(/<[^>]+>/g, " ")).split(/\s+/).filter(Boolean).length);
+  const pageCount = contentPages.length || 1;
+  const shortestPageWords = pageWordCounts.length ? Math.min(...pageWordCounts) : 0;
+  const strongPageOpenings = contentPages.filter((page, index) => deps.pageStartsWithExpectedLead(page, index)).length;
+  const uniquePageLabels = new Set(pageFlow.map((page) => deps.normalizePageFlowLabelFingerprint(page?.label || "")).filter(Boolean));
+  const strongPageLabels = pageFlow.filter((page, index) => deps.pageFlowLabelLooksStrong(page?.label || "", index)).length;
+  const strongPageSummaries = pageFlow.filter((page) => deps.pageFlowSummaryLooksStrong(page?.summary || "", page?.label || "")).length;
+  const selectedPages = Array.isArray(options.selectedPages) ? options.selectedPages : deps.resolveSelectedFacebookPages(job, settings);
+  const socialPack = Array.isArray(facebookChannel.selected) ? facebookChannel.selected : [];
+  const fingerprints = socialPack.map((variant) => deps.normalizeSocialFingerprint(variant)).filter(Boolean);
+  const uniqueFingerprints = new Set(fingerprints);
+  const uniqueHookFingerprints = new Set(socialPack.map((variant) => deps.normalizeHookFingerprint(variant)).filter(Boolean));
+  const uniqueCaptionOpenings = new Set(socialPack.map((variant) => deps.normalizeCaptionOpeningFingerprint(variant)).filter(Boolean));
+  const uniqueAngleKeys = new Set(socialPack.map((variant) => deps.normalizeAngleKey(variant?.angle_key || "", contentType)).filter(Boolean));
+  const uniqueHookForms = new Set(socialPack.map((variant) => deps.classifySocialHookForm(variant)).filter(Boolean));
+  const strongSocialVariants = socialPack.filter((variant) => !deps.socialVariantLooksWeak(variant, contentPackage.title || "", contentType, articleSignals)).length;
+  const selectedSocialSummary = deps.summarizeSelectedSocialPack(socialPack, contentPackage, contentType);
+  const signalTargets = deps.desiredSocialSignalTargets(selectedPages.length);
+  const recipe = deps.isPlainObject(contentPackage.recipe) ? contentPackage.recipe : {};
+  const wordCount = deps.cleanText(contentHtml.replace(/<[^>]+>/g, " ")).split(/\s+/).filter(Boolean).length;
+  const minimumWords = Number(contentType === "recipe" ? 1200 : 1100);
+  const h2Count = (contentHtml.match(/<h2\b/gi) || []).length;
+  const internalLinks = deps.countInternalLinks(contentHtml);
+  const excerptWords = deps.cleanText(contentPackage.excerpt || "").split(/\s+/).filter(Boolean).length;
+  const seoWords = deps.cleanText(contentPackage.seo_description || "").split(/\s+/).filter(Boolean).length;
+  const openingParagraph = deps.extractOpeningParagraphText(contentPackage, deps);
+  const titleScore = deps.headlineSpecificityScore(contentPackage.title || "", contentType, job?.topic || "");
+  const titleStrong = deps.titleLooksStrong(contentPackage.title || "", job?.topic || "", contentType);
+  const titleFrontLoadScore = deps.frontLoadedClickSignalScore(contentPackage.title || "", contentType);
+  const excerptFrontLoadScore = deps.frontLoadedClickSignalScore(contentPackage.excerpt || "", contentType);
+  const seoFrontLoadScore = deps.frontLoadedClickSignalScore(contentPackage.seo_description || "", contentType);
+  const openingFrontLoadScore = deps.frontLoadedClickSignalScore(openingParagraph || "", contentType);
+  const openingAlignmentScore = deps.openingPromiseAlignmentScore(contentPackage.title || "", openingParagraph);
+  const excerptAddsValue = deps.excerptAddsNewValue(contentPackage.title || "", contentPackage.excerpt || "");
+  const openingAddsValue = deps.openingParagraphAddsNewValue(contentHtml, contentPackage.title || "", contentPackage.excerpt || "");
+  const excerptSignalScore = deps.excerptClickSignalScore(contentPackage.excerpt || "", contentPackage.title || "", openingParagraph);
+  const seoSignalScore = deps.seoDescriptionSignalScore(contentPackage.seo_description || "", contentPackage.title || "", contentPackage.excerpt || "");
+  const recipeComplete = contentType !== "recipe" || (
+    deps.ensureStringArray(recipe.ingredients).length > 0
+    && deps.ensureStringArray(recipe.instructions).length > 0
+  );
+  const featuredImageReady = Boolean(options.featuredImage?.id || job?.featured_image?.id || job?.blog_image?.id);
+  const facebookImageReady = Boolean(
+    options.facebookImage?.id
+    || job?.facebook_image_result?.id
+    || job?.facebook_image?.id
+    || options.featuredImage?.id
+    || job?.featured_image?.id
+    || job?.blog_image?.id
+  );
+  const imageReady = featuredImageReady && facebookImageReady;
+  const duplicateRisk = Boolean(options.duplicateRisk);
+  const validatorSummary = extractValidatorSummary(generated, deps);
+  const contractMeta = resolveContractMeta(generated, deps);
+  const strictContractMode = Boolean(
+    settings?.content_machine?.contracts?.strict_contract_mode
+    || settings?.contentMachine?.contracts?.strict_contract_mode
+    || settings?.strict_contract_mode
+    || settings?.strictContractMode
+  );
+  const contractChecks = collectCanonicalContractChecks({
+    generated,
+    job,
+    targetPages: selectedPages.length,
+    deps,
+  });
+  const contractBlockingChecks = (strictContractMode && contractMeta.typed_contract_job)
+    ? contractChecks.warning_checks.filter((check) => String(check || "").endsWith("_contract_drift"))
+    : [];
+
+  const blockingChecks = [...contractBlockingChecks];
+  const warningChecks = contractChecks.warning_checks.filter((check) => !contractBlockingChecks.includes(check));
+
+  if (!deps.cleanText(contentPackage.title || "") || !deps.cleanText(contentPackage.slug || "") || !deps.cleanText(contentHtml.replace(/<[^>]+>/g, " "))) {
+    blockingChecks.push("missing_core_fields");
+  }
+  if (contentType === "recipe" && !recipeComplete) {
+    blockingChecks.push("missing_recipe");
+  }
+  if (settings.imageGenerationMode === "manual_only" && (!featuredImageReady || !facebookImageReady)) {
+    blockingChecks.push("missing_manual_images");
+  }
+  if (duplicateRisk) {
+    blockingChecks.push("duplicate_conflict");
+  }
+  if (selectedPages.length < 1) {
+    blockingChecks.push("missing_target_pages");
+  }
+  if (wordCount < minimumWords) {
+    warningChecks.push("thin_content");
+  }
+  if (!titleStrong || titleScore < 3) {
+    warningChecks.push("weak_title");
+  }
+  if (excerptWords < 12 || !excerptAddsValue || excerptSignalScore < 3) {
+    warningChecks.push("weak_excerpt");
+  }
+  if (seoWords < 12 || seoSignalScore < 3) {
+    warningChecks.push("weak_seo");
+  }
+  if (openingAlignmentScore < 2 || !openingAddsValue) {
+    warningChecks.push("weak_title_alignment");
+  }
+  if (pageCount < 2 || pageCount > 3) {
+    warningChecks.push("weak_pagination");
+  }
+  if (pageCount > 1 && shortestPageWords > 0 && shortestPageWords < 140) {
+    warningChecks.push("weak_page_balance");
+  }
+  if (pageCount > 1 && strongPageOpenings < pageCount) {
+    warningChecks.push("weak_page_openings");
+  }
+  if (pageCount > 1 && pageFlow.length < pageCount) {
+    warningChecks.push("weak_page_flow");
+  }
+  if (pageCount > 1 && strongPageLabels < pageCount) {
+    warningChecks.push("weak_page_labels");
+  }
+  if (pageCount > 1 && uniquePageLabels.size < pageCount) {
+    warningChecks.push("repetitive_page_labels");
+  }
+  if (pageCount > 1 && strongPageSummaries < pageCount) {
+    warningChecks.push("weak_page_summaries");
+  }
+  if (h2Count < 2) {
+    warningChecks.push("weak_structure");
+  }
+  if (internalLinks < 3) {
+    warningChecks.push("missing_internal_links");
+  }
+  if (socialPack.length < Math.max(1, selectedPages.length)) {
+    warningChecks.push("social_pack_incomplete");
+  }
+  if (socialPack.length > 0 && uniqueFingerprints.size < Math.min(socialPack.length, Math.max(1, selectedPages.length))) {
+    warningChecks.push("social_pack_repetitive");
+  }
+  if (socialPack.length > 1 && uniqueHookFingerprints.size < Math.min(socialPack.length, Math.max(1, selectedPages.length))) {
+    warningChecks.push("social_hooks_repetitive");
+  }
+  if (socialPack.length > 1 && uniqueCaptionOpenings.size < Math.min(socialPack.length, Math.max(1, selectedPages.length))) {
+    warningChecks.push("social_openings_repetitive");
+  }
+  if (selectedPages.length > 1 && uniqueAngleKeys.size < Math.min(selectedPages.length, deps.angleDefinitionsForType(contentType).length)) {
+    warningChecks.push("social_angles_repetitive");
+  }
+  if (selectedPages.length > 1 && uniqueHookForms.size < Math.max(2, Math.min(3, selectedPages.length))) {
+    warningChecks.push("social_hook_forms_thin");
+  }
+  if (strongSocialVariants < Math.max(1, selectedPages.length)) {
+    warningChecks.push("weak_social_copy");
+  }
+  if (
+    selectedPages.length > 0
+    && (
+      selectedSocialSummary.lead_social_score < 16
+      || !selectedSocialSummary.lead_social_specific
+      || !selectedSocialSummary.lead_social_novelty
+      || !selectedSocialSummary.lead_social_anchored
+      || !selectedSocialSummary.lead_social_relatable
+      || !selectedSocialSummary.lead_social_recognition
+      || !selectedSocialSummary.lead_social_front_loaded
+      || !selectedSocialSummary.lead_social_focused
+      || !selectedSocialSummary.lead_social_promise_sync
+      || !selectedSocialSummary.lead_social_scannable
+      || !selectedSocialSummary.lead_social_two_step
+      || ((selectedSocialSummary.lead_social_curiosity || selectedSocialSummary.lead_social_contrast) && !selectedSocialSummary.lead_social_resolved)
+      || (
+        !selectedSocialSummary.lead_social_pain_point
+        && !selectedSocialSummary.lead_social_payoff
+        && !selectedSocialSummary.lead_social_consequence
+        && !selectedSocialSummary.lead_social_habit_shift
+        && !selectedSocialSummary.lead_social_savvy
+        && !selectedSocialSummary.lead_social_identity_shift
+      )
+    )
+  ) {
+    warningChecks.push("weak_social_lead");
+  }
+  if (selectedSocialSummary.specific_social_variants < Math.max(1, Math.min(selectedPages.length || 1, 2))) {
+    warningChecks.push("social_specificity_thin");
+  }
+  if (selectedPages.length > 0 && selectedSocialSummary.anchored_variants < Math.max(1, Math.min(selectedPages.length || 1, 2))) {
+    warningChecks.push("social_anchor_thin");
+  }
+  if (selectedPages.length > 0 && selectedSocialSummary.novelty_variants < Math.max(1, Math.min(selectedPages.length || 1, 2))) {
+    warningChecks.push("social_novelty_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.relatable_variants < 1) {
+    warningChecks.push("social_relatability_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.recognition_variants < 1) {
+    warningChecks.push("social_recognition_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.conversation_variants < 1) {
+    warningChecks.push("social_conversation_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.savvy_variants < 1) {
+    warningChecks.push("social_savvy_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.identity_shift_variants < 1) {
+    warningChecks.push("social_identity_shift_thin");
+  }
+  if (selectedPages.length > 0 && selectedSocialSummary.front_loaded_social_variants < Math.max(1, Math.min(selectedPages.length || 1, 2))) {
+    warningChecks.push("social_front_load_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.curiosity_variants < 1) {
+    warningChecks.push("social_curiosity_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.resolution_variants < 1) {
+    warningChecks.push("social_resolution_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.contrast_variants < 1) {
+    warningChecks.push("social_contrast_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.pain_point_variants < signalTargets.painPointMin) {
+    warningChecks.push("social_pain_points_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.payoff_variants < signalTargets.payoffMin) {
+    warningChecks.push("social_payoffs_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.proof_variants < 1) {
+    warningChecks.push("social_proof_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.actionable_variants < 1) {
+    warningChecks.push("social_actionability_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.immediacy_variants < 1) {
+    warningChecks.push("social_immediacy_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.consequence_variants < 1) {
+    warningChecks.push("social_consequence_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.habit_shift_variants < 1) {
+    warningChecks.push("social_habit_shift_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.focused_variants < 1) {
+    warningChecks.push("social_focus_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.promise_sync_variants < 1) {
+    warningChecks.push("social_promise_sync_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.scannable_variants < 1) {
+    warningChecks.push("social_scannability_thin");
+  }
+  if (selectedPages.length > 1 && selectedSocialSummary.two_step_variants < 1) {
+    warningChecks.push("social_two_step_thin");
+  }
+  if (!imageReady) {
+    warningChecks.push("image_not_ready");
+  }
+
+  const penalties = {
+    missing_core_fields: 35,
+    missing_recipe: 25,
+    missing_manual_images: 20,
+    duplicate_conflict: 30,
+    missing_target_pages: 25,
+    thin_content: 15,
+    weak_title: 8,
+    weak_excerpt: 8,
+    weak_seo: 8,
+    weak_title_alignment: 7,
+    weak_pagination: 8,
+    weak_page_balance: 7,
+    weak_page_openings: 6,
+    weak_page_flow: 6,
+    weak_page_labels: 5,
+    repetitive_page_labels: 5,
+    weak_page_summaries: 5,
+    weak_structure: 10,
+    missing_internal_links: 9,
+    social_pack_incomplete: 12,
+    social_pack_repetitive: 10,
+    social_hooks_repetitive: 8,
+    social_openings_repetitive: 8,
+    social_angles_repetitive: 8,
+    social_hook_forms_thin: 5,
+    weak_social_copy: 10,
+    weak_social_lead: 8,
+    social_specificity_thin: 8,
+    social_anchor_thin: 7,
+    social_relatability_thin: 6,
+    social_recognition_thin: 6,
+    social_conversation_thin: 6,
+    social_savvy_thin: 6,
+    social_identity_shift_thin: 6,
+    social_novelty_thin: 7,
+    social_front_load_thin: 7,
+    social_curiosity_thin: 6,
+    social_resolution_thin: 6,
+    social_contrast_thin: 6,
+    social_pain_points_thin: 6,
+    social_payoffs_thin: 6,
+    social_proof_thin: 6,
+    social_actionability_thin: 6,
+    social_immediacy_thin: 6,
+    social_consequence_thin: 6,
+    social_habit_shift_thin: 6,
+    social_focus_thin: 6,
+    social_promise_sync_thin: 6,
+    social_scannability_thin: 6,
+    social_two_step_thin: 6,
+    image_not_ready: 8,
+    package_contract_drift: 6,
+    facebook_adapter_contract_drift: 5,
+    facebook_groups_adapter_contract_drift: 3,
+    pinterest_adapter_contract_drift: 3,
+  };
+  let qualityScore = 100;
+  for (const failedCheck of [...blockingChecks, ...warningChecks]) {
+    qualityScore -= Number(penalties[failedCheck] || 0);
+  }
+  qualityScore = Math.max(0, qualityScore);
+  const dedupedBlockingChecks = Array.from(new Set(blockingChecks));
+  const dedupedWarningChecks = Array.from(new Set(warningChecks));
+  const failedChecks = [...dedupedBlockingChecks, ...dedupedWarningChecks];
+  const qualityScoreThreshold = Number(settings?.quality_score_threshold || 75);
+  const qualityStatus = dedupedBlockingChecks.length > 0
+    ? "block"
+    : ((dedupedWarningChecks.length > 0 || qualityScore < qualityScoreThreshold) ? "warn" : "pass");
+  const editorialSummary = buildEditorialReadinessSummary({
+    qualityStatus,
+    qualityScore,
+    titleStrong,
+    openingAlignmentScore,
+    pageCount,
+    strongPageOpenings,
+    strongPageSummaries,
+    targetPages: selectedPages.length,
+    strongSocialVariants,
+    leadSocialScore: selectedSocialSummary.lead_social_score,
+    leadSocialSpecific: selectedSocialSummary.lead_social_specific,
+    leadSocialFrontLoaded: selectedSocialSummary.lead_social_front_loaded,
+    leadSocialPromiseSync: selectedSocialSummary.lead_social_promise_sync,
+    blockingChecks: dedupedBlockingChecks,
+    warningChecks: dedupedWarningChecks,
+  });
+
+  return {
+    quality_score: qualityScore,
+    quality_status: qualityStatus,
+    blocking_checks: dedupedBlockingChecks,
+    warning_checks: dedupedWarningChecks,
+    failed_checks: failedChecks,
+    package_quality: buildContentPackageQualitySummary({
+      generated: {
+        ...generated,
+        content_type: contentType,
+        content_package: contentPackage,
+      },
+      warningChecks: dedupedWarningChecks,
+      blockingChecks: dedupedBlockingChecks,
+      deps,
+    }),
+    channel_quality: {
+      facebook: buildFacebookChannelQualitySummary({
+        generated: {
+          ...generated,
+          content_type: contentType,
+          social_pack: socialPack,
+        },
+        warningChecks: dedupedWarningChecks,
+        blockingChecks: dedupedBlockingChecks,
+        deps,
+      }),
+      facebook_groups: buildDormantChannelQualitySummary({
+        generated,
+        channel: "facebook_groups",
+        warningChecks: dedupedWarningChecks,
+        blockingChecks: dedupedBlockingChecks,
+        deps,
+      }),
+      pinterest: buildDormantChannelQualitySummary({
+        generated,
+        channel: "pinterest",
+        warningChecks: dedupedWarningChecks,
+        blockingChecks: dedupedBlockingChecks,
+        deps,
+      }),
+    },
+    editorial_readiness: editorialSummary.editorial_readiness,
+    editorial_highlights: editorialSummary.editorial_highlights,
+    editorial_watchouts: editorialSummary.editorial_watchouts,
+    quality_checks: {
+      word_count: wordCount,
+      minimum_words: minimumWords,
+      title_score: titleScore,
+      title_strong: titleStrong,
+      title_front_load_score: titleFrontLoadScore,
+      opening_alignment_score: openingAlignmentScore,
+      excerpt_adds_value: excerptAddsValue,
+      opening_adds_value: openingAddsValue,
+      opening_front_load_score: openingFrontLoadScore,
+      h2_count: h2Count,
+      internal_links: internalLinks,
+      excerpt_words: excerptWords,
+      excerpt_signal_score: excerptSignalScore,
+      excerpt_front_load_score: excerptFrontLoadScore,
+      seo_words: seoWords,
+      seo_signal_score: seoSignalScore,
+      seo_front_load_score: seoFrontLoadScore,
+      page_count: pageCount,
+      shortest_page_words: shortestPageWords,
+      strong_page_openings: strongPageOpenings,
+      unique_page_labels: uniquePageLabels.size,
+      strong_page_labels: strongPageLabels,
+      strong_page_summaries: strongPageSummaries,
+      recipe_complete: recipeComplete,
+      image_ready: imageReady,
+      package_contract_enforced: contractChecks.package_contract_enforced,
+      channel_contract_enforced: contractChecks.channel_contract_enforced,
+      typed_contract_job: contractMeta.typed_contract_job,
+      legacy_contract_job: contractMeta.legacy_job,
+      strict_contract_mode: strictContractMode,
+      target_pages: selectedPages.length,
+      social_variants: socialPack.length,
+      unique_social_variants: uniqueFingerprints.size,
+      unique_social_hooks: uniqueHookFingerprints.size,
+      unique_social_openings: uniqueCaptionOpenings.size,
+      unique_social_angles: uniqueAngleKeys.size,
+      unique_hook_form_candidates: deps.toInt(validatorSummary.unique_hook_form_candidates),
+      unique_social_hook_forms: uniqueHookForms.size,
+      social_pool_size: deps.toInt(validatorSummary.social_pool_size),
+      strong_social_candidates: deps.toInt(validatorSummary.strong_social_candidates),
+      specific_social_candidates: deps.toInt(validatorSummary.specific_social_candidates),
+      anchored_social_candidates: deps.toInt(validatorSummary.anchored_social_candidates),
+      novelty_social_candidates: deps.toInt(validatorSummary.novelty_social_candidates),
+      relatable_social_candidates: deps.toInt(validatorSummary.relatable_social_candidates),
+      recognition_social_candidates: deps.toInt(validatorSummary.recognition_social_candidates),
+      conversation_social_candidates: deps.toInt(validatorSummary.conversation_social_candidates),
+      savvy_social_candidates: deps.toInt(validatorSummary.savvy_social_candidates),
+      identity_shift_social_candidates: deps.toInt(validatorSummary.identity_shift_social_candidates),
+      proof_social_candidates: deps.toInt(validatorSummary.proof_social_candidates),
+      actionable_social_candidates: deps.toInt(validatorSummary.actionable_social_candidates),
+      immediacy_social_candidates: deps.toInt(validatorSummary.immediacy_social_candidates),
+      consequence_social_candidates: deps.toInt(validatorSummary.consequence_social_candidates),
+      habit_shift_social_candidates: deps.toInt(validatorSummary.habit_shift_social_candidates),
+      focused_social_candidates: deps.toInt(validatorSummary.focused_social_candidates),
+      promise_sync_candidates: deps.toInt(validatorSummary.promise_sync_candidates),
+      scannable_social_candidates: deps.toInt(validatorSummary.scannable_social_candidates),
+      two_step_social_candidates: deps.toInt(validatorSummary.two_step_social_candidates),
+      front_loaded_social_candidates: deps.toInt(validatorSummary.front_loaded_social_candidates),
+      curiosity_social_candidates: deps.toInt(validatorSummary.curiosity_social_candidates),
+      resolution_social_candidates: deps.toInt(validatorSummary.resolution_social_candidates),
+      contrast_social_candidates: deps.toInt(validatorSummary.contrast_social_candidates),
+      pain_point_social_candidates: deps.toInt(validatorSummary.pain_point_social_candidates),
+      payoff_social_candidates: deps.toInt(validatorSummary.payoff_social_candidates),
+      high_scoring_social_candidates: deps.toInt(validatorSummary.high_scoring_social_candidates),
+      strong_social_variants: strongSocialVariants,
+      specific_social_variants: selectedSocialSummary.specific_social_variants,
+      anchored_variants: selectedSocialSummary.anchored_variants,
+      novelty_variants: selectedSocialSummary.novelty_variants,
+      relatable_variants: selectedSocialSummary.relatable_variants,
+      recognition_variants: selectedSocialSummary.recognition_variants,
+      conversation_variants: selectedSocialSummary.conversation_variants,
+      savvy_variants: selectedSocialSummary.savvy_variants,
+      identity_shift_variants: selectedSocialSummary.identity_shift_variants,
+      proof_variants: selectedSocialSummary.proof_variants,
+      actionable_variants: selectedSocialSummary.actionable_variants,
+      immediacy_variants: selectedSocialSummary.immediacy_variants,
+      consequence_variants: selectedSocialSummary.consequence_variants,
+      habit_shift_variants: selectedSocialSummary.habit_shift_variants,
+      focused_variants: selectedSocialSummary.focused_variants,
+      promise_sync_variants: selectedSocialSummary.promise_sync_variants,
+      scannable_variants: selectedSocialSummary.scannable_variants,
+      two_step_variants: selectedSocialSummary.two_step_variants,
+      curiosity_variants: selectedSocialSummary.curiosity_variants,
+      resolution_variants: selectedSocialSummary.resolution_variants,
+      contrast_variants: selectedSocialSummary.contrast_variants,
+      front_loaded_social_variants: selectedSocialSummary.front_loaded_social_variants,
+      pain_point_variants: selectedSocialSummary.pain_point_variants,
+      payoff_variants: selectedSocialSummary.payoff_variants,
+      selected_social_average_score: selectedSocialSummary.selected_social_average_score,
+      lead_social_score: selectedSocialSummary.lead_social_score,
+      lead_social_hook_form: selectedSocialSummary.lead_social_hook_form,
+      lead_social_specific: selectedSocialSummary.lead_social_specific,
+      lead_social_anchored: selectedSocialSummary.lead_social_anchored,
+      lead_social_relatable: selectedSocialSummary.lead_social_relatable,
+      lead_social_recognition: selectedSocialSummary.lead_social_recognition,
+      lead_social_conversation: selectedSocialSummary.lead_social_conversation,
+      lead_social_savvy: selectedSocialSummary.lead_social_savvy,
+      lead_social_identity_shift: selectedSocialSummary.lead_social_identity_shift,
+      lead_social_novelty: selectedSocialSummary.lead_social_novelty,
+      lead_social_curiosity: selectedSocialSummary.lead_social_curiosity,
+      lead_social_resolved: selectedSocialSummary.lead_social_resolved,
+      lead_social_contrast: selectedSocialSummary.lead_social_contrast,
+      lead_social_front_loaded: selectedSocialSummary.lead_social_front_loaded,
+      lead_social_pain_point: selectedSocialSummary.lead_social_pain_point,
+      lead_social_payoff: selectedSocialSummary.lead_social_payoff,
+      lead_social_proof: selectedSocialSummary.lead_social_proof,
+      lead_social_actionable: selectedSocialSummary.lead_social_actionable,
+      lead_social_immediacy: selectedSocialSummary.lead_social_immediacy,
+      lead_social_consequence: selectedSocialSummary.lead_social_consequence,
+      lead_social_habit_shift: selectedSocialSummary.lead_social_habit_shift,
+      lead_social_focused: selectedSocialSummary.lead_social_focused,
+      lead_social_promise_sync: selectedSocialSummary.lead_social_promise_sync,
+      lead_social_scannable: selectedSocialSummary.lead_social_scannable,
+      lead_social_two_step: selectedSocialSummary.lead_social_two_step,
+      duplicate_risk: duplicateRisk,
+    },
+  };
+}
+
 export function buildContentPackageQualitySummary({
   generated,
   warningChecks = null,
