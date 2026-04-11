@@ -453,7 +453,7 @@ summary:focus-visible {
 
 .site-progress {
   display: none;
-  height: 3px;
+  height: 2px;
   background: rgba(38, 23, 15, 0.05);
 }
 
@@ -1859,10 +1859,10 @@ summary:focus-visible {
 
 .article-progress {
   display: grid;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 8px 12px;
   border: 1px solid rgba(38, 23, 15, 0.08);
-  border-radius: 20px;
+  border-radius: 18px;
   background:
     linear-gradient(135deg, rgba(255, 250, 242, 0.96), rgba(255, 252, 247, 0.9)),
     rgba(255, 252, 247, 0.92);
@@ -1899,7 +1899,7 @@ summary:focus-visible {
 .article-progress__track {
   position: relative;
   overflow: hidden;
-  height: 6px;
+  height: 4px;
   border-radius: 999px;
   background: rgba(38, 23, 15, 0.08);
 }
