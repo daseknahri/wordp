@@ -1142,7 +1142,8 @@ function kuchnia_twist_archive_context()
             $context['eyebrow'] = __('Journal pillar', 'kuchnia-twist');
             $context['title'] = single_cat_title('', false);
             $term_description = wp_strip_all_tags(category_description($term));
-            $context['description'] = $term_description;
+            $term_seo = trim((string) get_term_meta($term->term_id, 'kuchnia_twist_seo_description', true));
+            $context['description'] = $term_seo !== '' ? $term_seo : $term_description;
 
             $pillar_map = [
                 'recipes' => [
