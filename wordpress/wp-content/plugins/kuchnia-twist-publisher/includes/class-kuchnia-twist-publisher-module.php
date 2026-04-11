@@ -13,7 +13,7 @@ abstract class Kuchnia_Twist_Publisher_Module extends Kuchnia_Twist_Publisher_Ba
 
     public function __call(string $name, array $arguments)
     {
-        if (method_exists($this, $name)) {
+        if (is_callable([$this, $name])) {
             return $this->{$name}(...$arguments);
         }
 
