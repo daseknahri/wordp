@@ -1212,7 +1212,7 @@ function kuchnia_twist_adjacent_story_links($post_id = 0)
 
     if ($previous instanceof WP_Post) {
         $links[] = [
-            'direction' => __('Previous story', 'kuchnia-twist'),
+            'direction' => __('Previous post', 'kuchnia-twist'),
             'title'     => get_the_title($previous),
             'url'       => get_permalink($previous),
         ];
@@ -1220,7 +1220,7 @@ function kuchnia_twist_adjacent_story_links($post_id = 0)
 
     if ($next instanceof WP_Post) {
         $links[] = [
-            'direction' => __('Next story', 'kuchnia-twist'),
+            'direction' => __('Next post', 'kuchnia-twist'),
             'title'     => get_the_title($next),
             'url'       => get_permalink($next),
         ];
