@@ -22,7 +22,7 @@ $follow_label_id = 'site-footer-follow-label';
                     </span>
                     <div>
                         <h2><?php bloginfo('name'); ?></h2>
-                        <p class="site-footer__summary"><?php echo esc_html($editor_profile['bio']); ?></p>
+                        <p class="site-footer__summary"><?php esc_html_e('Independent home-cooking journal with recipes, food facts, and stories.', 'kuchnia-twist'); ?></p>
                     </div>
                 </div>
                 <div class="site-footer__lead-actions">

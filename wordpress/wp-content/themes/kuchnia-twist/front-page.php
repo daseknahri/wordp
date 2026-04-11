@@ -292,8 +292,8 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
             <?php endif; ?>
         </div>
         <div>
-            <h2><?php echo esc_html($editor_profile['name']); ?></h2>
-            <p><?php echo esc_html($editor_profile['bio']); ?></p>
+            <h2><?php echo esc_html(get_bloginfo('name')); ?></h2>
+            <p><?php esc_html_e('Independent home-cooking journal with recipes, food facts, and stories.', 'kuchnia-twist'); ?></p>
         </div>
     </div>
 
