@@ -29,7 +29,7 @@ get_header();
                 </div>
             </div>
         </div>
-        <div class="home-hero__actions">
+        <div class="archive-shell__actions">
             <a class="button button--primary" href="<?php echo esc_url(home_url('/')); ?>"><?php esc_html_e('Go home', 'kuchnia-twist'); ?></a>
         </div>
     </div>
