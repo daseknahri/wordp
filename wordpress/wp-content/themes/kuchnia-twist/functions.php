@@ -1434,19 +1434,19 @@ function kuchnia_twist_page_action_links($slug)
 
     $map = [
         'about' => [
-            $make_link('editorial-policy', __('Read the editorial policy', 'kuchnia-twist')),
-            $make_link('contact', __('Open the contact page', 'kuchnia-twist')),
+            $make_link('editorial-policy', __('Read the Editorial Policy', 'kuchnia-twist')),
+            $make_link('contact', __('Contact the editor', 'kuchnia-twist')),
         ],
         'contact' => [
-            $make_link('about', __('Read the about page', 'kuchnia-twist')),
-            $make_link('editorial-policy', __('See site standards', 'kuchnia-twist')),
+            $make_link('about', __('About the journal', 'kuchnia-twist')),
+            $make_link('editorial-policy', __('Review editorial standards', 'kuchnia-twist')),
         ],
         'privacy-policy' => [
-            $make_link('cookie-policy', __('Review the cookie page', 'kuchnia-twist')),
+            $make_link('cookie-policy', __('Review cookie use', 'kuchnia-twist')),
             $make_link('contact', __('Contact the editor', 'kuchnia-twist')),
         ],
         'cookie-policy' => [
-            $make_link('privacy-policy', __('Review the privacy page', 'kuchnia-twist')),
+            $make_link('privacy-policy', __('Review the privacy policy', 'kuchnia-twist')),
             $make_link('contact', __('Contact the editor', 'kuchnia-twist')),
         ],
         'editorial-policy' => [
