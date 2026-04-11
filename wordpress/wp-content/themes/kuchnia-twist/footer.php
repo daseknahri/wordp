@@ -72,7 +72,7 @@ $follow_label_id = 'site-footer-follow-label';
 
             <div class="site-footer__bottom">
                 <span><?php echo esc_html(date_i18n('Y')); ?> <?php bloginfo('name'); ?></span>
-                <span><?php esc_html_e('Independent home-cooking journal with recipes, explainers, and editorial standards pages available on-site.', 'kuchnia-twist'); ?></span>
+                <span><?php esc_html_e('Independent home-cooking journal with recipes, explainers, and visible editorial standards.', 'kuchnia-twist'); ?></span>
                 <?php if ($trust_nav) : ?>
                     <nav class="site-footer__micro-nav" aria-label="<?php esc_attr_e('Site standards and policy links', 'kuchnia-twist'); ?>">
                         <?php foreach ($trust_nav as $item) : ?>

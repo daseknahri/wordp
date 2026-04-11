@@ -426,7 +426,7 @@ function kuchnia_twist_publication_settings()
     $defaults = [
         'editor_name'           => '',
         'editor_role'           => __('Founding editor', 'kuchnia-twist'),
-        'editor_bio'            => __('Kuchnia Twist is edited as a warm home-cooking journal focused on practical recipes, useful ingredient explainers, and slower story-led kitchen essays.', 'kuchnia-twist'),
+        'editor_bio'            => __('Kuchnia Twist is edited as a home-cooking journal focused on practical recipes, clear explainers, and slower kitchen stories.', 'kuchnia-twist'),
         'editor_public_email'   => '',
         'editor_business_email' => '',
         'editor_photo_id'       => 0,
@@ -751,7 +751,7 @@ function kuchnia_twist_editor_profile()
     return [
         'name'           => $name !== '' ? $name : get_bloginfo('name'),
         'role'           => $role !== '' ? $role : __('Founding editor', 'kuchnia-twist'),
-        'bio'            => $bio !== '' ? $bio : __('Kuchnia Twist is an English-language home-cooking journal built around recipes, useful food facts, and slower story-led kitchen essays.', 'kuchnia-twist'),
+        'bio'            => $bio !== '' ? $bio : __('Kuchnia Twist is an English-language home-cooking journal built around recipes, useful food facts, and slower kitchen stories.', 'kuchnia-twist'),
         'public_email'   => is_email($email) ? $email : '',
         'business_email' => is_email($business) ? $business : '',
         'photo_id'       => $photo_id,
