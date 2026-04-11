@@ -1643,6 +1643,14 @@ summary:focus-visible {
     height: 38px;
   }
 
+  .site-search-sheet__copy {
+    font-size: 0.9rem;
+  }
+
+  .menu-sheet__grid {
+    gap: 16px;
+  }
+
   .article-shell,
   .archive-shell,
   .trust-shell,
