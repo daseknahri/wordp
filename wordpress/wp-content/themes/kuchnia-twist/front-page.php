@@ -22,6 +22,7 @@ $public_email      = kuchnia_twist_public_contact_email();
 $follow_label      = kuchnia_twist_social_follow_label();
 $has_social        = kuchnia_twist_has_social_profiles();
 $editor_profile    = kuchnia_twist_editor_profile();
+$trust_nav         = kuchnia_twist_trust_nav_items();
 $site_lede         = trim((string) get_bloginfo('description'));
 $hero_image_markup = '';
 $hero_category     = $hero_post ? kuchnia_twist_primary_category($hero_post->ID) : null;
@@ -95,6 +96,28 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
                 <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
             <?php endforeach; ?>
         </div>
+    </div>
+</section>
+
+<section class="trust-note-strip section" data-reveal>
+    <div class="trust-note-strip__grid">
+        <article class="trust-note">
+            <span class="eyebrow"><?php esc_html_e('Editorial focus', 'kuchnia-twist'); ?></span>
+            <h2><?php esc_html_e('A real home-cooking publication, not a thin content shell.', 'kuchnia-twist'); ?></h2>
+            <p><?php esc_html_e('The journal is structured around recipes, explainers, and slower editorial pieces so readers can understand what the site covers at a glance.', 'kuchnia-twist'); ?></p>
+        </article>
+        <article class="trust-note">
+            <span class="eyebrow"><?php esc_html_e('Standards', 'kuchnia-twist'); ?></span>
+            <h2><?php esc_html_e('Policy, contact, and editorial pages stay visible.', 'kuchnia-twist'); ?></h2>
+            <p><?php esc_html_e('Clear standards pages and direct contact paths help readers and reviewers understand who is behind the site and how it operates.', 'kuchnia-twist'); ?></p>
+            <?php if ($trust_nav) : ?>
+                <div class="chip-links">
+                    <?php foreach ($trust_nav as $item) : ?>
+                        <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </article>
     </div>
 </section>
 
