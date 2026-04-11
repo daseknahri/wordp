@@ -19,13 +19,10 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
         <h1><?php echo esc_html($context['title'] ?? get_bloginfo('name')); ?></h1>
         <?php if (!empty($context['description'])) : ?>
             <p><?php echo esc_html($context['description']); ?></p>
-        <?php else : ?>
-            <p><?php esc_html_e('A running feed of the newest stories, recipes, and explainers from the journal.', 'kuchnia-twist'); ?></p>
         <?php endif; ?>
         <?php if ($found_posts > 0) : ?>
             <div class="archive-shell__status">
                 <span><?php echo esc_html(sprintf(_n('%s published post', '%s published posts', $found_posts, 'kuchnia-twist'), number_format_i18n($found_posts))); ?></span>
-                <span><?php esc_html_e('Ready to read', 'kuchnia-twist'); ?></span>
             </div>
         <?php endif; ?>
     </div>

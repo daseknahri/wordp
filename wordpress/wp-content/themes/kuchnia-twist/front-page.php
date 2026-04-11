@@ -86,33 +86,10 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
     </div>
 </section>
 
-<section class="trust-note-strip section" data-reveal>
-    <div class="trust-note-strip__grid">
-        <article class="trust-note">
-            <span class="eyebrow"><?php esc_html_e('Editorial focus', 'kuchnia-twist'); ?></span>
-            <h2><?php esc_html_e('A home-cooking journal built for real kitchens.', 'kuchnia-twist'); ?></h2>
-            <p><?php esc_html_e('Every post is written to be cooked, understood, or remembered, not just clicked.', 'kuchnia-twist'); ?></p>
-        </article>
-        <article class="trust-note">
-            <span class="eyebrow"><?php esc_html_e('Standards', 'kuchnia-twist'); ?></span>
-            <h2><?php esc_html_e('Policies and contact stay visible, always.', 'kuchnia-twist'); ?></h2>
-            <p><?php esc_html_e('Editorial standards, identity, and correction paths are never buried.', 'kuchnia-twist'); ?></p>
-            <?php if ($trust_nav) : ?>
-                <div class="chip-links">
-                    <?php foreach ($trust_nav as $item) : ?>
-                        <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </article>
-    </div>
-</section>
-
 <section class="editorial-module section" data-reveal>
         <div class="section-heading section-heading--split">
         <div>
             <h2><?php esc_html_e('Recipes', 'kuchnia-twist'); ?></h2>
-            <p><?php esc_html_e('Cookable recipes with clear steps, practical timing, and real payoff.', 'kuchnia-twist'); ?></p>
         </div>
         <?php if ($recipes_url !== '') : ?>
             <a class="text-link" href="<?php echo esc_url($recipes_url); ?>"><?php esc_html_e('See all recipes', 'kuchnia-twist'); ?></a>
@@ -166,7 +143,6 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
         <div class="section-heading section-heading--split">
         <div>
             <h2><?php esc_html_e('Food Facts', 'kuchnia-twist'); ?></h2>
-            <p><?php esc_html_e('Short explainers that fix myths and sharpen everyday cooking decisions.', 'kuchnia-twist'); ?></p>
         </div>
         <?php $facts_url = kuchnia_twist_category_url_by_slug('food-facts'); ?>
         <?php if ($facts_url !== '') : ?>
@@ -200,7 +176,6 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
         <div class="section-heading section-heading--split">
             <div>
                 <h2><?php esc_html_e('Food Stories', 'kuchnia-twist'); ?></h2>
-                <p><?php esc_html_e('Slower stories about kitchen life, memory, and the people behind the meals.', 'kuchnia-twist'); ?></p>
             </div>
             <?php $stories_url = kuchnia_twist_category_url_by_slug('food-stories'); ?>
             <?php if ($stories_url !== '') : ?>
@@ -246,7 +221,6 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
     <section class="follow-panel section" id="follow-journal" data-reveal>
         <div class="follow-panel__copy">
             <h2><?php echo esc_html($follow_label); ?></h2>
-            <p><?php esc_html_e('New recipes, explainers, and quiet kitchen stories; no noise, just the journal.', 'kuchnia-twist'); ?></p>
         </div>
         <div class="follow-panel__actions">
             <?php if ($has_social) : ?>
@@ -271,7 +245,6 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
             <div>
             <span class="eyebrow"><?php echo esc_html($editor_profile['role']); ?></span>
             <h2><?php echo esc_html($editor_profile['name']); ?></h2>
-            <p><?php echo esc_html($editor_profile['bio']); ?></p>
             </div>
         </div>
 

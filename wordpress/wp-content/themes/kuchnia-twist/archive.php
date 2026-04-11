@@ -23,7 +23,6 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
         <?php if ($found_posts > 0) : ?>
             <div class="archive-shell__status">
                 <span><?php echo esc_html(sprintf(_n('%s post', '%s posts', $found_posts, 'kuchnia-twist'), number_format_i18n($found_posts))); ?></span>
-                <span><?php esc_html_e('In this archive', 'kuchnia-twist'); ?></span>
             </div>
         <?php endif; ?>
     </div>

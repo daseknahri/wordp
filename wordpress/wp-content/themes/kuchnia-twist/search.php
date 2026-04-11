@@ -31,7 +31,6 @@ $query_text = trim((string) get_search_query());
         <?php if ($found_posts > 0) : ?>
             <div class="archive-shell__status">
                 <span><?php echo esc_html(sprintf(_n('%s result', '%s results', $found_posts, 'kuchnia-twist'), number_format_i18n($found_posts))); ?></span>
-                <span><?php esc_html_e('Across the journal', 'kuchnia-twist'); ?></span>
             </div>
         <?php endif; ?>
     </div>
