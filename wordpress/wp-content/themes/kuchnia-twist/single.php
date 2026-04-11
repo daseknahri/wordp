@@ -32,6 +32,22 @@ while (have_posts()) :
     $page_labels          = is_array($article['page_labels'] ?? null) ? $article['page_labels'] : [];
     $previous_page_label  = trim((string) ($page_labels[$current_page - 2]['label'] ?? ''));
     $next_page_label      = trim((string) ($article['next_page_label'] ?? ''));
+    $recipe_jump_url      = '';
+
+    if ($is_recipe) {
+        if ($is_multipage) {
+            $recipe_page_link = _wp_link_page($total_pages);
+            if (preg_match('/href="([^"]+)"/', (string) $recipe_page_link, $matches)) {
+                $recipe_jump_url = trim((string) ($matches[1] ?? ''));
+            }
+        }
+
+        if ($recipe_jump_url === '') {
+            $recipe_jump_url = '#recipe-card';
+        } else {
+            $recipe_jump_url .= '#recipe-card';
+        }
+    }
     ?>
     <article class="article-shell single-story single-story--<?php echo esc_attr(sanitize_html_class($content_type)); ?>">
         <header class="article-hero">
@@ -52,10 +68,9 @@ while (have_posts()) :
 
         <div class="article-utility">
             <div class="article-utility__actions">
-                <?php if ($is_recipe && $is_final_page) : ?>
-                    <a class="button button--primary" href="#recipe-card"><?php esc_html_e('Jump to recipe', 'kuchnia-twist'); ?></a>
+                <?php if ($is_recipe && $recipe_jump_url !== '') : ?>
+                    <a class="button button--primary" href="<?php echo esc_url($recipe_jump_url); ?>"><?php esc_html_e('Jump to recipe', 'kuchnia-twist'); ?></a>
                 <?php endif; ?>
-                <button class="button button--ghost" type="button" data-search-toggle><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></button>
             </div>
 
             <div class="article-utility__share">

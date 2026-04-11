@@ -76,8 +76,6 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
             <?php endif; ?>
             <?php if ($has_social) : ?>
                 <a class="button button--ghost" href="#follow-journal"><?php echo esc_html($follow_label); ?></a>
-            <?php else : ?>
-                <button class="button button--ghost" type="button" data-search-toggle><?php esc_html_e('Open Search', 'kuchnia-twist'); ?></button>
             <?php endif; ?>
         </div>
     </div>

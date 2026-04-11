@@ -1330,6 +1330,10 @@ summary:focus-visible {
 }
 
 @media (max-width: 699px) {
+  .single-story .breadcrumbs {
+    display: none;
+  }
+
   .site-header__bar {
     padding-block: 10px;
   }
