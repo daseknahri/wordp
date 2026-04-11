@@ -474,6 +474,7 @@ function kuchnia_twist_trust_nav_items()
         'privacy-policy'   => __('Privacy', 'kuchnia-twist'),
         'cookie-policy'    => __('Cookies', 'kuchnia-twist'),
         'editorial-policy' => __('Editorial Policy', 'kuchnia-twist'),
+        'terms'            => __('Terms', 'kuchnia-twist'),
     ];
 
     foreach ($slugs as $slug => $label) {
@@ -1410,6 +1411,29 @@ function kuchnia_twist_page_profile($post = null)
                 ],
             ],
         ],
+        'terms' => [
+            'eyebrow' => __('Terms of use', 'kuchnia-twist'),
+            'intro' => __('These terms explain how the site can be used and what readers can expect when they visit Kuchnia Twist.', 'kuchnia-twist'),
+            'body' => [
+                __('By using this site, you agree to the terms below. If you do not agree, please do not use the site.', 'kuchnia-twist'),
+                __('The content is provided for general cooking guidance and editorial information. It should not replace professional advice.', 'kuchnia-twist'),
+                __('We may update these terms as the site evolves. Changes are posted on this page.', 'kuchnia-twist'),
+            ],
+            'sections' => [
+                [
+                    'title' => __('Use of content', 'kuchnia-twist'),
+                    'body' => __('You may read, share, and reference the content for personal, non-commercial use. Republishing or scraping content without permission is not allowed.', 'kuchnia-twist'),
+                ],
+                [
+                    'title' => __('Accuracy and changes', 'kuchnia-twist'),
+                    'body' => __('We aim for clarity and accuracy, but recipes and articles can change as they are improved. You are responsible for your own cooking decisions.', 'kuchnia-twist'),
+                ],
+                [
+                    'title' => __('Third-party links', 'kuchnia-twist'),
+                    'body' => __('The site may link to third-party resources or include third-party advertising. We are not responsible for those external services.', 'kuchnia-twist'),
+                ],
+            ],
+        ],
     ];
 
     return $profiles[$post->post_name] ?? null;
@@ -1484,6 +1508,10 @@ function kuchnia_twist_page_action_links($slug)
         ],
         'editorial-policy' => [
             $make_link('about', __('About the journal', 'kuchnia-twist')),
+            $make_link('contact', __('Contact the editor', 'kuchnia-twist')),
+        ],
+        'terms' => [
+            $make_link('privacy-policy', __('Review the privacy policy', 'kuchnia-twist')),
             $make_link('contact', __('Contact the editor', 'kuchnia-twist')),
         ],
     ];
