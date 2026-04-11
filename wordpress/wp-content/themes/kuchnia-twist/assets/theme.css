@@ -450,6 +450,10 @@ summary:focus-visible {
   font-size: 0.95rem;
 }
 
+.menu-sheet__links a {
+  padding: 4px 0;
+}
+
 .menu-sheet__links a:hover,
 .menu-sheet__email:hover,
 .menu-sheet__links a:focus-visible,
