@@ -1648,6 +1648,7 @@ summary:focus-visible {
 }
 
 .article-pagination__links a small {
+  display: none;
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--muted);
@@ -1707,6 +1708,10 @@ summary:focus-visible {
 }
 
 @media (min-width: 720px) {
+  .article-pagination__links a small {
+    display: block;
+  }
+
   .article-progress__pages {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }

@@ -29,6 +29,9 @@ while (have_posts()) :
     $is_final_page      = $current_page >= $total_pages;
     $page_progress      = $is_multipage ? max(0, min(100, (int) round(($current_page / $total_pages) * 100))) : 100;
     $current_page_summary = trim((string) ($article['current_summary'] ?? ''));
+    $page_labels          = is_array($article['page_labels'] ?? null) ? $article['page_labels'] : [];
+    $previous_page_label  = trim((string) ($page_labels[$current_page - 2]['label'] ?? ''));
+    $next_page_label      = trim((string) ($article['next_page_label'] ?? ''));
     ?>
     <article class="article-shell single-story single-story--<?php echo esc_attr(sanitize_html_class($content_type)); ?>">
         <header class="article-hero">
@@ -113,10 +116,12 @@ while (have_posts()) :
                 <?php if ($is_multipage) : ?>
                     <?php
                     set_query_var('kt_article_pagination', [
-                        'is_multipage' => $is_multipage,
-                        'current_page' => $current_page,
-                        'total_pages'  => $total_pages,
-                        'is_recipe'    => $is_recipe,
+                        'is_multipage'        => $is_multipage,
+                        'current_page'        => $current_page,
+                        'total_pages'         => $total_pages,
+                        'is_recipe'           => $is_recipe,
+                        'previous_page_label' => $previous_page_label,
+                        'next_page_label'     => $next_page_label,
                     ]);
                     get_template_part('template-parts/single/pagination');
                     ?>
