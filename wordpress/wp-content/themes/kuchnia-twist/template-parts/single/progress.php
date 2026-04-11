@@ -12,7 +12,7 @@ $total_pages = (int) ($context['total_pages'] ?? 1);
 $page_progress = (int) ($context['page_progress'] ?? 0);
 ?>
 
-<section class="article-progress" aria-label="<?php esc_attr_e('Article progress', 'kuchnia-twist'); ?>">
+<section class="article-progress" aria-label="<?php esc_attr_e('Reading progress', 'kuchnia-twist'); ?>">
     <div class="article-progress__head">
         <div>
             <span class="eyebrow"><?php echo esc_html(sprintf(__('Page %1$d of %2$d', 'kuchnia-twist'), $current_page, $total_pages)); ?></span>

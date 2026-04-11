@@ -15,7 +15,7 @@ $previous_page_label = trim((string) ($context['previous_page_label'] ?? ''));
 $next_page_label = trim((string) ($context['next_page_label'] ?? ''));
 ?>
 
-<nav class="article-pagination" aria-label="<?php esc_attr_e('Article page navigation', 'kuchnia-twist'); ?>">
+<nav class="article-pagination" aria-label="<?php esc_attr_e('Page navigation', 'kuchnia-twist'); ?>">
     <div class="article-pagination__links">
         <?php if ($current_page > 1) : ?>
             <?php echo _wp_link_page($current_page - 1); ?>
