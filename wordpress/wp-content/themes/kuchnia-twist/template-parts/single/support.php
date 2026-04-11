@@ -24,7 +24,7 @@ $public_email = sanitize_email((string) ($context['public_email'] ?? ''));
         <p><?php echo esc_html((string) ($editor_profile['bio'] ?? '')); ?></p>
     </div>
     <div class="article-support__links-wrap">
-        <p class="article-support__caption"><?php esc_html_e('Editorial standards, contact, and background stay visible on every article.', 'kuchnia-twist'); ?></p>
+        <p class="article-support__caption"><?php esc_html_e('Editorial standards, contact, and background stay visible on every post.', 'kuchnia-twist'); ?></p>
         <div class="article-support__links">
         <?php if ($about_page instanceof WP_Post) : ?>
             <a class="chip-link" href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('About', 'kuchnia-twist'); ?></a>
