@@ -1,5 +1,7 @@
 import { SOCIAL_ANGLE_LIBRARY } from "../../contracts/profiles.mjs";
-import { cleanText } from "../../runtime/utils.mjs";
+import { createTextHelpers } from "../../runtime/text.mjs";
+
+const { cleanText } = createTextHelpers();
 
 export function angleDefinitionsForType(contentType) {
   return SOCIAL_ANGLE_LIBRARY[contentType] || SOCIAL_ANGLE_LIBRARY.recipe;
