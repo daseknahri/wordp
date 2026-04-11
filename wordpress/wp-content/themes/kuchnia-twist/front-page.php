@@ -88,13 +88,23 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
 
 <section class="discovery-rail section" data-reveal>
     <div class="discovery-rail__grid">
-        <div class="discovery-rail__search">
+        <div class="discovery-rail__panel discovery-rail__panel--search">
+            <div class="discovery-rail__intro">
+                <span class="eyebrow"><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></span>
+                <p><?php esc_html_e('Look up a dish, ingredient, or kitchen question in one step.', 'kuchnia-twist'); ?></p>
+            </div>
             <?php get_search_form(); ?>
         </div>
-        <div class="chip-links chip-links--wide">
-            <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>
-                <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
-            <?php endforeach; ?>
+        <div class="discovery-rail__panel discovery-rail__panel--browse">
+            <div class="discovery-rail__intro">
+                <span class="eyebrow"><?php esc_html_e('Browse by pillar', 'kuchnia-twist'); ?></span>
+                <p><?php esc_html_e('Move straight into recipes, explainers, or slower editorial reading.', 'kuchnia-twist'); ?></p>
+            </div>
+            <div class="chip-links chip-links--wide">
+                <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>
+                    <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
+                <?php endforeach; ?>
+            </div>
         </div>
     </div>
 </section>
@@ -208,48 +218,52 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
     </div>
 </section>
 
-<section class="editorial-module section" data-reveal>
-    <div class="section-heading section-heading--split">
-        <div>
-            <h2><?php esc_html_e('Food Stories', 'kuchnia-twist'); ?></h2>
-            <p><?php esc_html_e('Slower editorial pieces about home cooking, trust, and the quiet details that shape a good kitchen life.', 'kuchnia-twist'); ?></p>
+<?php if ($story_lead || $story_stack) : ?>
+    <section class="editorial-module section" data-reveal>
+        <div class="section-heading section-heading--split">
+            <div>
+                <h2><?php esc_html_e('Food Stories', 'kuchnia-twist'); ?></h2>
+                <p><?php esc_html_e('Slower editorial pieces about home cooking, trust, and the quiet details that shape a good kitchen life.', 'kuchnia-twist'); ?></p>
+            </div>
+            <?php $stories_url = kuchnia_twist_category_url_by_slug('food-stories'); ?>
+            <?php if ($stories_url !== '') : ?>
+                <a class="text-link" href="<?php echo esc_url($stories_url); ?>"><?php esc_html_e('Read the stories', 'kuchnia-twist'); ?></a>
+            <?php endif; ?>
         </div>
-        <?php $stories_url = kuchnia_twist_category_url_by_slug('food-stories'); ?>
-        <?php if ($stories_url !== '') : ?>
-            <a class="text-link" href="<?php echo esc_url($stories_url); ?>"><?php esc_html_e('Read the stories', 'kuchnia-twist'); ?></a>
-        <?php endif; ?>
-    </div>
 
-    <div class="editorial-module__layout">
-        <?php if ($story_lead) : ?>
-            <?php $story_lead_media = kuchnia_twist_get_post_media_markup($story_lead->ID, 'kuchnia-twist-hero'); ?>
-            <article class="feature-story feature-story--story<?php echo $story_lead_media === '' ? ' feature-story--text-only' : ''; ?>">
-                <?php if ($story_lead_media !== '') : ?>
-                    <a class="feature-story__media" href="<?php echo esc_url(get_permalink($story_lead)); ?>">
-                        <?php echo $story_lead_media; ?>
-                    </a>
-                <?php endif; ?>
-                <div class="feature-story__body">
-                    <span class="eyebrow"><?php esc_html_e('Story lead', 'kuchnia-twist'); ?></span>
-                    <h3><a href="<?php echo esc_url(get_permalink($story_lead)); ?>"><?php echo esc_html(get_the_title($story_lead)); ?></a></h3>
-                    <p><?php echo esc_html(get_the_excerpt($story_lead)); ?></p>
-                </div>
-            </article>
-        <?php endif; ?>
-
-        <div class="story-stack">
-            <?php foreach ($story_stack as $post_item) : ?>
-                <article class="compact-story compact-story--story">
-                    <div class="compact-story__body">
-                        <span class="eyebrow"><?php esc_html_e('Story', 'kuchnia-twist'); ?></span>
-                        <h3><a href="<?php echo esc_url(get_permalink($post_item)); ?>"><?php echo esc_html(get_the_title($post_item)); ?></a></h3>
-                        <p><?php echo esc_html(get_the_excerpt($post_item)); ?></p>
+        <div class="editorial-module__layout">
+            <?php if ($story_lead) : ?>
+                <?php $story_lead_media = kuchnia_twist_get_post_media_markup($story_lead->ID, 'kuchnia-twist-hero'); ?>
+                <article class="feature-story feature-story--story<?php echo $story_lead_media === '' ? ' feature-story--text-only' : ''; ?>">
+                    <?php if ($story_lead_media !== '') : ?>
+                        <a class="feature-story__media" href="<?php echo esc_url(get_permalink($story_lead)); ?>">
+                            <?php echo $story_lead_media; ?>
+                        </a>
+                    <?php endif; ?>
+                    <div class="feature-story__body">
+                        <span class="eyebrow"><?php esc_html_e('Story lead', 'kuchnia-twist'); ?></span>
+                        <h3><a href="<?php echo esc_url(get_permalink($story_lead)); ?>"><?php echo esc_html(get_the_title($story_lead)); ?></a></h3>
+                        <p><?php echo esc_html(get_the_excerpt($story_lead)); ?></p>
                     </div>
                 </article>
-            <?php endforeach; ?>
+            <?php endif; ?>
+
+            <?php if ($story_stack) : ?>
+                <div class="story-stack">
+                    <?php foreach ($story_stack as $post_item) : ?>
+                        <article class="compact-story compact-story--story">
+                            <div class="compact-story__body">
+                                <span class="eyebrow"><?php esc_html_e('Story', 'kuchnia-twist'); ?></span>
+                                <h3><a href="<?php echo esc_url(get_permalink($post_item)); ?>"><?php echo esc_html(get_the_title($post_item)); ?></a></h3>
+                                <p><?php echo esc_html(get_the_excerpt($post_item)); ?></p>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </div>
-    </div>
-</section>
+    </section>
+<?php endif; ?>
 
 <?php if ($has_social || $public_email) : ?>
     <section class="follow-panel section" id="follow-journal" data-reveal>
