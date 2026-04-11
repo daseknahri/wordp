@@ -64,6 +64,7 @@ $follow_label_id = 'site-footer-follow-label';
 
             <div class="site-footer__bottom">
                 <span><?php echo esc_html(date_i18n('Y')); ?> <?php bloginfo('name'); ?></span>
+                <span><?php esc_html_e('Independent home-cooking journal with recipes, explainers, and editorial standards pages available on-site.', 'kuchnia-twist'); ?></span>
             </div>
         </div>
     </footer>

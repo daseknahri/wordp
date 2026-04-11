@@ -22,6 +22,7 @@ $public_email      = kuchnia_twist_public_contact_email();
 $follow_label      = kuchnia_twist_social_follow_label();
 $has_social        = kuchnia_twist_has_social_profiles();
 $editor_profile    = kuchnia_twist_editor_profile();
+$site_lede         = trim((string) get_bloginfo('description'));
 $hero_image_markup = '';
 $hero_category     = $hero_post ? kuchnia_twist_primary_category($hero_post->ID) : null;
 $recipe_lead       = $recipes_posts[0] ?? null;
@@ -53,6 +54,9 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
     <div class="home-hero__content">
         <div class="home-hero__copy">
             <h1><?php bloginfo('name'); ?></h1>
+            <?php if ($site_lede !== '') : ?>
+                <p class="home-hero__lede"><?php echo esc_html($site_lede); ?></p>
+            <?php endif; ?>
         </div>
 
         <?php if ($hero_post) : ?>
@@ -98,6 +102,7 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
     <div class="section-heading section-heading--split">
         <div>
             <h2><?php esc_html_e('Recipes', 'kuchnia-twist'); ?></h2>
+            <p><?php esc_html_e('Cookable recipes written for real kitchens, with clear structure and practical payoff.', 'kuchnia-twist'); ?></p>
         </div>
         <?php if ($recipes_url !== '') : ?>
             <a class="text-link" href="<?php echo esc_url($recipes_url); ?>"><?php esc_html_e('See all recipes', 'kuchnia-twist'); ?></a>
@@ -151,6 +156,7 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
     <div class="section-heading section-heading--split">
         <div>
             <h2><?php esc_html_e('Food Facts', 'kuchnia-twist'); ?></h2>
+            <p><?php esc_html_e('Useful explainers that turn ingredient myths and kitchen habits into sharper everyday decisions.', 'kuchnia-twist'); ?></p>
         </div>
         <?php $facts_url = kuchnia_twist_category_url_by_slug('food-facts'); ?>
         <?php if ($facts_url !== '') : ?>
@@ -183,6 +189,7 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
     <div class="section-heading section-heading--split">
         <div>
             <h2><?php esc_html_e('Food Stories', 'kuchnia-twist'); ?></h2>
+            <p><?php esc_html_e('Slower editorial pieces about home cooking, trust, and the quiet details that shape a good kitchen life.', 'kuchnia-twist'); ?></p>
         </div>
         <?php $stories_url = kuchnia_twist_category_url_by_slug('food-stories'); ?>
         <?php if ($stories_url !== '') : ?>

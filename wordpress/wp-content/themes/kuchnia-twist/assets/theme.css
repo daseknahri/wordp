@@ -748,6 +748,8 @@ summary:focus-visible {
 
 .home-hero__copy {
   max-width: 40rem;
+  display: grid;
+  gap: 12px;
 }
 
 .home-hero__feature {
@@ -1026,6 +1028,12 @@ summary:focus-visible {
   letter-spacing: -0.03em;
 }
 
+.section-heading--split > div {
+  display: grid;
+  gap: 8px;
+  max-width: 42rem;
+}
+
 .feature-story--text-only,
 .compact-story--text-only,
 .feed-card--text-only,
@@ -1133,6 +1141,15 @@ summary:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.article-support__role {
+  margin: -2px 0 0;
+  color: var(--muted-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .archive-shell {
@@ -2087,6 +2104,8 @@ summary:focus-visible {
   gap: 6px;
   color: var(--muted);
   font-size: 0.84rem;
+  padding-top: 4px;
+  border-top: 1px solid rgba(38, 23, 15, 0.08);
 }
 
 .navigation.pagination {

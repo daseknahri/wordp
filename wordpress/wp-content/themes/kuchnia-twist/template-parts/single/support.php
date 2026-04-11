@@ -15,8 +15,11 @@ $editorial_policy = $context['editorial_policy'] ?? null;
 
 <section class="article-support">
     <div class="article-support__editor">
-        <span class="eyebrow"><?php echo esc_html((string) ($editor_profile['role'] ?? '')); ?></span>
+        <span class="eyebrow"><?php esc_html_e('About the journal', 'kuchnia-twist'); ?></span>
         <h2><?php echo esc_html((string) ($editor_profile['name'] ?? '')); ?></h2>
+        <?php if (!empty($editor_profile['role'])) : ?>
+            <p class="article-support__role"><?php echo esc_html((string) $editor_profile['role']); ?></p>
+        <?php endif; ?>
         <p><?php echo esc_html((string) ($editor_profile['bio'] ?? '')); ?></p>
     </div>
     <div class="article-support__links">
