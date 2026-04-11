@@ -11,6 +11,7 @@ $editor_profile = is_array($context['editor_profile'] ?? null) ? $context['edito
 $about_page = $context['about_page'] ?? null;
 $contact_page = $context['contact_page'] ?? null;
 $editorial_policy = $context['editorial_policy'] ?? null;
+$public_email = sanitize_email((string) ($context['public_email'] ?? ''));
 ?>
 
 <section class="article-support">
@@ -31,6 +32,9 @@ $editorial_policy = $context['editorial_policy'] ?? null;
         <?php endif; ?>
         <?php if ($contact_page instanceof WP_Post) : ?>
             <a class="chip-link" href="<?php echo esc_url(get_permalink($contact_page)); ?>"><?php esc_html_e('Contact', 'kuchnia-twist'); ?></a>
+        <?php endif; ?>
+        <?php if (is_email($public_email)) : ?>
+            <a class="chip-link" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
         <?php endif; ?>
     </div>
 </section>

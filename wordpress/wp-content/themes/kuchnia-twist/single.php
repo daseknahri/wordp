@@ -165,6 +165,7 @@ while (have_posts()) :
                     'about_page'      => $about_page,
                     'contact_page'    => $contact_page,
                     'editorial_policy'=> $editorial_policy,
+                    'public_email'    => $public_email,
                 ]);
                 get_template_part('template-parts/single/support');
                 ?>
