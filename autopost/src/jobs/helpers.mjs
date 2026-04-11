@@ -46,12 +46,9 @@ export function createJobsHelpers(deps) {
     isFutureUtcTimestamp,
     mergeSettings,
     mergeValidatorSummary,
-    publishBlogPost,
     publishFacebookDistribution,
-    safeFailJob,
     seedLegacyFacebookDistribution,
     summarizeFacebookFailures,
-    updateJobProgress,
   } = deps;
 
   const wordPressJobClient = createWordPressJobClient({

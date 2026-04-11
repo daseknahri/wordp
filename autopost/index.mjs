@@ -788,12 +788,9 @@ const jobsHelpers = createJobsHelpers({
   isFutureUtcTimestamp,
   mergeSettings,
   mergeValidatorSummary,
-  publishBlogPost,
   publishFacebookDistribution,
-  safeFailJob,
   seedLegacyFacebookDistribution,
   summarizeFacebookFailures,
-  updateJobProgress,
 });
 const wordPressJobClient = jobsHelpers.wordPressJobClient;
 const packageGenerator = jobsHelpers.packageGenerator;
