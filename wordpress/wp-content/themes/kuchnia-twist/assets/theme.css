@@ -136,6 +136,11 @@ summary:focus-visible {
   transition: background 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 
+.site-header__panel {
+  position: relative;
+  z-index: 1410;
+}
+
 .site-header.is-condensed {
   background: rgba(255, 250, 243, 0.92);
   border-color: rgba(38, 23, 15, 0.08);
