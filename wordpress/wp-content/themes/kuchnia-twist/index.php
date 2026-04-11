@@ -18,11 +18,23 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
         <h1><?php echo esc_html($context['title'] ?? get_bloginfo('name')); ?></h1>
         <p><?php echo esc_html($context['description'] ?? ''); ?></p>
         <div class="archive-shell__tools">
-            <?php get_search_form(); ?>
-            <div class="chip-links">
-                <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>
-                    <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
-                <?php endforeach; ?>
+            <div class="archive-shell__tool-card archive-shell__tool-card--search">
+                <div class="archive-shell__tool-intro">
+                    <span class="eyebrow"><?php esc_html_e('Search the journal', 'kuchnia-twist'); ?></span>
+                    <p><?php esc_html_e('Jump straight to a dish, ingredient, or explainer if you already know what you want.', 'kuchnia-twist'); ?></p>
+                </div>
+                <?php get_search_form(); ?>
+            </div>
+            <div class="archive-shell__tool-card archive-shell__tool-card--browse">
+                <div class="archive-shell__tool-intro">
+                    <span class="eyebrow"><?php esc_html_e('Browse by pillar', 'kuchnia-twist'); ?></span>
+                    <p><?php esc_html_e('Use the main lanes below to move into recipes, food facts, or slower editorial reading.', 'kuchnia-twist'); ?></p>
+                </div>
+                <div class="chip-links">
+                    <?php foreach (kuchnia_twist_pillar_nav_items() as $item) : ?>
+                        <a class="chip-link" href="<?php echo esc_url($item['url']); ?>"><?php echo esc_html($item['label']); ?></a>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
     </div>

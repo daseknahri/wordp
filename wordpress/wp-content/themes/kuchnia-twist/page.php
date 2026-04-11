@@ -76,6 +76,10 @@ get_header();
 
         <?php if ($action_links || $public_email) : ?>
             <section class="trust-shell__actions">
+                <div class="archive-shell__tool-intro">
+                    <span class="eyebrow"><?php esc_html_e('Useful links', 'kuchnia-twist'); ?></span>
+                    <p><?php esc_html_e('Keep the important background, policy, and contact pages easy to reach from here.', 'kuchnia-twist'); ?></p>
+                </div>
                 <div class="chip-links">
                     <?php foreach ($action_links as $action_link) : ?>
                         <a class="chip-link" href="<?php echo esc_url($action_link['url']); ?>"><?php echo esc_html($action_link['label']); ?></a>
