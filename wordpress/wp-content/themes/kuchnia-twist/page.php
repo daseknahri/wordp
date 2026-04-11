@@ -10,6 +10,7 @@ get_header();
     $has_body      = kuchnia_twist_page_has_meaningful_body(get_post());
     $action_links  = $profile ? kuchnia_twist_page_action_links(get_post_field('post_name', get_the_ID())) : [];
     $public_email  = kuchnia_twist_public_contact_email();
+    $editor_profile = kuchnia_twist_editor_profile();
     $page_slug     = get_post_field('post_name', get_the_ID());
     $page_art      = '';
     $updated_label = get_the_modified_date();
@@ -80,6 +81,30 @@ get_header();
                         <?php endif; ?>
                     </article>
                 <?php endforeach; ?>
+            </section>
+        <?php endif; ?>
+
+        <?php if ($page_slug === 'about' && !empty($editor_profile['name'])) : ?>
+            <section class="trust-shell__author">
+                <div class="author-card author-card--page">
+                    <div class="author-card__avatar">
+                        <?php if (!empty($editor_profile['photo_id'])) : ?>
+                            <?php echo wp_get_attachment_image((int) $editor_profile['photo_id'], 'thumbnail', false, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
+                        <?php else : ?>
+                            <?php echo get_avatar($public_email ?: get_the_author_meta('user_email'), 72, '', $editor_profile['name'], ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
+                        <?php endif; ?>
+                    </div>
+                    <div class="author-card__body">
+                        <span class="eyebrow"><?php esc_html_e('Editor', 'kuchnia-twist'); ?></span>
+                        <h2><?php echo esc_html($editor_profile['name']); ?></h2>
+                        <?php if (!empty($editor_profile['role'])) : ?>
+                            <p class="author-card__role"><?php echo esc_html($editor_profile['role']); ?></p>
+                        <?php endif; ?>
+                        <?php if (!empty($editor_profile['bio'])) : ?>
+                            <p><?php echo esc_html($editor_profile['bio']); ?></p>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </section>
         <?php endif; ?>
 

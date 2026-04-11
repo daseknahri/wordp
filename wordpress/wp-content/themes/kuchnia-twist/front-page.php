@@ -283,19 +283,20 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
 <?php endif; ?>
 
 <section class="support-strip section" data-reveal>
-    <div class="support-strip__editor">
-        <div class="support-strip__avatar">
-            <?php if (!empty($editor_profile['photo_id'])) : ?>
-                <?php echo wp_get_attachment_image((int) $editor_profile['photo_id'], 'thumbnail', false, ['class' => 'support-strip__avatar-image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
-            <?php else : ?>
-                <?php echo get_avatar($public_email ?: get_the_author_meta('user_email'), 88, '', $editor_profile['name'], ['class' => 'support-strip__avatar-image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
-            <?php endif; ?>
+        <div class="support-strip__editor">
+            <div class="support-strip__avatar">
+                <?php if (!empty($editor_profile['photo_id'])) : ?>
+                    <?php echo wp_get_attachment_image((int) $editor_profile['photo_id'], 'thumbnail', false, ['class' => 'support-strip__avatar-image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
+                <?php else : ?>
+                    <?php echo get_avatar($public_email ?: get_the_author_meta('user_email'), 88, '', $editor_profile['name'], ['class' => 'support-strip__avatar-image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
+                <?php endif; ?>
+            </div>
+            <div>
+            <span class="eyebrow"><?php echo esc_html($editor_profile['role']); ?></span>
+            <h2><?php echo esc_html($editor_profile['name']); ?></h2>
+            <p><?php echo esc_html($editor_profile['bio']); ?></p>
+            </div>
         </div>
-        <div>
-            <h2><?php echo esc_html(get_bloginfo('name')); ?></h2>
-            <p><?php esc_html_e('Independent home-cooking journal with recipes, food facts, and stories.', 'kuchnia-twist'); ?></p>
-        </div>
-    </div>
 
     <div class="support-strip__links">
         <?php if ($about_page instanceof WP_Post) : ?>

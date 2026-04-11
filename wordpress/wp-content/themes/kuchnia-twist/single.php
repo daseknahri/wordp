@@ -23,6 +23,8 @@ while (have_posts()) :
     $story_links        = kuchnia_twist_adjacent_story_links($post_id);
     $has_social         = kuchnia_twist_has_social_profiles();
     $editor_name        = trim((string) ($editor_profile['name'] ?? ''));
+    $editor_role        = trim((string) ($editor_profile['role'] ?? ''));
+    $editor_bio         = trim((string) ($editor_profile['bio'] ?? ''));
     $is_recipe          = $content_type === 'recipe' && !empty($recipe_data);
     $current_page       = max(1, (int) ($article['current_page'] ?? ($page ?? 1)));
     $total_pages        = max(1, (int) ($article['page_count'] ?? ($numpages ?? 1)));
@@ -153,6 +155,28 @@ while (have_posts()) :
                     ?>
                 <?php endif; ?>
 
+                <?php if ($editor_name !== '') : ?>
+                    <section class="author-card author-card--mobile">
+                        <div class="author-card__avatar">
+                            <?php if (!empty($editor_profile['photo_id'])) : ?>
+                                <?php echo wp_get_attachment_image((int) $editor_profile['photo_id'], 'thumbnail', false, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
+                            <?php else : ?>
+                                <?php echo get_avatar($public_email ?: get_the_author_meta('user_email'), 64, '', $editor_name, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
+                            <?php endif; ?>
+                        </div>
+                        <div class="author-card__body">
+                            <span class="eyebrow"><?php esc_html_e('Editor', 'kuchnia-twist'); ?></span>
+                            <h2><?php echo esc_html($editor_name); ?></h2>
+                            <?php if ($editor_role !== '') : ?>
+                                <p class="author-card__role"><?php echo esc_html($editor_role); ?></p>
+                            <?php endif; ?>
+                            <?php if ($editor_bio !== '') : ?>
+                                <p><?php echo esc_html($editor_bio); ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </section>
+                <?php endif; ?>
+
                 <?php
                 set_query_var('kt_article_support', [
                     'is_final_page'   => $is_final_page,
@@ -221,6 +245,28 @@ while (have_posts()) :
                             <?php endif; ?>
                             <?php if ($contact_page instanceof WP_Post) : ?>
                                 <a class="chip-link" href="<?php echo esc_url(get_permalink($contact_page)); ?>"><?php esc_html_e('Contact', 'kuchnia-twist'); ?></a>
+                            <?php endif; ?>
+                        </div>
+                    </section>
+                <?php endif; ?>
+
+                <?php if ($editor_name !== '') : ?>
+                    <section class="article-rail author-card author-card--rail">
+                        <div class="author-card__avatar">
+                            <?php if (!empty($editor_profile['photo_id'])) : ?>
+                                <?php echo wp_get_attachment_image((int) $editor_profile['photo_id'], 'thumbnail', false, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
+                            <?php else : ?>
+                                <?php echo get_avatar($public_email ?: get_the_author_meta('user_email'), 64, '', $editor_name, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
+                            <?php endif; ?>
+                        </div>
+                        <div class="author-card__body">
+                            <span class="eyebrow"><?php esc_html_e('Editor', 'kuchnia-twist'); ?></span>
+                            <h2><?php echo esc_html($editor_name); ?></h2>
+                            <?php if ($editor_role !== '') : ?>
+                                <p class="author-card__role"><?php echo esc_html($editor_role); ?></p>
+                            <?php endif; ?>
+                            <?php if ($editor_bio !== '') : ?>
+                                <p><?php echo esc_html($editor_bio); ?></p>
                             <?php endif; ?>
                         </div>
                     </section>

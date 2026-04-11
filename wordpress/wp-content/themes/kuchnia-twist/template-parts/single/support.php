@@ -16,9 +16,14 @@ $public_email = sanitize_email((string) ($context['public_email'] ?? ''));
 
 <section class="article-support">
     <div class="article-support__editor">
-        <span class="eyebrow"><?php esc_html_e('About the journal', 'kuchnia-twist'); ?></span>
-        <h2><?php echo esc_html(get_bloginfo('name')); ?></h2>
-        <p class="article-support__role"><?php esc_html_e('Independent home-cooking journal', 'kuchnia-twist'); ?></p>
+        <span class="eyebrow"><?php esc_html_e('About the editor', 'kuchnia-twist'); ?></span>
+        <h2><?php echo esc_html((string) ($editor_profile['name'] ?? '')); ?></h2>
+        <?php if (!empty($editor_profile['role'])) : ?>
+            <p class="article-support__role"><?php echo esc_html((string) $editor_profile['role']); ?></p>
+        <?php endif; ?>
+        <?php if (!empty($editor_profile['bio'])) : ?>
+            <p><?php echo esc_html((string) $editor_profile['bio']); ?></p>
+        <?php endif; ?>
     </div>
     <div class="article-support__links-wrap">
         <p class="article-support__caption"><?php esc_html_e('Editorial standards, contact, and background stay visible on every post.', 'kuchnia-twist'); ?></p>
