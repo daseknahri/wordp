@@ -174,17 +174,6 @@ while (have_posts()) :
                     </section>
                 <?php endif; ?>
 
-                <?php
-                set_query_var('kt_article_support', [
-                    'is_final_page'   => $is_final_page,
-                    'editor_profile'  => $editor_profile,
-                    'about_page'      => $about_page,
-                    'contact_page'    => $contact_page,
-                    'editorial_policy'=> $editorial_policy,
-                    'public_email'    => $public_email,
-                ]);
-                get_template_part('template-parts/single/support');
-                ?>
             </div>
 
             <aside class="article-layout__rail single-story__rail">
@@ -247,24 +236,6 @@ while (have_posts()) :
                     </section>
                 <?php endif; ?>
 
-                <?php if ($editor_name !== '') : ?>
-                    <section class="article-rail author-card author-card--rail">
-                        <div class="author-card__avatar">
-                            <?php if (!empty($editor_profile['photo_id'])) : ?>
-                                <?php echo wp_get_attachment_image((int) $editor_profile['photo_id'], 'thumbnail', false, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
-                            <?php else : ?>
-                                <?php echo get_avatar($public_email ?: get_the_author_meta('user_email'), 64, '', $editor_name, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
-                            <?php endif; ?>
-                        </div>
-                        <div class="author-card__body">
-                            <span class="eyebrow"><?php esc_html_e('Editor', 'kuchnia-twist'); ?></span>
-                            <h2><?php echo esc_html($editor_name); ?></h2>
-                            <?php if ($editor_role !== '') : ?>
-                                <p class="author-card__role"><?php echo esc_html($editor_role); ?></p>
-                            <?php endif; ?>
-                        </div>
-                    </section>
-                <?php endif; ?>
             </aside>
         </div>
 

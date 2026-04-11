@@ -84,7 +84,7 @@ add_filter('wp_robots', function (array $robots) {
 function kuchnia_twist_meta_description()
 {
     if (is_front_page()) {
-        return __('Warm home cooking, useful food facts, and slower kitchen stories from Kuchnia Twist, an independent food journal.', 'kuchnia-twist');
+        return __('Cookable recipes, clear food facts, and calm kitchen stories from Kuchnia Twist, an independent food journal.', 'kuchnia-twist');
     }
 
     if (is_home() || is_archive() || is_search()) {
@@ -1140,7 +1140,8 @@ function kuchnia_twist_archive_context()
         if ($term instanceof WP_Term) {
             $context['eyebrow'] = __('Journal pillar', 'kuchnia-twist');
             $context['title'] = single_cat_title('', false);
-            $context['description'] = wp_strip_all_tags(category_description($term)) ?: __('A focused archive of posts gathered around one kitchen theme.', 'kuchnia-twist');
+            $term_description = wp_strip_all_tags(category_description($term));
+            $context['description'] = $term_description;
 
             $pillar_map = [
                 'recipes' => [
@@ -1154,8 +1155,11 @@ function kuchnia_twist_archive_context()
                 ],
             ];
 
-            if (isset($pillar_map[$term->slug])) {
+            if ($context['description'] === '' && isset($pillar_map[$term->slug])) {
                 $context['description'] = $pillar_map[$term->slug]['description'];
+            }
+            if ($context['description'] === '') {
+                $context['description'] = __('A focused archive of posts gathered around one kitchen theme.', 'kuchnia-twist');
             }
         }
     } elseif (is_archive()) {
