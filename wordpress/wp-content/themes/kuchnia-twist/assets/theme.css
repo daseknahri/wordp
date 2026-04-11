@@ -787,6 +787,7 @@ summary:focus-visible {
 .feed-card__meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 10px 16px;
   color: var(--muted);
   font-size: 0.84rem;
@@ -946,11 +947,11 @@ summary:focus-visible {
 
 .feature-story {
   display: grid;
-  gap: 16px;
-  padding: 16px;
+  gap: 18px;
+  padding: 18px;
   border: 1px solid rgba(38, 23, 15, 0.08);
-  border-radius: 28px;
-  background: rgba(255, 252, 247, 0.88);
+  border-radius: 30px;
+  background: rgba(255, 252, 247, 0.9);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1043,10 +1044,6 @@ summary:focus-visible {
 
 .feature-story__body h3,
 .archive-feed__lead-body h2,
-.archive-item__body h3,
-.compact-story__body h3,
-.mini-feed__lead h3,
-.mini-feed__item h3,
 .feed-card__body h3,
 .support-strip__editor h2,
 .site-footer__brand h2,
@@ -1057,6 +1054,18 @@ summary:focus-visible {
   font-size: clamp(1.45rem, 5vw, 2.3rem);
   line-height: 1;
   letter-spacing: -0.03em;
+}
+
+.archive-item__body h3,
+.compact-story__body h3,
+.mini-feed__lead h3,
+.mini-feed__item h3,
+.story-nav__item strong {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 3.2vw, 1.5rem);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
 }
 
 .section-heading--split > div {
@@ -1083,7 +1092,7 @@ summary:focus-visible {
 .compact-story {
   display: grid;
   gap: 14px;
-  padding: 14px;
+  padding: 16px 0;
   border: 1px solid rgba(38, 23, 15, 0.08);
   border-radius: 22px;
   background: rgba(255, 252, 247, 0.82);
@@ -1105,6 +1114,15 @@ summary:focus-visible {
   border-radius: 22px;
   background: rgba(255, 252, 247, 0.84);
   box-shadow: var(--shadow-sm);
+}
+
+.mini-feed__lead {
+  gap: 10px;
+}
+
+.mini-feed__item {
+  display: grid;
+  gap: 8px;
 }
 
 .follow-panel,
@@ -1232,6 +1250,12 @@ summary:focus-visible {
 .archive-item {
   display: grid;
   gap: 14px;
+}
+
+.archive-feed__lead {
+  gap: 18px;
+  padding: 18px;
+  border-radius: 28px;
 }
 
 .archive-item__media {
@@ -2081,7 +2105,7 @@ summary:focus-visible {
 .story-nav__item {
   display: grid;
   gap: 6px;
-  padding: 18px;
+  padding: 16px 18px;
   border: 1px solid rgba(38, 23, 15, 0.08);
   border-radius: 22px;
   background: rgba(255, 252, 247, 0.84);
