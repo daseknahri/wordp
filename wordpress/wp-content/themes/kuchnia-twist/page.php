@@ -12,6 +12,7 @@ get_header();
     $public_email  = kuchnia_twist_public_contact_email();
     $page_slug     = get_post_field('post_name', get_the_ID());
     $page_art      = '';
+    $updated_label = get_the_modified_date();
 
     if (has_post_thumbnail()) {
         $page_art = get_the_post_thumbnail(get_the_ID(), 'kuchnia-twist-hero', [
@@ -42,6 +43,14 @@ get_header();
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
+                <div class="trust-shell__status">
+                    <?php if ($updated_label !== '') : ?>
+                        <span><?php printf(esc_html__('Updated %s', 'kuchnia-twist'), esc_html($updated_label)); ?></span>
+                    <?php endif; ?>
+                    <?php if ($public_email) : ?>
+                        <span><?php esc_html_e('Direct contact available', 'kuchnia-twist'); ?></span>
+                    <?php endif; ?>
+                </div>
             </div>
             <?php if ($page_art !== '') : ?>
                 <div class="trust-shell__hero-media">
