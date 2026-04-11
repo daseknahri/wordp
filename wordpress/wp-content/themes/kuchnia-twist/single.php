@@ -170,9 +170,6 @@ while (have_posts()) :
                             <?php if ($editor_role !== '') : ?>
                                 <p class="author-card__role"><?php echo esc_html($editor_role); ?></p>
                             <?php endif; ?>
-                            <?php if ($editor_bio !== '') : ?>
-                                <p><?php echo esc_html($editor_bio); ?></p>
-                            <?php endif; ?>
                         </div>
                     </section>
                 <?php endif; ?>
@@ -264,9 +261,6 @@ while (have_posts()) :
                             <h2><?php echo esc_html($editor_name); ?></h2>
                             <?php if ($editor_role !== '') : ?>
                                 <p class="author-card__role"><?php echo esc_html($editor_role); ?></p>
-                            <?php endif; ?>
-                            <?php if ($editor_bio !== '') : ?>
-                                <p><?php echo esc_html($editor_bio); ?></p>
                             <?php endif; ?>
                         </div>
                     </section>
