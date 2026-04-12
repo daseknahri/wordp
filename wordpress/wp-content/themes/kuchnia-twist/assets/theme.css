@@ -207,14 +207,38 @@ summary:focus-visible {
 
 .masthead__logo .custom-logo-link {
   display: inline-flex;
-  max-width: 170px;
+  max-width: 120px;
+  align-items: center;
 }
 
 .masthead__logo img,
 .masthead__wordmark-image {
   display: block;
-  width: min(170px, 40vw);
+  width: min(120px, 30vw);
   height: auto;
+  max-height: 44px;
+  object-fit: contain;
+}
+
+.masthead__wordmark-text {
+  display: none;
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .masthead__logo img,
+  .masthead__wordmark-image {
+    width: min(108px, 36vw);
+    max-height: 40px;
+  }
+
+  .masthead__wordmark-text {
+    display: block;
+  }
 }
 
 .masthead__nav {

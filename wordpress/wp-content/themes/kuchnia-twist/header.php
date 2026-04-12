@@ -31,6 +31,7 @@ $has_social    = kuchnia_twist_has_social_profiles();
                     <span class="masthead__wordmark">
                         <?php if (function_exists('the_custom_logo') && has_custom_logo()) : ?>
                             <span class="masthead__logo"><?php the_custom_logo(); ?></span>
+                            <span class="masthead__wordmark-text"><?php bloginfo('name'); ?></span>
                         <?php else : ?>
                             <img class="masthead__wordmark-image" src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-wordmark.svg')); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>" width="170" height="44" decoding="async" fetchpriority="high">
                         <?php endif; ?>
