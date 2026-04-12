@@ -185,8 +185,8 @@ summary:focus-visible {
 .site-footer__symbol {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 12px;
   background: linear-gradient(160deg, rgba(184, 101, 60, 0.2), rgba(184, 101, 60, 0.04));
   border: 1px solid rgba(38, 23, 15, 0.1);
@@ -236,8 +236,8 @@ summary:focus-visible {
 
   .masthead__symbol,
   .site-footer__symbol {
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
   }
 
   .masthead__wordmark-image {
