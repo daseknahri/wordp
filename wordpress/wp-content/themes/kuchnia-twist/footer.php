@@ -18,7 +18,19 @@ $follow_label_id = 'site-footer-follow-label';
             <div class="site-footer__lead">
                 <div class="site-footer__brand">
                     <span class="site-footer__symbol">
-                        <img src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')); ?>" alt="" width="38" height="38" loading="lazy" decoding="async">
+                        <?php
+                        if (function_exists('the_custom_logo') && has_custom_logo()) {
+                            $logo_id = (int) get_theme_mod('custom_logo');
+                            echo wp_get_attachment_image($logo_id, 'thumbnail', false, [
+                                'class' => 'site-footer__symbol-image',
+                                'loading' => 'lazy',
+                                'decoding' => 'async',
+                                'alt' => get_bloginfo('name'),
+                            ]);
+                        } else {
+                            echo '<img src="' . esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')) . '" alt="" width="38" height="38" loading="lazy" decoding="async">';
+                        }
+                        ?>
                     </span>
                     <div>
                         <h2><?php bloginfo('name'); ?></h2>

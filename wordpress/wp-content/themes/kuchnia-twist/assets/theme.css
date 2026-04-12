@@ -195,7 +195,8 @@ summary:focus-visible {
 }
 
 .masthead__symbol img,
-.site-footer__symbol img {
+.site-footer__symbol img,
+.site-footer__symbol-image {
   width: 100%;
   height: 100%;
 }
