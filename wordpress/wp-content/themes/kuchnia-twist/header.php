@@ -25,29 +25,23 @@ $has_social    = kuchnia_twist_has_social_profiles();
         <div class="site-header__bar">
             <div class="masthead">
                 <a class="masthead__brand" href="<?php echo esc_url(home_url('/')); ?>" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
-                    <span class="masthead__symbol">
+                    <span class="masthead__logo">
                         <?php
-                        if (function_exists('the_custom_logo') && has_custom_logo()) {
-                            $logo_id = (int) get_theme_mod('custom_logo');
-                            echo wp_get_attachment_image($logo_id, 'medium', false, [
-                                'class' => 'masthead__symbol-image',
+                        $logo_id = function_exists('the_custom_logo') ? (int) get_theme_mod('custom_logo') : 0;
+                        if ($logo_id > 0) {
+                            echo wp_get_attachment_image($logo_id, 'thumbnail', false, [
+                                'class' => 'masthead__logo-image',
                                 'loading' => 'eager',
                                 'decoding' => 'async',
                                 'fetchpriority' => 'high',
                                 'alt' => get_bloginfo('name'),
                             ]);
                         } else {
-                            echo '<img src="' . esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')) . '" alt="" width="38" height="38" decoding="async" fetchpriority="high">';
+                            echo '<img class="masthead__logo-image" src="' . esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')) . '" alt="" width="32" height="32" decoding="async" fetchpriority="high">';
                         }
                         ?>
                     </span>
-                    <span class="masthead__wordmark">
-                        <?php if (function_exists('the_custom_logo') && has_custom_logo()) : ?>
-                            <span class="masthead__wordmark-text"><?php bloginfo('name'); ?></span>
-                        <?php else : ?>
-                            <img class="masthead__wordmark-image" src="<?php echo esc_url(kuchnia_twist_asset_url('assets/brand-wordmark.svg')); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>" width="170" height="44" decoding="async" fetchpriority="high">
-                        <?php endif; ?>
-                    </span>
+                    <span class="masthead__wordmark-text"><?php bloginfo('name'); ?></span>
                 </a>
 
                 <nav class="masthead__nav" aria-label="<?php esc_attr_e('Primary Navigation', 'kuchnia-twist'); ?>">

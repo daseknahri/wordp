@@ -17,18 +17,18 @@ $follow_label_id = 'site-footer-follow-label';
         <div class="site-footer__inner">
             <div class="site-footer__lead">
                 <div class="site-footer__brand">
-                    <span class="site-footer__symbol">
+                    <span class="site-footer__logo">
                         <?php
-                        if (function_exists('the_custom_logo') && has_custom_logo()) {
-                            $logo_id = (int) get_theme_mod('custom_logo');
-                            echo wp_get_attachment_image($logo_id, 'medium', false, [
-                                'class' => 'site-footer__symbol-image',
+                        $logo_id = function_exists('the_custom_logo') ? (int) get_theme_mod('custom_logo') : 0;
+                        if ($logo_id > 0) {
+                            echo wp_get_attachment_image($logo_id, 'thumbnail', false, [
+                                'class' => 'site-footer__logo-image',
                                 'loading' => 'lazy',
                                 'decoding' => 'async',
                                 'alt' => get_bloginfo('name'),
                             ]);
                         } else {
-                            echo '<img src="' . esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')) . '" alt="" width="38" height="38" loading="lazy" decoding="async">';
+                            echo '<img class="site-footer__logo-image" src="' . esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')) . '" alt="" width="32" height="32" loading="lazy" decoding="async">';
                         }
                         ?>
                     </span>
