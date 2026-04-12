@@ -181,6 +181,10 @@ summary:focus-visible {
   gap: 0;
 }
 
+.masthead__brand img {
+  display: none;
+}
+
 .site-footer__logo {
   display: grid;
   place-items: center;
