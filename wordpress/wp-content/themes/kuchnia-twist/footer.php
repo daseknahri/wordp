@@ -21,7 +21,7 @@ $follow_label_id = 'site-footer-follow-label';
                         <?php
                         if (function_exists('the_custom_logo') && has_custom_logo()) {
                             $logo_id = (int) get_theme_mod('custom_logo');
-                            echo wp_get_attachment_image($logo_id, 'thumbnail', false, [
+                            echo wp_get_attachment_image($logo_id, 'medium', false, [
                                 'class' => 'site-footer__symbol-image',
                                 'loading' => 'lazy',
                                 'decoding' => 'async',

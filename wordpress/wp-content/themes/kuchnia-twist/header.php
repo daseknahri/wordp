@@ -29,7 +29,7 @@ $has_social    = kuchnia_twist_has_social_profiles();
                         <?php
                         if (function_exists('the_custom_logo') && has_custom_logo()) {
                             $logo_id = (int) get_theme_mod('custom_logo');
-                            echo wp_get_attachment_image($logo_id, 'thumbnail', false, [
+                            echo wp_get_attachment_image($logo_id, 'medium', false, [
                                 'class' => 'masthead__symbol-image',
                                 'loading' => 'eager',
                                 'decoding' => 'async',
