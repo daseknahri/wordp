@@ -27,9 +27,9 @@ $has_social    = kuchnia_twist_has_social_profiles();
                 <a class="masthead__brand" href="<?php echo esc_url(home_url('/')); ?>" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
                     <span class="masthead__symbol">
                         <?php
-                        $logo_id = function_exists('the_custom_logo') ? (int) get_theme_mod('custom_logo') : 0;
-                        if ($logo_id > 0) {
-                            echo wp_get_attachment_image($logo_id, 'thumbnail', false, [
+                        if (function_exists('the_custom_logo') && has_custom_logo()) {
+                            $logo_id = (int) get_theme_mod('custom_logo');
+                            echo wp_get_attachment_image($logo_id, 'medium', false, [
                                 'class' => 'masthead__symbol-image',
                                 'loading' => 'eager',
                                 'decoding' => 'async',
@@ -37,7 +37,7 @@ $has_social    = kuchnia_twist_has_social_profiles();
                                 'alt' => get_bloginfo('name'),
                             ]);
                         } else {
-                            echo '<img src="' . esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')) . '" alt="" width="32" height="32" decoding="async" fetchpriority="high">';
+                            echo '<img src="' . esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')) . '" alt="" width="38" height="38" decoding="async" fetchpriority="high">';
                         }
                         ?>
                     </span>
