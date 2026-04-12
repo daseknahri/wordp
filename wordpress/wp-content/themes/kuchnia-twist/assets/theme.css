@@ -178,10 +178,9 @@ summary:focus-visible {
   display: inline-flex;
   align-items: center;
   min-width: 0;
-  gap: 10px;
+  gap: 0;
 }
 
-.masthead__logo,
 .site-footer__logo {
   display: grid;
   place-items: center;
@@ -195,7 +194,6 @@ summary:focus-visible {
   overflow: hidden;
 }
 
-.masthead__logo-image,
 .site-footer__logo-image {
   display: block;
   width: 100%;
@@ -215,11 +213,6 @@ summary:focus-visible {
 }
 
 @media (max-width: 720px) {
-  .masthead__brand {
-    gap: 8px;
-  }
-
-  .masthead__logo,
   .site-footer__logo {
     width: 28px;
     height: 28px;
