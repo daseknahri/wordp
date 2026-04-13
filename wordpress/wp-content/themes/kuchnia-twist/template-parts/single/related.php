@@ -3,7 +3,7 @@
 defined('ABSPATH') || exit;
 
 $context = get_query_var('kt_article_related');
-if (!is_array($context) || empty($context['is_final_page'])) {
+if (!is_array($context)) {
     return;
 }
 

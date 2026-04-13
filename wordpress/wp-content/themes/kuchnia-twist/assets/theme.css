@@ -2370,6 +2370,21 @@ summary:focus-visible {
   grid-template-columns: auto minmax(0, 1fr);
 }
 
+@media (max-width: 480px) {
+  .home-hero {
+    min-height: min(54svh, 420px);
+  }
+
+  .home-hero__media img {
+    height: min(54svh, 420px);
+    object-position: center 24%;
+  }
+
+  .home-hero__content {
+    padding-top: 76px;
+  }
+}
+
 .author-card__avatar {
   width: 60px;
   height: 60px;
