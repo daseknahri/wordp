@@ -420,13 +420,21 @@ body.front-page .site-header {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 1500;
+  z-index: 5000;
   isolation: isolate;
   width: min(100vw, 420px);
   padding: 12px;
   margin-left: auto;
   background: rgba(38, 23, 15, 0.28);
   backdrop-filter: blur(4px);
+}
+
+body.has-menu-sheet .home-hero {
+  visibility: hidden;
+}
+
+body.has-menu-sheet .site-header {
+  background: rgba(250, 244, 235, 1);
 }
 
 .admin-bar .menu-sheet {
