@@ -167,6 +167,12 @@ summary:focus-visible {
   padding-block: 8px;
 }
 
+body.home .site-header__bar,
+body.front-page .site-header__bar {
+  position: relative;
+  z-index: 5000;
+}
+
 .masthead {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -187,6 +193,8 @@ body.front-page .site-header {
   left: 0;
   right: 0;
   width: 100%;
+  background: rgba(250, 244, 235, 0.96);
+  box-shadow: 0 14px 36px rgba(38, 23, 15, 0.12);
 }
 
 .masthead__brand-mark {
@@ -2421,7 +2429,7 @@ body.front-page .home-hero__content {
 
 @media (min-width: 1200px) {
   .home-hero__media img {
-    object-position: center 20%;
+    object-position: center 16%;
   }
 }
 
