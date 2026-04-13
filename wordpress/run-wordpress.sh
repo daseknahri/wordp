@@ -24,5 +24,6 @@ sync_item /opt/kuchnia-twist/wp-content/plugins/kuchnia-twist-publisher /var/www
 sync_item /opt/kuchnia-twist/wp-content/themes/kuchnia-twist /var/www/html/wp-content/themes/kuchnia-twist
 sync_item /opt/kuchnia-twist/wp-content/mu-plugins/kuchnia-twist-bootstrap.php /var/www/html/wp-content/mu-plugins/kuchnia-twist-bootstrap.php
 sync_item /opt/kuchnia-twist/ads.txt /var/www/html/ads.txt
+sync_item /opt/kuchnia-twist/.htaccess /var/www/html/.htaccess
 
 exec apache2-foreground
