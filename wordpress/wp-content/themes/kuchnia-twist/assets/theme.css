@@ -787,6 +787,7 @@ summary:focus-visible {
   width: 100%;
   height: 100svh;
   object-fit: cover;
+  object-position: center 42%;
 }
 
 .home-hero--without-media {
