@@ -128,7 +128,7 @@ summary:focus-visible {
 .site-header {
   position: sticky;
   top: 0;
-  z-index: 1400;
+  z-index: 2000;
   isolation: isolate;
   backdrop-filter: blur(18px);
   background: rgba(250, 244, 235, 0.88);
@@ -773,14 +773,20 @@ body.front-page .site-header {
 .home-hero {
   position: relative;
   display: grid;
-  min-height: 100svh;
+  min-height: 100vh;
   margin-top: 0;
   overflow: hidden;
+  z-index: 0;
 }
 
 .home-hero__media,
 .home-hero__media::after {
   grid-area: 1 / 1;
+}
+
+.home-hero__media {
+  position: relative;
+  z-index: 0;
 }
 
 .home-hero__media::after {
@@ -793,9 +799,9 @@ body.front-page .site-header {
 
 .home-hero__media img {
   width: 100%;
-  height: 100svh;
+  height: 100vh;
   object-fit: cover;
-  object-position: center 42%;
+  object-position: center 30%;
 }
 
 .home-hero--without-media {
@@ -2396,6 +2402,12 @@ body.front-page .home-hero__content {
 
   .home-hero__content {
     padding-top: 76px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .home-hero__media img {
+    object-position: center 24%;
   }
 }
 
