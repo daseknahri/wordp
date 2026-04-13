@@ -181,6 +181,14 @@ summary:focus-visible {
   gap: 10px;
 }
 
+body.home .site-header,
+body.front-page .site-header {
+  position: fixed;
+  left: 0;
+  right: 0;
+  width: 100%;
+}
+
 .masthead__brand-mark {
   display: inline-flex;
   align-items: center;
@@ -830,6 +838,11 @@ summary:focus-visible {
   margin-inline: auto;
   padding: 84px 0 24px;
   color: #fff9f2;
+}
+
+body.home .home-hero__content,
+body.front-page .home-hero__content {
+  padding-top: clamp(96px, 14vh, 160px);
 }
 
 .home-hero .eyebrow {
