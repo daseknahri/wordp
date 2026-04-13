@@ -427,6 +427,7 @@ body.front-page .site-header {
   margin-left: auto;
   background: rgba(38, 23, 15, 0.28);
   backdrop-filter: blur(4px);
+  color: var(--ink);
 }
 
 body.has-menu-sheet .home-hero {
@@ -451,6 +452,18 @@ body.has-menu-sheet .site-header {
   border-radius: 22px;
   background: linear-gradient(180deg, #fffaf4 0%, #f5ede5 100%);
   box-shadow: var(--shadow-lg);
+}
+
+@media (max-width: 699px) {
+  .menu-sheet {
+    width: 100vw;
+    margin-left: 0;
+    padding: 10px;
+  }
+
+  .menu-sheet__inner {
+    border-radius: 18px;
+  }
 }
 
 .menu-sheet__top {
