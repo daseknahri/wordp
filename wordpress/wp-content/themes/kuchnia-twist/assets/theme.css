@@ -420,7 +420,7 @@ body.front-page .site-header {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 5000;
+  z-index: 9000;
   isolation: isolate;
   width: min(100vw, 420px);
   padding: 12px;
