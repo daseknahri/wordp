@@ -431,7 +431,8 @@ body.front-page .site-header {
 }
 
 body.has-menu-sheet .home-hero {
-  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 body.has-menu-sheet .site-header {
@@ -450,7 +451,7 @@ body.has-menu-sheet .site-header {
   overscroll-behavior: contain;
   padding: 16px;
   border-radius: 22px;
-  background: linear-gradient(180deg, #fffaf4 0%, #f5ede5 100%);
+  background: #fffaf4;
   box-shadow: var(--shadow-lg);
 }
 
