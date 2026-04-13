@@ -889,6 +889,16 @@ summary:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  align-items: center;
+}
+
+.home-hero__social {
+  display: inline-flex;
+  align-items: center;
+}
+
+.home-hero__social .social-links {
+  gap: 8px;
 }
 
 .discovery-rail {

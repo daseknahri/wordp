@@ -68,6 +68,12 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
             <?php if ($recipes_url !== '') : ?>
                 <a class="button button--primary" href="<?php echo esc_url($recipes_url); ?>"><?php esc_html_e('Browse Recipes', 'kuchnia-twist'); ?></a>
             <?php endif; ?>
+            <?php if (kuchnia_twist_has_social_profiles()) : ?>
+                <div class="home-hero__social">
+                    <span class="screen-reader-text"><?php echo esc_html(kuchnia_twist_social_follow_label()); ?></span>
+                    <?php kuchnia_twist_render_social_links('social-links--inline', false); ?>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </section>
