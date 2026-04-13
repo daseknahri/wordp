@@ -765,7 +765,7 @@ summary:focus-visible {
 .home-hero {
   position: relative;
   display: grid;
-  min-height: min(76svh, 760px);
+  min-height: 100svh;
   margin-top: 0;
   overflow: hidden;
 }
@@ -785,7 +785,7 @@ summary:focus-visible {
 
 .home-hero__media img {
   width: 100%;
-  height: min(76svh, 760px);
+  height: 100svh;
   object-fit: cover;
 }
 
@@ -1726,12 +1726,7 @@ summary:focus-visible {
     padding-bottom: 18px;
   }
 
-  .home-hero {
-    min-height: min(62svh, 520px);
-  }
-
   .home-hero__media img {
-    height: min(62svh, 520px);
     object-position: center 30%;
   }
 
@@ -2381,12 +2376,7 @@ summary:focus-visible {
 }
 
 @media (max-width: 480px) {
-  .home-hero {
-    min-height: min(54svh, 420px);
-  }
-
   .home-hero__media img {
-    height: min(54svh, 420px);
     object-position: center 24%;
   }
 
