@@ -17,11 +17,8 @@ while (have_posts()) :
     $is_updated         = get_the_modified_date('U') !== get_the_date('U');
     $editor_profile     = kuchnia_twist_editor_profile();
     $about_page         = get_page_by_path('about');
-    $contact_page       = get_page_by_path('contact');
-    $editorial_policy   = get_page_by_path('editorial-policy');
     $public_email       = kuchnia_twist_public_contact_email();
     $story_links        = kuchnia_twist_adjacent_story_links($post_id);
-    $has_social         = kuchnia_twist_has_social_profiles();
     $editor_name        = trim((string) ($editor_profile['name'] ?? ''));
     $editor_role        = trim((string) ($editor_profile['role'] ?? ''));
     $editor_bio         = trim((string) ($editor_profile['bio'] ?? ''));
@@ -67,18 +64,6 @@ while (have_posts()) :
                     <span><?php printf(esc_html__('Updated %s', 'kuchnia-twist'), esc_html(get_the_modified_date())); ?></span>
                 <?php endif; ?>
             </div>
-            <?php if ($editorial_policy instanceof WP_Post || $contact_page instanceof WP_Post) : ?>
-                <div class="article-hero__trust">
-                    <div class="article-hero__trust-links">
-                        <?php if ($editorial_policy instanceof WP_Post) : ?>
-                            <a href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Editorial Policy', 'kuchnia-twist'); ?></a>
-                        <?php endif; ?>
-                        <?php if ($contact_page instanceof WP_Post) : ?>
-                            <a href="<?php echo esc_url(get_permalink($contact_page)); ?>"><?php esc_html_e('Contact', 'kuchnia-twist'); ?></a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            <?php endif; ?>
         </header>
 
         <div class="article-utility<?php echo $is_recipe && $recipe_jump_url !== '' ? ' article-utility--with-jump' : ''; ?>">
@@ -155,25 +140,6 @@ while (have_posts()) :
                     ?>
                 <?php endif; ?>
 
-                <?php if ($editor_name !== '') : ?>
-                    <section class="author-card author-card--mobile">
-                        <div class="author-card__avatar">
-                            <?php if (!empty($editor_profile['photo_id'])) : ?>
-                                <?php echo wp_get_attachment_image((int) $editor_profile['photo_id'], 'thumbnail', false, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
-                            <?php else : ?>
-                                <?php echo get_avatar($public_email ?: get_the_author_meta('user_email'), 64, '', $editor_name, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
-                            <?php endif; ?>
-                        </div>
-                        <div class="author-card__body">
-                            <span class="eyebrow"><?php esc_html_e('Editor', 'kuchnia-twist'); ?></span>
-                            <h2><?php echo esc_html($editor_name); ?></h2>
-                            <?php if ($editor_role !== '') : ?>
-                                <p class="author-card__role"><?php echo esc_html($editor_role); ?></p>
-                            <?php endif; ?>
-                        </div>
-                    </section>
-                <?php endif; ?>
-
             </div>
 
             <aside class="article-layout__rail single-story__rail">
@@ -202,39 +168,40 @@ while (have_posts()) :
                     </section>
                 <?php endif; ?>
 
+                <?php if ($editor_name !== '') : ?>
+                    <section class="article-rail">
+                        <div class="author-card author-card--rail">
+                            <div class="author-card__avatar">
+                                <?php if (!empty($editor_profile['photo_id'])) : ?>
+                                    <?php echo wp_get_attachment_image((int) $editor_profile['photo_id'], 'thumbnail', false, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
+                                <?php else : ?>
+                                    <?php echo get_avatar($public_email ?: get_the_author_meta('user_email'), 64, '', $editor_name, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
+                                <?php endif; ?>
+                            </div>
+                            <div class="author-card__body">
+                                <span class="eyebrow"><?php esc_html_e('Editor', 'kuchnia-twist'); ?></span>
+                                <h2><?php echo esc_html($editor_name); ?></h2>
+                                <?php if ($editor_role !== '') : ?>
+                                    <p class="author-card__role"><?php echo esc_html($editor_role); ?></p>
+                                <?php endif; ?>
+                                <?php if ($editor_bio !== '') : ?>
+                                    <p><?php echo esc_html($editor_bio); ?></p>
+                                <?php endif; ?>
+                                <?php if ($about_page instanceof WP_Post) : ?>
+                                    <a class="chip-link" href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('About the editor', 'kuchnia-twist'); ?></a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </section>
+                <?php endif; ?>
+
                 <section class="article-rail">
-                    <span class="eyebrow"><?php esc_html_e('Share and follow', 'kuchnia-twist'); ?></span>
+                    <span class="eyebrow"><?php esc_html_e('Share', 'kuchnia-twist'); ?></span>
                     <div class="article-rail__group">
                         <span class="article-rail__label"><?php esc_html_e('Share this story', 'kuchnia-twist'); ?></span>
                         <?php kuchnia_twist_render_share_links($post_id, 'share-links--rail'); ?>
                     </div>
-                    <?php if ($has_social) : ?>
-                        <div class="article-rail__group">
-                            <span class="article-rail__label"><?php esc_html_e('Follow the journal', 'kuchnia-twist'); ?></span>
-                            <?php kuchnia_twist_render_social_links('social-links--rail', true); ?>
-                        </div>
-                    <?php endif; ?>
-                    <?php if ($public_email) : ?>
-                        <a class="article-rail__mail" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
-                    <?php endif; ?>
                 </section>
-
-                <?php if ($about_page instanceof WP_Post || $editorial_policy instanceof WP_Post || $contact_page instanceof WP_Post) : ?>
-                    <section class="article-rail">
-                        <span class="eyebrow"><?php esc_html_e('Journal standards', 'kuchnia-twist'); ?></span>
-                        <div class="chip-links">
-                            <?php if ($about_page instanceof WP_Post) : ?>
-                                <a class="chip-link" href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('About', 'kuchnia-twist'); ?></a>
-                            <?php endif; ?>
-                            <?php if ($editorial_policy instanceof WP_Post) : ?>
-                                <a class="chip-link" href="<?php echo esc_url(get_permalink($editorial_policy)); ?>"><?php esc_html_e('Editorial Policy', 'kuchnia-twist'); ?></a>
-                            <?php endif; ?>
-                            <?php if ($contact_page instanceof WP_Post) : ?>
-                                <a class="chip-link" href="<?php echo esc_url(get_permalink($contact_page)); ?>"><?php esc_html_e('Contact', 'kuchnia-twist'); ?></a>
-                            <?php endif; ?>
-                        </div>
-                    </section>
-                <?php endif; ?>
 
             </aside>
         </div>

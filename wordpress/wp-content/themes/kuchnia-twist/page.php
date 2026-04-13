@@ -8,7 +8,6 @@ get_header();
     <?php
     $profile          = kuchnia_twist_page_profile(get_post());
     $has_body         = kuchnia_twist_page_has_meaningful_body(get_post());
-    $action_links     = $profile ? kuchnia_twist_page_action_links(get_post_field('post_name', get_the_ID())) : [];
     $public_email     = kuchnia_twist_public_contact_email();
     $editor_profile   = kuchnia_twist_editor_profile();
     $page_slug        = get_post_field('post_name', get_the_ID());
@@ -61,12 +60,12 @@ get_header();
                     <?php the_content(); ?>
                 <?php else : ?>
                     <?php foreach ($profile_body as $paragraph) : ?>
-                        <p><?php echo esc_html($paragraph); ?></p>
+                        <p><?php echo wp_kses_post($paragraph); ?></p>
                     <?php endforeach; ?>
                     <?php if (!empty($profile_body_list)) : ?>
                         <ul>
                             <?php foreach ($profile_body_list as $item) : ?>
-                                <li><?php echo esc_html($item); ?></li>
+                                <li><?php echo wp_kses_post($item); ?></li>
                             <?php endforeach; ?>
                         </ul>
                     <?php endif; ?>
@@ -79,11 +78,11 @@ get_header();
                 <?php foreach ($profile['sections'] as $section) : ?>
                     <article class="trust-shell__card">
                         <h2><?php echo esc_html($section['title']); ?></h2>
-                        <p><?php echo esc_html($section['body']); ?></p>
+                        <p><?php echo wp_kses_post($section['body']); ?></p>
                         <?php if (!empty($section['items'])) : ?>
                             <ul>
                                 <?php foreach ($section['items'] as $item) : ?>
-                                    <li><?php echo esc_html($item); ?></li>
+                                    <li><?php echo wp_kses_post($item); ?></li>
                                 <?php endforeach; ?>
                             </ul>
                         <?php endif; ?>
@@ -112,19 +111,6 @@ get_header();
                             <p><?php echo esc_html($editor_profile['bio']); ?></p>
                         <?php endif; ?>
                     </div>
-                </div>
-            </section>
-        <?php endif; ?>
-
-        <?php if ($action_links || $public_email) : ?>
-            <section class="trust-shell__actions">
-                <div class="chip-links">
-                    <?php foreach ($action_links as $action_link) : ?>
-                        <a class="chip-link" href="<?php echo esc_url($action_link['url']); ?>"><?php echo esc_html($action_link['label']); ?></a>
-                    <?php endforeach; ?>
-                    <?php if ($public_email) : ?>
-                        <a class="chip-link" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
-                    <?php endif; ?>
                 </div>
             </section>
         <?php endif; ?>

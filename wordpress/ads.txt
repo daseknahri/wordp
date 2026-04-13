@@ -1,0 +1,5 @@
+# ads.txt for Kuchnia Twist
+# Replace the placeholder with your real AdSense publisher ID before submitting.
+#
+# Example:
+# google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0

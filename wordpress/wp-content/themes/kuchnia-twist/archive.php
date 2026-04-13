@@ -7,7 +7,6 @@ get_header();
 global $wp_query;
 $context   = kuchnia_twist_archive_context();
 $posts     = $wp_query instanceof WP_Query ? $wp_query->posts : [];
-$found_posts = $wp_query instanceof WP_Query ? (int) $wp_query->found_posts : count($posts);
 $lead_post = $posts[0] ?? null;
 $feed_posts = $lead_post ? array_slice($posts, 1) : [];
 ?>
@@ -19,11 +18,6 @@ $feed_posts = $lead_post ? array_slice($posts, 1) : [];
         <h1><?php echo esc_html($context['title'] ?? get_bloginfo('name')); ?></h1>
         <?php if (!empty($context['description'])) : ?>
             <p><?php echo esc_html($context['description']); ?></p>
-        <?php endif; ?>
-        <?php if ($found_posts > 0) : ?>
-            <div class="archive-shell__status">
-                <span><?php echo esc_html(sprintf(_n('%s post', '%s posts', $found_posts, 'kuchnia-twist'), number_format_i18n($found_posts))); ?></span>
-            </div>
         <?php endif; ?>
     </div>
 

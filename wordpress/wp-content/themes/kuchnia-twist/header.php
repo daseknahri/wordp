@@ -5,9 +5,6 @@ defined('ABSPATH') || exit;
 $primary_nav   = kuchnia_twist_primary_nav_items();
 $pillar_nav    = kuchnia_twist_pillar_nav_items();
 $trust_nav     = kuchnia_twist_trust_nav_items();
-$public_email  = kuchnia_twist_public_contact_email();
-$follow_label  = kuchnia_twist_social_follow_label();
-$has_social    = kuchnia_twist_has_social_profiles();
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
@@ -25,6 +22,12 @@ $has_social    = kuchnia_twist_has_social_profiles();
         <div class="site-header__bar">
             <div class="masthead">
                 <a class="masthead__brand" href="<?php echo esc_url(home_url('/')); ?>" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
+                    <?php $site_icon = function_exists('get_site_icon_url') ? get_site_icon_url(64) : ''; ?>
+                    <?php if (is_string($site_icon) && $site_icon !== '') : ?>
+                        <span class="masthead__brand-mark" aria-hidden="true">
+                            <img class="masthead__brand-mark-image" src="<?php echo esc_url($site_icon); ?>" alt="" width="28" height="28" loading="eager" decoding="async">
+                        </span>
+                    <?php endif; ?>
                     <span class="masthead__wordmark-text"><?php bloginfo('name'); ?></span>
                 </a>
 
@@ -36,12 +39,6 @@ $has_social    = kuchnia_twist_has_social_profiles();
                 </nav>
 
                 <div class="masthead__actions">
-                    <?php if ($has_social) : ?>
-                        <div class="masthead__social" aria-label="<?php echo esc_attr($follow_label); ?>">
-                            <?php kuchnia_twist_render_social_links('social-links--header'); ?>
-                        </div>
-                    <?php endif; ?>
-
                     <button
                         class="masthead__iconbutton"
                         type="button"
@@ -83,7 +80,7 @@ $has_social    = kuchnia_twist_has_social_profiles();
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18"></path><path d="M18 6 6 18"></path></svg>
                         </button>
                     </div>
-                    <p class="site-search-sheet__copy"><?php esc_html_e('Search recipes, food facts, and stories from the journal.', 'kuchnia-twist'); ?></p>
+                    <p class="site-search-sheet__copy"><?php esc_html_e('Search recipes and food facts from the journal.', 'kuchnia-twist'); ?></p>
                     <?php get_search_form(); ?>
                 </div>
             </div>
@@ -137,21 +134,6 @@ $has_social    = kuchnia_twist_has_social_profiles();
                                         <a href="<?php echo esc_url($item['url']); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>><?php echo esc_html($item['label']); ?></a>
                                     <?php endforeach; ?>
                                 </div>
-                            </section>
-                        <?php endif; ?>
-
-                        <?php if ($public_email || $has_social) : ?>
-                            <section class="menu-sheet__section">
-                                <div class="menu-sheet__intro">
-                                    <span class="eyebrow"><?php esc_html_e('Follow', 'kuchnia-twist'); ?></span>
-                                    <p><?php esc_html_e('Follow new posts or contact the journal directly.', 'kuchnia-twist'); ?></p>
-                                </div>
-                                <?php if ($has_social) : ?>
-                                    <?php kuchnia_twist_render_social_links('social-links--menu', true); ?>
-                                <?php endif; ?>
-                                <?php if ($public_email) : ?>
-                                    <a class="menu-sheet__email" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
-                                <?php endif; ?>
                             </section>
                         <?php endif; ?>
                     </div>
