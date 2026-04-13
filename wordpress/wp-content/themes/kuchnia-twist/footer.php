@@ -23,6 +23,14 @@ $journal_label  = 'site-footer-journal-label';
                         <p class="site-footer__summary"><?php echo esc_html(kuchnia_twist_site_summary()); ?></p>
                     </div>
                 </div>
+
+                <?php if (kuchnia_twist_has_social_profiles()) : ?>
+                    <div class="site-footer__follow">
+                        <span class="eyebrow"><?php esc_html_e('Follow', 'kuchnia-twist'); ?></span>
+                        <p class="site-footer__follow-copy"><?php echo esc_html(kuchnia_twist_social_follow_label()); ?></p>
+                        <?php kuchnia_twist_render_social_links('social-links--rail', true); ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <div class="site-footer__grid">
