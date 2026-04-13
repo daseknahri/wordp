@@ -1716,6 +1716,15 @@ summary:focus-visible {
     padding-bottom: 18px;
   }
 
+  .home-hero {
+    min-height: min(62svh, 520px);
+  }
+
+  .home-hero__media img {
+    height: min(62svh, 520px);
+    object-position: center 30%;
+  }
+
   .home-hero__feature {
     padding: 14px;
     border-radius: 18px;
