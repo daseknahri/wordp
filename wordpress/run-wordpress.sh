@@ -26,4 +26,13 @@ sync_item /opt/kuchnia-twist/wp-content/mu-plugins/kuchnia-twist-bootstrap.php /
 sync_item /opt/kuchnia-twist/ads.txt /var/www/html/ads.txt
 sync_item /opt/kuchnia-twist/.htaccess /var/www/html/.htaccess
 
+if [ -n "${ADSENSE_PUB_ID:-}" ]; then
+  printf "google.com, %s, DIRECT, f08c47fec0942fa0\n" "${ADSENSE_PUB_ID}" > /var/www/html/ads.txt
+elif [ -n "${ADSENSE_CLIENT_ID:-}" ]; then
+  if [[ "${ADSENSE_CLIENT_ID}" == ca-pub-* ]]; then
+    pub_id="pub-${ADSENSE_CLIENT_ID#ca-pub-}"
+    printf "google.com, %s, DIRECT, f08c47fec0942fa0\n" "${pub_id}" > /var/www/html/ads.txt
+  fi
+fi
+
 exec apache2-foreground
