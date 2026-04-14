@@ -425,14 +425,9 @@ body.front-page .site-header {
   width: min(100vw, 420px);
   padding: 12px;
   margin-left: auto;
-  background: rgba(38, 23, 15, 0.28);
+  background: rgba(38, 23, 15, 0.45);
   backdrop-filter: blur(4px);
   color: var(--ink);
-}
-
-body.has-menu-sheet .home-hero {
-  opacity: 0;
-  pointer-events: none;
 }
 
 body.has-menu-sheet .site-header {
@@ -510,6 +505,7 @@ body.has-menu-sheet .site-header {
   display: grid;
   gap: 18px;
   margin-top: 18px;
+  color: #2b1b12;
 }
 
 .menu-sheet__section {
@@ -539,8 +535,10 @@ body.has-menu-sheet .site-header {
 
 .menu-sheet__links a,
 .menu-sheet__email {
-  color: #26170f;
+  color: #2b1b12;
   font-size: 0.95rem;
+  font-weight: 700;
+  display: block;
 }
 
 .menu-sheet__links a {
