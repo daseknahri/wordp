@@ -173,11 +173,7 @@ while (have_posts()) :
                     <section class="article-rail">
                         <div class="author-card author-card--rail">
                             <div class="author-card__avatar">
-                                <?php if (!empty($editor_profile['photo_id'])) : ?>
-                                    <?php echo wp_get_attachment_image((int) $editor_profile['photo_id'], 'thumbnail', false, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
-                                <?php else : ?>
-                                    <?php echo get_avatar($public_email ?: get_the_author_meta('user_email'), 64, '', $editor_name, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
-                                <?php endif; ?>
+                                <?php kuchnia_twist_render_editor_portrait($editor_name, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
                             </div>
                             <div class="author-card__body">
                                 <span class="eyebrow"><?php esc_html_e('Editor', 'kuchnia-twist'); ?></span>

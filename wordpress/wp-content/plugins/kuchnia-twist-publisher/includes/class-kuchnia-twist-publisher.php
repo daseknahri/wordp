@@ -281,7 +281,13 @@ final class Kuchnia_Twist_Publisher extends Kuchnia_Twist_Publisher_Base
 
     public function enqueue_admin_assets(string $hook): void
     {
-        if (!in_array($hook, ['toplevel_page_kuchnia-twist-publisher', 'kuchnia-twist_page_kuchnia-twist-settings'], true)) {
+        $allowed_hooks = [
+            'toplevel_page_kuchnia-twist-publisher',
+            'kuchnia-twist-publisher_page_kuchnia-twist-settings',
+            'kuchnia-twist_page_kuchnia-twist-settings',
+        ];
+
+        if (!in_array($hook, $allowed_hooks, true)) {
             return;
         }
 
@@ -929,75 +935,14 @@ final class Kuchnia_Twist_Publisher extends Kuchnia_Twist_Publisher_Base
                     </div>
                     <div class="kt-media-field">
                         <span><?php esc_html_e('Editor Portrait', 'kuchnia-twist'); ?></span>
-                        <input id="kt-editor-photo-id" type="hidden" name="editor_photo_id" value="<?php echo (int) $settings['editor_photo_id']; ?>">
+                        <input type="hidden" name="editor_photo_id" value="<?php echo (int) $settings['editor_photo_id']; ?>">
                         <div id="kt-editor-photo-preview" class="kt-media-preview">
-                            <?php if (!empty($settings['editor_photo_id'])) : ?>
-                                <?php echo wp_get_attachment_image((int) $settings['editor_photo_id'], 'thumbnail'); ?>
-                            <?php else : ?>
-                                <p><?php esc_html_e('No portrait selected.', 'kuchnia-twist'); ?></p>
-                            <?php endif; ?>
+                            <img src="<?php echo esc_url(get_template_directory_uri() . '/assets/editor-portrait.svg'); ?>" alt="<?php esc_attr_e('Anna Kowalska portrait', 'kuchnia-twist'); ?>">
                         </div>
                         <div class="kt-media-actions">
-                            <button id="kt-editor-photo-select" type="button" class="button kt-media-select" data-target='{"input":"#kt-editor-photo-id","preview":"#kt-editor-photo-preview"}'><?php esc_html_e('Choose Portrait', 'kuchnia-twist'); ?></button>
-                            <button id="kt-editor-photo-clear" type="button" class="button-link-delete kt-media-clear"><?php esc_html_e('Remove portrait', 'kuchnia-twist'); ?></button>
+                            <p class="description"><?php esc_html_e('The editor portrait is fixed in the theme for now so the public identity stays consistent during launch.', 'kuchnia-twist'); ?></p>
                         </div>
                     </div>
-                    <script>
-                    document.addEventListener('DOMContentLoaded', function () {
-                        const selectButton = document.getElementById('kt-editor-photo-select');
-                        const clearButton = document.getElementById('kt-editor-photo-clear');
-                        const input = document.getElementById('kt-editor-photo-id');
-                        const preview = document.getElementById('kt-editor-photo-preview');
-                        const emptyPreview = '<p><?php echo esc_js(__('No portrait selected.', 'kuchnia-twist')); ?></p>';
-
-                        if (clearButton && input && preview) {
-                            clearButton.addEventListener('click', function (event) {
-                                event.preventDefault();
-                                input.value = '0';
-                                preview.innerHTML = emptyPreview;
-                            });
-                        }
-
-                        if (!selectButton || !input || !preview || typeof wp === 'undefined' || !wp.media) {
-                            return;
-                        }
-
-                        let frame = null;
-                        selectButton.addEventListener('click', function (event) {
-                            event.preventDefault();
-
-                            if (frame) {
-                                frame.open();
-                                return;
-                            }
-
-                            frame = wp.media({
-                                title: '<?php echo esc_js(__('Choose portrait', 'kuchnia-twist')); ?>',
-                                button: {
-                                    text: '<?php echo esc_js(__('Use this image', 'kuchnia-twist')); ?>'
-                                },
-                                library: {
-                                    type: 'image'
-                                },
-                                multiple: false
-                            });
-
-                            frame.on('select', function () {
-                                const selection = frame.state().get('selection').first();
-                                if (!selection) {
-                                    return;
-                                }
-
-                                const attachment = selection.toJSON();
-                                input.value = attachment.id || 0;
-                                const imageUrl = (attachment.sizes && attachment.sizes.thumbnail && attachment.sizes.thumbnail.url) ? attachment.sizes.thumbnail.url : attachment.url;
-                                preview.innerHTML = imageUrl ? '<img src="' + imageUrl + '" alt="">' : emptyPreview;
-                            });
-
-                            frame.open();
-                        });
-                    });
-                    </script>
                 </section>
 
                 <section class="kt-card">

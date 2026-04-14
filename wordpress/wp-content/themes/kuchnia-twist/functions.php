@@ -446,6 +446,16 @@ function kuchnia_twist_asset_url($relative_path)
     return trailingslashit(get_template_directory_uri()) . ltrim($relative_path, '/');
 }
 
+function kuchnia_twist_editor_portrait_relative_path()
+{
+    return 'assets/editor-portrait.svg';
+}
+
+function kuchnia_twist_editor_portrait_url()
+{
+    return kuchnia_twist_asset_url(kuchnia_twist_editor_portrait_relative_path());
+}
+
 function kuchnia_twist_publication_settings()
 {
     $defaults = [
@@ -890,7 +900,34 @@ function kuchnia_twist_editor_profile()
         'public_email'   => is_email($email) ? $email : '',
         'business_email' => is_email($business) ? $business : '',
         'photo_id'       => $photo_id,
+        'photo_url'      => kuchnia_twist_editor_portrait_url(),
     ];
+}
+
+function kuchnia_twist_render_editor_portrait($alt = '', array $attributes = [])
+{
+    $defaults = [
+        'class'    => 'author-card__image',
+        'loading'  => 'lazy',
+        'decoding' => 'async',
+        'src'      => kuchnia_twist_editor_portrait_url(),
+        'alt'      => $alt !== '' ? $alt : __('Anna Kowalska, editor at kuchniatwist', 'kuchnia-twist'),
+    ];
+
+    $attributes = wp_parse_args($attributes, $defaults);
+    $html = '<img';
+
+    foreach ($attributes as $name => $value) {
+        if ($value === null || $value === '') {
+            continue;
+        }
+
+        $html .= sprintf(' %s="%s"', esc_attr((string) $name), esc_attr((string) $value));
+    }
+
+    $html .= '>';
+
+    echo $html;
 }
 
 function kuchnia_twist_pillar_links()
@@ -1776,6 +1813,33 @@ function kuchnia_twist_schema_image_object_from_attachment($attachment_id, $size
     return $image;
 }
 
+function kuchnia_twist_schema_image_object_from_url($url, $width = 0, $height = 0, $caption = '')
+{
+    $url = trim((string) $url);
+    if ($url === '') {
+        return null;
+    }
+
+    $image = [
+        '@type' => 'ImageObject',
+        'url'   => $url,
+    ];
+
+    if ((int) $width > 0) {
+        $image['width'] = (int) $width;
+    }
+
+    if ((int) $height > 0) {
+        $image['height'] = (int) $height;
+    }
+
+    if ($caption !== '') {
+        $image['caption'] = $caption;
+    }
+
+    return $image;
+}
+
 function kuchnia_twist_schema_publisher()
 {
     $profile = kuchnia_twist_editor_profile();
@@ -1859,6 +1923,7 @@ function kuchnia_twist_schema_author()
     $about_page = get_page_by_path('about');
     $about_url = $about_page instanceof WP_Post ? get_permalink($about_page) : home_url('/');
     $photo_id = !empty($profile['photo_id']) ? (int) $profile['photo_id'] : 0;
+    $photo_url = trim((string) ($profile['photo_url'] ?? ''));
 
     if ($author_name === '' || strtolower($author_name) === strtolower($site_name)) {
         return [
@@ -1886,6 +1951,11 @@ function kuchnia_twist_schema_author()
 
     if ($photo_id > 0) {
         $author_image = kuchnia_twist_schema_image_object_from_attachment($photo_id, 'full', $author_name);
+        if ($author_image) {
+            $author['image'] = $author_image;
+        }
+    } elseif ($photo_url !== '') {
+        $author_image = kuchnia_twist_schema_image_object_from_url($photo_url, 240, 240, $author_name);
         if ($author_image) {
             $author['image'] = $author_image;
         }
