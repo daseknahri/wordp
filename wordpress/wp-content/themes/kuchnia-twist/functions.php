@@ -1466,7 +1466,7 @@ function kuchnia_twist_page_profile($post = null)
             'body' => [
                 __('kuchniatwist collects the minimum data needed to serve pages, prevent abuse, and respond to messages. That can include standard server logs and basic WordPress cookies.', 'kuchnia-twist'),
                 __('Third-party vendors, including Google, use cookies to serve ads based on a user\'s prior visits to this website or other websites.', 'kuchnia-twist'),
-                __('Google’s advertising cookies enable Google and its partners to serve ads based on visits to this site and/or other sites on the Internet.', 'kuchnia-twist'),
+                __('Google''s advertising cookies enable Google and its partners to serve ads based on visits to this site and/or other sites on the Internet.', 'kuchnia-twist'),
                 sprintf(
                     __('You can opt out of personalized advertising by visiting <a href="%1$s" target="_blank" rel="noopener">Ads Settings</a>, or opt out of some third-party vendors\' use of cookies for personalized advertising by visiting <a href="%2$s" target="_blank" rel="noopener">aboutads.info</a>.', 'kuchnia-twist'),
                     esc_url('https://adssettings.google.com'),
@@ -1501,7 +1501,7 @@ function kuchnia_twist_page_profile($post = null)
                 __('Cookies are small files stored by your browser that help a site remember preferences and keep essential features working.', 'kuchnia-twist'),
                 __('Right now, cookies are expected to come from WordPress itself (for example, comment form preferences) and from the hosting stack.', 'kuchnia-twist'),
                 __('When ads are shown, third-party vendors including Google may set cookies to serve, personalize, or measure advertising.', 'kuchnia-twist'),
-                __('Google’s advertising cookies enable Google and its partners to serve ads based on visits to this site and/or other sites on the Internet.', 'kuchnia-twist'),
+                __('Google''s advertising cookies enable Google and its partners to serve ads based on visits to this site and/or other sites on the Internet.', 'kuchnia-twist'),
                 sprintf(
                     __('You can opt out of personalized advertising in <a href="%1$s" target="_blank" rel="noopener">Ads Settings</a> or opt out of some third-party vendors\' cookies for personalized advertising by visiting <a href="%2$s" target="_blank" rel="noopener">aboutads.info</a>.', 'kuchnia-twist'),
                     esc_url('https://adssettings.google.com'),
@@ -1699,6 +1699,7 @@ function kuchnia_twist_render_browser_chrome_meta()
     echo '<meta name="mobile-web-app-capable" content="yes">' . "\n";
     echo '<meta name="apple-mobile-web-app-capable" content="yes">' . "\n";
     echo '<meta name="apple-mobile-web-app-status-bar-style" content="default">' . "\n";
+    echo '<meta name="p:domain_verify" content="740e0aa93b5470e329fc2042a009d4cf">' . "\n";
 }
 
 add_action('wp_head', function () {
@@ -2113,3 +2114,4 @@ add_action('wp_head', function () {
         '@graph'   => $graph,
     ]) . '</script>';
 }, 20);
+
