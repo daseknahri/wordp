@@ -448,7 +448,7 @@ function kuchnia_twist_asset_url($relative_path)
 
 function kuchnia_twist_editor_portrait_relative_path()
 {
-    return 'assets/editor-portrait.svg';
+    return 'assets/editor-portrait.png';
 }
 
 function kuchnia_twist_editor_portrait_url()

@@ -933,16 +933,6 @@ final class Kuchnia_Twist_Publisher extends Kuchnia_Twist_Publisher_Base
                         <label><span><?php esc_html_e('Business Email', 'kuchnia-twist'); ?></span><input type="text" name="editor_business_email" value="<?php echo esc_attr($settings['editor_business_email']); ?>"></label>
                         <label class="kt-field-span-full"><span><?php esc_html_e('Editor Bio', 'kuchnia-twist'); ?></span><textarea name="editor_bio" rows="5"><?php echo esc_textarea($settings['editor_bio']); ?></textarea></label>
                     </div>
-                    <div class="kt-media-field">
-                        <span><?php esc_html_e('Editor Portrait', 'kuchnia-twist'); ?></span>
-                        <input type="hidden" name="editor_photo_id" value="<?php echo (int) $settings['editor_photo_id']; ?>">
-                        <div id="kt-editor-photo-preview" class="kt-media-preview">
-                            <img src="<?php echo esc_url(get_template_directory_uri() . '/assets/editor-portrait.svg'); ?>" alt="<?php esc_attr_e('Anna Kowalska portrait', 'kuchnia-twist'); ?>">
-                        </div>
-                        <div class="kt-media-actions">
-                            <p class="description"><?php esc_html_e('The editor portrait is fixed in the theme for now so the public identity stays consistent during launch.', 'kuchnia-twist'); ?></p>
-                        </div>
-                    </div>
                 </section>
 
                 <section class="kt-card">
