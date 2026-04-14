@@ -187,10 +187,16 @@ while (have_posts()) :
                                 <?php if ($public_email !== '' || $business_email !== '') : ?>
                                     <div class="author-card__contacts">
                                         <?php if ($public_email !== '') : ?>
-                                            <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
+                                            <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>">
+                                                <span class="author-card__contact-label"><?php esc_html_e('Editorial email', 'kuchnia-twist'); ?></span>
+                                                <span class="author-card__contact-value"><?php echo esc_html(antispambot($public_email)); ?></span>
+                                            </a>
                                         <?php endif; ?>
                                         <?php if ($business_email !== '') : ?>
-                                            <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($business_email)); ?>"><?php echo esc_html(antispambot($business_email)); ?></a>
+                                            <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($business_email)); ?>">
+                                                <span class="author-card__contact-label"><?php esc_html_e('Business email', 'kuchnia-twist'); ?></span>
+                                                <span class="author-card__contact-value"><?php echo esc_html(antispambot($business_email)); ?></span>
+                                            </a>
                                         <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
