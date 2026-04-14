@@ -70,79 +70,78 @@ $trust_nav     = kuchnia_twist_trust_nav_items();
             </div>
         </div>
 
-        <div class="site-header__panel">
-            <div class="site-search-sheet" id="site-search-sheet" hidden aria-hidden="true" data-search-panel role="dialog" aria-modal="true" aria-labelledby="site-search-title">
-                <div class="site-search-sheet__inner">
-                    <div class="site-search-sheet__top">
-                        <h2 id="site-search-title"><?php esc_html_e('Search', 'kuchnia-twist'); ?></h2>
-                        <button class="site-search-sheet__close" type="button" data-search-close>
-                            <span class="screen-reader-text"><?php esc_html_e('Close search', 'kuchnia-twist'); ?></span>
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18"></path><path d="M18 6 6 18"></path></svg>
-                        </button>
-                    </div>
-                    <p class="site-search-sheet__copy"><?php esc_html_e('Search recipes and food facts from the journal.', 'kuchnia-twist'); ?></p>
-                    <?php get_search_form(); ?>
+        <div class="site-progress" aria-hidden="true">
+            <span class="site-progress__bar"></span>
+        </div>
+    </header>
+    <div class="site-header__panel">
+        <div class="site-search-sheet" id="site-search-sheet" hidden aria-hidden="true" data-search-panel role="dialog" aria-modal="true" aria-labelledby="site-search-title">
+            <div class="site-search-sheet__inner">
+                <div class="site-search-sheet__top">
+                    <h2 id="site-search-title"><?php esc_html_e('Search', 'kuchnia-twist'); ?></h2>
+                    <button class="site-search-sheet__close" type="button" data-search-close>
+                        <span class="screen-reader-text"><?php esc_html_e('Close search', 'kuchnia-twist'); ?></span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18"></path><path d="M18 6 6 18"></path></svg>
+                    </button>
                 </div>
+                <p class="site-search-sheet__copy"><?php esc_html_e('Search recipes and food facts from the journal.', 'kuchnia-twist'); ?></p>
+                <?php get_search_form(); ?>
             </div>
+        </div>
 
-            <div class="menu-sheet" id="site-menu-sheet" hidden aria-hidden="true" data-menu-panel role="dialog" aria-modal="true" aria-labelledby="site-menu-title">
-                <div class="menu-sheet__inner">
-                    <div class="menu-sheet__top">
-                        <h2 id="site-menu-title"><?php esc_html_e('Menu', 'kuchnia-twist'); ?></h2>
-                        <button class="menu-sheet__close" type="button" data-menu-close>
-                            <span class="screen-reader-text"><?php esc_html_e('Close menu', 'kuchnia-twist'); ?></span>
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18"></path><path d="M18 6 6 18"></path></svg>
-                        </button>
-                    </div>
+        <div class="menu-sheet" id="site-menu-sheet" hidden aria-hidden="true" data-menu-panel role="dialog" aria-modal="true" aria-labelledby="site-menu-title">
+            <div class="menu-sheet__inner">
+                <div class="menu-sheet__top">
+                    <h2 id="site-menu-title"><?php esc_html_e('Menu', 'kuchnia-twist'); ?></h2>
+                    <button class="menu-sheet__close" type="button" data-menu-close>
+                        <span class="screen-reader-text"><?php esc_html_e('Close menu', 'kuchnia-twist'); ?></span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18"></path><path d="M18 6 6 18"></path></svg>
+                    </button>
+                </div>
 
-                    <div class="menu-sheet__grid">
+                <div class="menu-sheet__grid">
+                    <section class="menu-sheet__section">
+                        <div class="menu-sheet__intro">
+                            <span class="eyebrow"><?php esc_html_e('Primary', 'kuchnia-twist'); ?></span>
+                            <p><?php esc_html_e('The main pages readers use most.', 'kuchnia-twist'); ?></p>
+                        </div>
+                        <div class="menu-sheet__links">
+                            <?php foreach ($primary_nav as $item) : ?>
+                                <?php $is_active = kuchnia_twist_is_nav_item_current($item['url']); ?>
+                                <a href="<?php echo esc_url($item['url']); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>><?php echo esc_html($item['label']); ?></a>
+                            <?php endforeach; ?>
+                        </div>
+                    </section>
+
+                    <section class="menu-sheet__section">
+                        <div class="menu-sheet__intro">
+                            <span class="eyebrow"><?php esc_html_e('Pillars', 'kuchnia-twist'); ?></span>
+                            <p><?php esc_html_e('Jump into the main reading lanes of the site.', 'kuchnia-twist'); ?></p>
+                        </div>
+                        <div class="chip-links">
+                            <?php foreach ($pillar_nav as $item) : ?>
+                                <?php $is_active = kuchnia_twist_is_nav_item_current($item['url']); ?>
+                                <a class="chip-link<?php echo $is_active ? ' is-active' : ''; ?>" href="<?php echo esc_url($item['url']); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>><?php echo esc_html($item['label']); ?></a>
+                            <?php endforeach; ?>
+                        </div>
+                    </section>
+
+                    <?php if ($trust_nav) : ?>
                         <section class="menu-sheet__section">
                             <div class="menu-sheet__intro">
-                                <span class="eyebrow"><?php esc_html_e('Primary', 'kuchnia-twist'); ?></span>
-                                <p><?php esc_html_e('The main pages readers use most.', 'kuchnia-twist'); ?></p>
+                                <span class="eyebrow"><?php esc_html_e('Journal', 'kuchnia-twist'); ?></span>
+                                <p><?php esc_html_e('Background, editorial policy, and site standards.', 'kuchnia-twist'); ?></p>
                             </div>
-                            <div class="menu-sheet__links">
-                                <?php foreach ($primary_nav as $item) : ?>
+                            <div class="menu-sheet__links menu-sheet__links--compact">
+                                <?php foreach ($trust_nav as $item) : ?>
                                     <?php $is_active = kuchnia_twist_is_nav_item_current($item['url']); ?>
                                     <a href="<?php echo esc_url($item['url']); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>><?php echo esc_html($item['label']); ?></a>
                                 <?php endforeach; ?>
                             </div>
                         </section>
-
-                        <section class="menu-sheet__section">
-                            <div class="menu-sheet__intro">
-                                <span class="eyebrow"><?php esc_html_e('Pillars', 'kuchnia-twist'); ?></span>
-                                <p><?php esc_html_e('Jump into the main reading lanes of the site.', 'kuchnia-twist'); ?></p>
-                            </div>
-                            <div class="chip-links">
-                                <?php foreach ($pillar_nav as $item) : ?>
-                                    <?php $is_active = kuchnia_twist_is_nav_item_current($item['url']); ?>
-                                    <a class="chip-link<?php echo $is_active ? ' is-active' : ''; ?>" href="<?php echo esc_url($item['url']); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>><?php echo esc_html($item['label']); ?></a>
-                                <?php endforeach; ?>
-                            </div>
-                        </section>
-
-                        <?php if ($trust_nav) : ?>
-                            <section class="menu-sheet__section">
-                                <div class="menu-sheet__intro">
-                                    <span class="eyebrow"><?php esc_html_e('Journal', 'kuchnia-twist'); ?></span>
-                                    <p><?php esc_html_e('Background, editorial policy, and site standards.', 'kuchnia-twist'); ?></p>
-                                </div>
-                                <div class="menu-sheet__links menu-sheet__links--compact">
-                                    <?php foreach ($trust_nav as $item) : ?>
-                                        <?php $is_active = kuchnia_twist_is_nav_item_current($item['url']); ?>
-                                        <a href="<?php echo esc_url($item['url']); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>><?php echo esc_html($item['label']); ?></a>
-                                    <?php endforeach; ?>
-                                </div>
-                            </section>
-                        <?php endif; ?>
-                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
-
-        <div class="site-progress" aria-hidden="true">
-            <span class="site-progress__bar"></span>
-        </div>
-    </header>
+    </div>
     <main id="content" class="site-main">

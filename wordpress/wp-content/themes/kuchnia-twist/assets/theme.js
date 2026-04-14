@@ -193,6 +193,14 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
+      if (searchPanel && searchPanel.contains(event.target)) {
+        return;
+      }
+
+      if (menuPanel && menuPanel.contains(event.target)) {
+        return;
+      }
+
       closeSearch();
       closeMenu();
     });
