@@ -455,6 +455,13 @@ body.has-menu-sheet .site-header {
   box-shadow: var(--shadow-lg);
 }
 
+.menu-sheet__grid,
+.menu-sheet__section,
+.menu-sheet__links {
+  visibility: visible;
+  opacity: 1;
+}
+
 @media (max-width: 699px) {
   .menu-sheet {
     width: 100vw;
@@ -502,7 +509,7 @@ body.has-menu-sheet .site-header {
 
 .menu-sheet__intro p {
   margin: 0;
-  color: var(--muted);
+  color: #4e3d32;
   font-size: 0.94rem;
 }
 
@@ -517,7 +524,7 @@ body.has-menu-sheet .site-header {
 
 .menu-sheet__links a,
 .menu-sheet__email {
-  color: var(--muted-strong);
+  color: #26170f;
   font-size: 0.95rem;
 }
 
