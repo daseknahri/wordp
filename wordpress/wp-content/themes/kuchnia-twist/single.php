@@ -18,6 +18,7 @@ while (have_posts()) :
     $editor_profile     = kuchnia_twist_editor_profile();
     $about_page         = get_page_by_path('about');
     $public_email       = kuchnia_twist_public_contact_email();
+    $business_email     = kuchnia_twist_business_contact_email();
     $story_links        = kuchnia_twist_adjacent_story_links($post_id);
     $editor_name        = trim((string) ($editor_profile['name'] ?? ''));
     $editor_role        = trim((string) ($editor_profile['role'] ?? ''));
@@ -186,6 +187,16 @@ while (have_posts()) :
                                 <?php endif; ?>
                                 <?php if ($editor_bio !== '') : ?>
                                     <p><?php echo esc_html($editor_bio); ?></p>
+                                <?php endif; ?>
+                                <?php if ($public_email !== '' || $business_email !== '') : ?>
+                                    <div class="author-card__contacts">
+                                        <?php if ($public_email !== '') : ?>
+                                            <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
+                                        <?php endif; ?>
+                                        <?php if ($business_email !== '') : ?>
+                                            <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($business_email)); ?>"><?php echo esc_html(antispambot($business_email)); ?></a>
+                                        <?php endif; ?>
+                                    </div>
                                 <?php endif; ?>
                                 <?php if ($about_page instanceof WP_Post) : ?>
                                     <a class="chip-link" href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('About the editor', 'kuchnia-twist'); ?></a>

@@ -4,6 +4,9 @@ defined('ABSPATH') || exit;
 
 $pillar_nav     = kuchnia_twist_pillar_nav_items();
 $trust_nav      = kuchnia_twist_trust_nav_items();
+$editor_profile = kuchnia_twist_editor_profile();
+$public_email   = sanitize_email((string) ($editor_profile['public_email'] ?? ''));
+$business_email = sanitize_email((string) ($editor_profile['business_email'] ?? ''));
 $browse_label   = 'site-footer-browse-label';
 $journal_label  = 'site-footer-journal-label';
 ?>
@@ -21,6 +24,16 @@ $journal_label  = 'site-footer-journal-label';
                     <div>
                         <h2><?php bloginfo('name'); ?></h2>
                         <p class="site-footer__summary"><?php echo esc_html(kuchnia_twist_site_summary()); ?></p>
+                        <?php if ($public_email !== '' || $business_email !== '') : ?>
+                            <div class="site-footer__contacts">
+                                <?php if ($public_email !== '') : ?>
+                                    <a class="site-footer__contact" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
+                                <?php endif; ?>
+                                <?php if ($business_email !== '') : ?>
+                                    <a class="site-footer__contact" href="mailto:<?php echo esc_attr(antispambot($business_email)); ?>"><?php echo esc_html(antispambot($business_email)); ?></a>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 

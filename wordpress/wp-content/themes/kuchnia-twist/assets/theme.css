@@ -2523,6 +2523,38 @@ body.front-page .home-hero__content {
   -webkit-line-clamp: 2;
 }
 
+.author-card__contacts,
+.site-footer__contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.author-card__contact,
+.site-footer__contact {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid rgba(38, 23, 15, 0.1);
+  border-radius: 999px;
+  color: var(--muted-strong);
+  font-size: 0.8rem;
+  line-height: 1.3;
+  background: rgba(255, 252, 247, 0.92);
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.author-card__contact:hover,
+.author-card__contact:focus-visible,
+.site-footer__contact:hover,
+.site-footer__contact:focus-visible {
+  color: var(--accent-deep);
+  border-color: rgba(184, 101, 60, 0.28);
+  background: rgba(255, 248, 241, 1);
+}
+
 .author-card--mobile {
   margin-top: 14px;
   padding: 12px;

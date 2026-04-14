@@ -9,6 +9,7 @@ get_header();
     $profile          = kuchnia_twist_page_profile(get_post());
     $has_body         = kuchnia_twist_page_has_meaningful_body(get_post());
     $public_email     = kuchnia_twist_public_contact_email();
+    $business_email   = kuchnia_twist_business_contact_email();
     $editor_profile   = kuchnia_twist_editor_profile();
     $page_slug        = get_post_field('post_name', get_the_ID());
     $page_art         = '';
@@ -109,6 +110,16 @@ get_header();
                         <?php endif; ?>
                         <?php if (!empty($editor_profile['bio'])) : ?>
                             <p><?php echo esc_html($editor_profile['bio']); ?></p>
+                        <?php endif; ?>
+                        <?php if ($public_email !== '' || $business_email !== '') : ?>
+                            <div class="author-card__contacts">
+                                <?php if ($public_email !== '') : ?>
+                                    <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
+                                <?php endif; ?>
+                                <?php if ($business_email !== '') : ?>
+                                    <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($business_email)); ?>"><?php echo esc_html(antispambot($business_email)); ?></a>
+                                <?php endif; ?>
+                            </div>
                         <?php endif; ?>
                     </div>
                 </div>

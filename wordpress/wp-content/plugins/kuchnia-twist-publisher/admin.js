@@ -95,8 +95,9 @@
 
     const button = $(this);
     const target = parseTarget(button);
-    const input = $(target.input);
-    const preview = button.closest(".kt-media-field").find(target.preview || ".kt-media-preview");
+    const field = button.closest(".kt-media-field");
+    const input = (target.input ? field.find(target.input).first() : field.find('input[type="hidden"]').first());
+    const preview = field.find(target.preview || ".kt-media-preview").first();
 
     if (!input.length || !preview.length || typeof wp === "undefined" || !wp.media) {
       return;
@@ -110,10 +111,12 @@
     });
 
     frame.on("select", () => {
-      const attachment = frame.state().get("selection").first()?.toJSON();
-      if (!attachment) {
+      const selection = frame.state().get("selection").first();
+      if (!selection) {
         return;
       }
+
+      const attachment = selection.toJSON();
 
       input.val(attachment.id);
       preview.html(`<img src="${attachment.sizes?.thumbnail?.url || attachment.url}" alt="">`);
