@@ -422,12 +422,11 @@ body.front-page .site-header {
   bottom: 0;
   z-index: 9000;
   isolation: isolate;
-  width: min(100vw, 420px);
+  width: 100vw;
   padding: 12px;
-  margin-left: auto;
-  background: rgba(38, 23, 15, 0.45);
-  backdrop-filter: blur(4px);
-  color: var(--ink);
+  margin-left: 0;
+  background: rgba(255, 250, 244, 0.98);
+  color: #26170f;
 }
 
 body.has-menu-sheet .site-header {
@@ -463,7 +462,7 @@ body.has-menu-sheet .site-header {
 .menu-sheet__grid {
   position: relative;
   z-index: 9101;
-  display: grid !important;
+  display: block !important;
 }
 
 .menu-sheet__grid *,
