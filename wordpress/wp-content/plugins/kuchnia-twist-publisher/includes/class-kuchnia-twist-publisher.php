@@ -139,8 +139,8 @@ final class Kuchnia_Twist_Publisher extends Kuchnia_Twist_Publisher_Base
     public function register_admin_pages(): void
     {
         add_menu_page(
-            __('Kuchnia Twist', 'kuchnia-twist'),
-            __('Kuchnia Twist', 'kuchnia-twist'),
+            __('kuchniatwist', 'kuchnia-twist'),
+            __('kuchniatwist', 'kuchnia-twist'),
             'publish_posts',
             'kuchnia-twist-publisher',
             [$this, 'render_publisher_page'],
@@ -1650,7 +1650,7 @@ final class Kuchnia_Twist_Publisher extends Kuchnia_Twist_Publisher_Base
     {
         $title = trim((string) get_option('blogname', ''));
         if ($title === '' || in_array(strtolower($title), ['my blog', 'site title', 'my wordpress blog', 'wordpress'], true)) {
-            update_option('blogname', 'Kuchnia Twist');
+            update_option('blogname', 'kuchniatwist');
         }
 
         $tagline = trim((string) get_option('blogdescription', ''));
@@ -1821,7 +1821,7 @@ final class Kuchnia_Twist_Publisher extends Kuchnia_Twist_Publisher_Base
             'use this page to explain what cookies',
             'use this page to describe how recipes are developed',
             'this starter page should be replaced',
-            'kuchnia twist is a food journal built around three pillars',
+            'kuchniatwist is a food journal built around three pillars',
             'the trust layer around the archive matters as much as the archive itself',
             'a useful site should feel maintained in public',
             'same public trust layer as this policy',

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
-  <title id="title">Kuchnia Twist seal</title>
-  <desc id="desc">Editorial monogram seal for Kuchnia Twist.</desc>
+  <title id="title">kuchniatwist seal</title>
+  <desc id="desc">Editorial monogram seal for kuchniatwist.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#fff9f2"/>
@@ -17,5 +17,5 @@
   <path d="M48 103c8 6 19 9 32 9 13 0 24-3 32-9" fill="none" stroke="#b1552e" stroke-width="2" stroke-linecap="round"/>
   <path d="M55 55c5-4 12-7 25-7 14 0 21 3 26 7" fill="none" stroke="#b1552e" stroke-width="2" stroke-linecap="round"/>
   <text x="80" y="90" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="42" font-weight="700" fill="url(#ink)">KT</text>
-  <text x="80" y="121" text-anchor="middle" font-family="'Source Sans 3', Arial, sans-serif" font-size="9" letter-spacing="4" fill="#6b2915">KUCHNIA TWIST</text>
+  <text x="80" y="121" text-anchor="middle" font-family="'Source Sans 3', Arial, sans-serif" font-size="9" letter-spacing="4" fill="#6b2915">KUCHNIATWIST</text>
 </svg>

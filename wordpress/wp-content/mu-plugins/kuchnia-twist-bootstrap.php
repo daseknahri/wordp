@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Kuchnia Twist Bootstrap
- * Description: Loads the Kuchnia Twist publisher plugin automatically.
+ * Plugin Name: kuchniatwist Bootstrap
+ * Description: Loads the kuchniatwist publisher plugin automatically.
  */
 
 defined('ABSPATH') || exit;

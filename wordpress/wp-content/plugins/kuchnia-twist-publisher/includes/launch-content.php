@@ -39,12 +39,12 @@ function kuchnia_twist_launch_core_pages(): array
     return [
         'about' => [
             'title' => 'About',
-            'excerpt' => 'Meet Kuchnia Twist, a home-cooking journal about practical recipes, useful food facts, and reflective kitchen essays.',
-            'seo_description' => 'Learn what Kuchnia Twist publishes, who edits it, and why the journal is built around recipes, food facts, and food stories.',
+            'excerpt' => 'Meet kuchniatwist, a home-cooking journal about practical recipes, useful food facts, and reflective kitchen essays.',
+            'seo_description' => 'Learn what kuchniatwist publishes, who edits it, and why the journal is built around recipes, food facts, and food stories.',
             'featured_asset' => 'about-kitchen-counter.jpg',
             'featured_alt' => 'Ingredients arranged on a kitchen counter with mushrooms and a cutting board.',
             'content' => <<<'HTML'
-<p>Kuchnia Twist is an English-language food journal shaped around warm home cooking, useful ingredient explainers, and slower story-led kitchen essays. It is edited by <strong>[kuchnia_twist_editor_name]</strong>, [kuchnia_twist_editor_role], and it is built to read like a real kitchen journal rather than a stream of disposable posts.</p>
+<p>kuchniatwist is an English-language food journal shaped around warm home cooking, useful ingredient explainers, and slower story-led kitchen essays. It is edited by <strong>[kuchnia_twist_editor_name]</strong>, [kuchnia_twist_editor_role], and it is built to read like a real kitchen journal rather than a stream of disposable posts.</p>
 <p>The idea behind the site is simple: food writing becomes more useful when it is organized with a little restraint. Readers should be able to understand what they will find here within a few seconds, see who is behind it, and move easily between recipes, explainers, and reflective essays without landing in clutter. That is why the archive is deliberately narrow in shape even when the subject matter stays broad and domestic.</p>
 <h2>What the journal publishes</h2>
 <p>The archive stays focused on three core pillars so the site remains easy to understand and easy to trust as it grows.</p>
@@ -55,27 +55,27 @@ function kuchnia_twist_launch_core_pages(): array
 </ul>
 <p>Those pillars matter because a home-cooking journal does not earn trust through volume alone. It earns trust when readers can tell what kind of page they are opening and what sort of promise that page is making. A recipe should help someone cook. An explainer should make a technique or ingredient easier to understand. A story should deepen the archive rather than drift away from it. Keeping those jobs separate makes every article easier to judge on its own merits.</p>
 <h2>Why this journal exists</h2>
-<p>Good food sites do more than rank for search terms. They help people decide what to cook, understand why a method works, and feel like they are learning from a site with standards and a real point of view. Kuchnia Twist is built around that slower idea of usefulness.</p>
+<p>Good food sites do more than rank for search terms. They help people decide what to cook, understand why a method works, and feel like they are learning from a site with standards and a real point of view. kuchniatwist is built around that slower idea of usefulness.</p>
 <p>The point is not maximum volume. The point is a tighter archive where every article earns its place, the trust pages stay visible, and readers can move between recipes, explainers, and essays without falling into clutter.</p>
 <p>That also means resisting the habits that make many young blogs feel forgettable: generic introductions, inflated claims, and a publishing rhythm that values output over clarity. The site is better served by fewer pieces that feel specific, current, and coherent than by a flood of interchangeable content. Home cooks notice when the writing respects their time, and they notice when it does not.</p>
 <h2>How the site is run</h2>
 <p>Every article is expected to be original, readable, and shaped for the home cook. Recipes should be practical, food facts should stay grounded, and story-led pieces should be clearly framed as editorial essays rather than borrowed authority.</p>
 <p>The pages around the archive matter as much as the archive itself. About, Contact, Privacy, Cookie, and Editorial Policy stay visible because they explain how the site works, how readers can reach it, and how editorial standards are handled. Those pages are part of the reading experience, not decorative compliance notes hidden in the footer.</p>
-<p>Kuchnia Twist is also designed to age well. Recipes can be clarified, explainers can be refined, and trust pages can be updated when the tooling or business model changes. A useful food site stays visibly maintained. That is why readers are always given a route to contact the editor, point out an unclear detail, or ask for a correction.</p>
+<p>kuchniatwist is also designed to age well. Recipes can be clarified, explainers can be refined, and trust pages can be updated when the tooling or business model changes. A useful food site stays visibly maintained. That is why readers are always given a route to contact the editor, point out an unclear detail, or ask for a correction.</p>
 <h2>What readers should expect</h2>
 <p>Readers should expect a tone that is calm, specific, and practical. That does not mean the writing has to be dry. It means warmth should support clarity instead of replacing it. Recipes should tell cooks what matters in the pan, explainers should answer the real kitchen question early, and essays should stay honest about what kind of voice they are using.</p>
-<p>They should also expect a journal that is transparent about change. Kuchnia Twist is not launching with display ads, affiliate links, or aggressive tracking tools. If those things are introduced later, the relevant policy pages will change with them rather than pretending the site has remained static. That is part of what it means to run a small site responsibly.</p>
+<p>They should also expect a journal that is transparent about change. kuchniatwist is not launching with display ads, affiliate links, or aggressive tracking tools. If those things are introduced later, the relevant policy pages will change with them rather than pretending the site has remained static. That is part of what it means to run a small site responsibly.</p>
 <p>If you want to understand how recipes are updated, how corrections are handled, or how commercial activity would be disclosed later, read the [kuchnia_twist_link slug="editorial-policy"]Editorial Policy[/kuchnia_twist_link]. If you need to get in touch, the [kuchnia_twist_link slug="contact"]Contact page[/kuchnia_twist_link] keeps a public contact route visible.</p>
 HTML,
         ],
         'contact' => [
             'title' => 'Contact',
-            'excerpt' => 'Use the Kuchnia Twist contact page for recipe questions, corrections, sourcing notes, and relevant partnership enquiries.',
-            'seo_description' => 'Contact Kuchnia Twist for recipe questions, corrections, site notes, or relevant business enquiries.',
+            'excerpt' => 'Use the kuchniatwist contact page for recipe questions, corrections, sourcing notes, and relevant partnership enquiries.',
+            'seo_description' => 'Contact kuchniatwist for recipe questions, corrections, site notes, or relevant business enquiries.',
             'featured_asset' => 'contact-kitchen-onion.jpg',
             'featured_alt' => 'A cook preparing red onion on a kitchen counter in the morning light.',
             'content' => <<<'HTML'
-<p>If you need to reach Kuchnia Twist about a recipe, a correction, a sourcing question, or a relevant partnership enquiry, this is the right place to do it. The public contact email is <strong>[kuchnia_twist_editor_public_email]</strong>.</p>
+<p>If you need to reach kuchniatwist about a recipe, a correction, a sourcing question, or a relevant partnership enquiry, this is the right place to do it. The public contact email is <strong>[kuchnia_twist_editor_public_email]</strong>.</p>
 <p>This site is run like a small food journal with a named editor rather than an anonymous content feed. That means useful messages are taken seriously, especially when they improve clarity, catch an error, or help the archive feel more trustworthy over time. Readers should not have to guess whether there is a real route back to the site owner. The route should stay visible on purpose.</p>
 <h2>When to write</h2>
 <ul>
@@ -85,11 +85,11 @@ HTML,
 </ul>
 <p>If your note helps the site become clearer, more accurate, or easier to use, it belongs here. Good contact pages are not only for problems. They are also for thoughtful reader feedback, small corrections, and practical questions that reveal where an article can be better than it was on first publication.</p>
 <h2>Response expectations</h2>
-<p>Kuchnia Twist is run as a small food journal, so the goal is a thoughtful reply within a few business days rather than an instant support queue. Messages that improve clarity, accuracy, or trust are treated as part of maintaining the site, not as an interruption.</p>
+<p>kuchniatwist is run as a small food journal, so the goal is a thoughtful reply within a few business days rather than an instant support queue. Messages that improve clarity, accuracy, or trust are treated as part of maintaining the site, not as an interruption.</p>
 <p>That response window matters because it sets a reasonable expectation without pretending the site is a large media operation. A small journal can still be current, careful, and reachable. What matters is not instant automation but visible follow-through when a message deserves attention.</p>
 <h2>Corrections and standards</h2>
 <p>If a reader spots an unclear instruction, a misleading phrase, or a factual issue, that note helps strengthen the archive. The site aims to fix practical errors quickly and update articles when clearer wording or better structure improves usefulness.</p>
-<p>Kuchnia Twist treats corrections as part of maintaining the journal rather than as a reputational inconvenience. If a recipe step reads ambiguously, if an ingredient explanation is too loose, or if a food story blurs a line it should not blur, the site is better when that issue is acknowledged and improved. A healthy archive depends on that habit.</p>
+<p>kuchniatwist treats corrections as part of maintaining the journal rather than as a reputational inconvenience. If a recipe step reads ambiguously, if an ingredient explanation is too loose, or if a food story blurs a line it should not blur, the site is better when that issue is acknowledged and improved. A healthy archive depends on that habit.</p>
 <h2>Business and partnership notes</h2>
 <p>Relevant partnership, licensing, or media requests are welcome when they fit the journal's food focus and tone. The most useful enquiries are the straightforward ones: what you are asking for, why it fits the site, and what timing matters. If a separate business route is published later, it will sit alongside the public contact email rather than replacing it.</p>
 <p>For standards around recipes, explainers, stories, and commercial transparency, see the [kuchnia_twist_link slug="editorial-policy"]Editorial Policy[/kuchnia_twist_link]. For privacy-related questions, the [kuchnia_twist_link slug="privacy-policy"]Privacy Policy[/kuchnia_twist_link] explains what is and is not in use at launch.</p>
@@ -97,11 +97,11 @@ HTML,
         ],
         'privacy-policy' => [
             'title' => 'Privacy Policy',
-            'excerpt' => 'Read how Kuchnia Twist handles basic site data at launch and which advertising, affiliate, and analytics tools are not active.',
-            'seo_description' => 'Read the Kuchnia Twist privacy policy covering basic site data, reader contact, and the limited launch-stage toolset.',
+            'excerpt' => 'Read how kuchniatwist handles basic site data at launch and which advertising, affiliate, and analytics tools are not active.',
+            'seo_description' => 'Read the kuchniatwist privacy policy covering basic site data, reader contact, and the limited launch-stage toolset.',
             'content' => <<<'HTML'
-<p>This privacy policy explains what Kuchnia Twist collects at launch and what is not currently running on the site. At launch, the journal does not use newsletter tools, advertising tags, affiliate scripts, or third-party analytics platforms.</p>
-<p>The goal of this page is to describe the site as it actually operates, not as a generic website might operate. Privacy language is most useful when it matches the real tools in use. Because Kuchnia Twist is launching in a lean state, the policy is correspondingly simple: the site serves pages, handles ordinary technical logs, and receives reader messages, but it does not run a broader advertising or tracking stack at launch.</p>
+<p>This privacy policy explains what kuchniatwist collects at launch and what is not currently running on the site. At launch, the journal does not use newsletter tools, advertising tags, affiliate scripts, or third-party analytics platforms.</p>
+<p>The goal of this page is to describe the site as it actually operates, not as a generic website might operate. Privacy language is most useful when it matches the real tools in use. Because kuchniatwist is launching in a lean state, the policy is correspondingly simple: the site serves pages, handles ordinary technical logs, and receives reader messages, but it does not run a broader advertising or tracking stack at launch.</p>
 <h2>Information collected at launch</h2>
 <p>Like most websites, the site may process basic server and security information needed to deliver pages, protect the service, and troubleshoot technical issues. That can include IP addresses, browser details, timestamps, and referring URLs handled by the hosting stack.</p>
 <p>If you send an email to the public contact address, the details you include in that message may be used to reply, handle a correction, or manage a legitimate editorial or business enquiry.</p>
@@ -114,10 +114,10 @@ HTML,
 </ul>
 <p>In practice, that means collected information is tied to site delivery and reader communication. If a technical log helps diagnose a problem, it is used for maintenance. If an email raises a correction, it is used to reply and improve the relevant article. The site does not use launch-stage data to build advertising profiles, audience segments, or remarketing campaigns.</p>
 <h2>What is not active at launch</h2>
-<p>Kuchnia Twist is not launching with ad scripts, affiliate platforms, or non-essential measurement tools. If that changes later, this page will be updated before those tools become part of normal site operation.</p>
+<p>kuchniatwist is not launching with ad scripts, affiliate platforms, or non-essential measurement tools. If that changes later, this page will be updated before those tools become part of normal site operation.</p>
 <p>That includes common systems such as display advertising tags, affiliate tracking integrations, newsletter pop-up vendors, and standalone analytics suites. If a later version of the site introduces those services, this policy will be revised so readers can see that change clearly instead of inferring it from hidden scripts.</p>
 <h2>Data sharing and retention</h2>
-<p>Kuchnia Twist does not sell reader data. Technical information may still pass through ordinary hosting and infrastructure providers because that is part of delivering the site, but the journal itself is not structured around commercial data brokerage. Messages sent to the public contact address may be retained for follow-up, correction history, or legitimate business communication for as long as they remain practically useful.</p>
+<p>kuchniatwist does not sell reader data. Technical information may still pass through ordinary hosting and infrastructure providers because that is part of delivering the site, but the journal itself is not structured around commercial data brokerage. Messages sent to the public contact address may be retained for follow-up, correction history, or legitimate business communication for as long as they remain practically useful.</p>
 <p>Retention is guided by ordinary publishing needs rather than by a growth playbook. If a note helps maintain the archive, preserve a clarification trail, or resolve a business matter, it may be kept long enough to do that work responsibly.</p>
 <h2>Your options</h2>
 <p>If you want to ask a privacy question or request an update, use the public contact route shown on the [kuchnia_twist_link slug="contact"]Contact page[/kuchnia_twist_link]. If advertising or analytics tools are introduced later, this page and the [kuchnia_twist_link slug="cookie-policy"]Cookie Policy[/kuchnia_twist_link] will be updated together.</p>
@@ -125,16 +125,16 @@ HTML,
         ],
         'cookie-policy' => [
             'title' => 'Cookie Policy',
-            'excerpt' => 'See the limited cookie use connected to Kuchnia Twist at launch and how the policy will change if new tools are added later.',
-            'seo_description' => 'Read the Kuchnia Twist cookie policy for the current launch setup and any future changes to site tooling.',
+            'excerpt' => 'See the limited cookie use connected to kuchniatwist at launch and how the policy will change if new tools are added later.',
+            'seo_description' => 'Read the kuchniatwist cookie policy for the current launch setup and any future changes to site tooling.',
             'content' => <<<'HTML'
-<p>This cookie policy describes the limited cookie use associated with the site at launch. Kuchnia Twist is not launching with advertising cookies, affiliate scripts, or third-party analytics cookies.</p>
-<p>As with the privacy policy, the purpose here is to reflect the real launch environment. Cookie notices often become unreadable because they describe every possible category whether the site uses it or not. Kuchnia Twist is starting more simply than that, so this page describes only the platform-level use that may be present now and what would change if the site adopts more tooling later.</p>
+<p>This cookie policy describes the limited cookie use associated with the site at launch. kuchniatwist is not launching with advertising cookies, affiliate scripts, or third-party analytics cookies.</p>
+<p>As with the privacy policy, the purpose here is to reflect the real launch environment. Cookie notices often become unreadable because they describe every possible category whether the site uses it or not. kuchniatwist is starting more simply than that, so this page describes only the platform-level use that may be present now and what would change if the site adopts more tooling later.</p>
 <h2>Essential cookies</h2>
 <p>WordPress and the hosting environment may use essential cookies required for normal site behaviour, login handling, and basic technical operation. These are used to support the platform itself rather than to profile readers for advertising.</p>
 <p>In most cases, those cookies relate to core functions such as authentication, session continuity, or administration. They help the publishing system work as intended. They are different in purpose from cookies designed to track reader behaviour across sites or optimize ad delivery.</p>
 <h2>What is not in use at launch</h2>
-<p>The launch version of Kuchnia Twist does not rely on ad-tech cookies, tracking pixels, or external analytics platforms. If those systems are added later, this policy will be updated before they become part of the live site.</p>
+<p>The launch version of kuchniatwist does not rely on ad-tech cookies, tracking pixels, or external analytics platforms. If those systems are added later, this policy will be updated before they become part of the live site.</p>
 <p>That means readers are not being asked to navigate a large consent stack for tools that are not actually present. If the business model changes later and introduces advertising, affiliates, or analytics platforms, the language on this page will change to explain what categories are involved and what choices are available.</p>
 <h2>Browser controls</h2>
 <p>Visitors can usually manage or clear cookies through their browser settings. If a consent banner or preference tool is introduced in the future, this page will explain what choices it offers and what categories it controls.</p>
@@ -143,14 +143,14 @@ HTML,
         ],
         'editorial-policy' => [
             'title' => 'Editorial Policy',
-            'excerpt' => 'Read the Kuchnia Twist editorial policy covering recipes, food facts, food stories, corrections, and future disclosures.',
-            'seo_description' => 'Read the Kuchnia Twist editorial policy for recipes, explainers, essays, corrections, updates, and commercial transparency.',
+            'excerpt' => 'Read the kuchniatwist editorial policy covering recipes, food facts, food stories, corrections, and future disclosures.',
+            'seo_description' => 'Read the kuchniatwist editorial policy for recipes, explainers, essays, corrections, updates, and commercial transparency.',
             'content' => <<<'HTML'
-<p>Kuchnia Twist publishes food content that is meant to be useful, readable, and honest about what kind of piece it is. This policy explains the standards the journal applies across recipes, explainers, and story-led essays.</p>
+<p>kuchniatwist publishes food content that is meant to be useful, readable, and honest about what kind of piece it is. This policy explains the standards the journal applies across recipes, explainers, and story-led essays.</p>
 <p>The point of an editorial policy is not to sound grander than the site is. It is to make the house standards visible so readers know what the archive is trying to do and what it is trying to avoid. A smaller food journal still benefits from stating how it handles clarity, corrections, updates, and commercial change. In practice, that means being plain about what each article type owes the reader.</p>
 <h2>Recipes</h2>
 <p>Recipe articles should give a home cook enough clarity to cook with confidence. The written body can offer context, ingredient notes, and practical advice, while the recipe card should present the core ingredients and method cleanly. If a recipe can be improved with better wording or sequencing, the clearer version should replace the weaker one.</p>
-<p>Recipe writing on Kuchnia Twist should respect a real kitchen. That means method steps should sound plausible, ingredient lists should support the dish rather than decorate it, and time estimates should aim to be useful rather than flattering. Readers should not have to reverse-engineer a recipe because the article prized atmosphere over structure.</p>
+<p>Recipe writing on kuchniatwist should respect a real kitchen. That means method steps should sound plausible, ingredient lists should support the dish rather than decorate it, and time estimates should aim to be useful rather than flattering. Readers should not have to reverse-engineer a recipe because the article prized atmosphere over structure.</p>
 <p>It also means recipe bodies should add value beyond repeating the card. They can explain why a method works, what to watch for in the pan, how ingredients behave, or how leftovers hold up. But that surrounding context should support cooking instead of burying the usable information under generic preamble.</p>
 <h2>Food Facts</h2>
 <p>Fact-led pieces should answer real kitchen questions without pretending to be scientific or medical authority. The journal avoids invented claims, shallow rewrites, and borrowed certainty used only to sound impressive.</p>
@@ -158,14 +158,14 @@ HTML,
 <p>These pieces should also answer the question early. Readers should not have to scroll through padded framing before learning the practical takeaway. Context matters, but it should deepen the answer rather than delay it.</p>
 <h2>Food Stories</h2>
 <p>Story-led pieces are editorial essays. They can be reflective and atmospheric, but they should not invent personal experience or imply first-hand reporting that did not happen. Narrative exists to deepen the archive, not to blur the line between voice and fact.</p>
-<p>That distinction matters for trust. Kuchnia Twist uses essays to add texture, rhythm, and a broader editorial sensibility around home cooking, but those pieces should stay honest about what kind of voice they use. They can observe, reflect, and connect ideas. They should not manufacture autobiography, fabricated scenes, or false claims of access in order to sound intimate.</p>
+<p>That distinction matters for trust. kuchniatwist uses essays to add texture, rhythm, and a broader editorial sensibility around home cooking, but those pieces should stay honest about what kind of voice they use. They can observe, reflect, and connect ideas. They should not manufacture autobiography, fabricated scenes, or false claims of access in order to sound intimate.</p>
 <p>When a story-led piece works well, it gives readers a reason to stay with the journal beyond the recipe search. It should feel thoughtful, not manipulative; warm, not invented.</p>
 <h2>Corrections and updates</h2>
 <p>If a recipe instruction is unclear or a factual statement needs revision, the site corrects it promptly. Reader feedback that makes a post more accurate, more honest, or easier to cook from is treated as valuable editorial input.</p>
 <p>Corrections are not framed here as exceptional embarrassment. They are part of responsible maintenance. If a post benefits from a clearer phrase, a corrected detail, or a better sequence, the archive improves when that change is made. A food site that expects to stay useful should behave like a living journal rather than a static dump of finished pages.</p>
 <p>Where appropriate, updates may also be made to keep trust pages aligned with the site's actual tools and business model. Policies that no longer match the live site weaken the journal even when the articles themselves are strong.</p>
 <h2>Commercial transparency</h2>
-<p>Kuchnia Twist is not launching with display advertising, affiliate links, or sponsored content. If those arrangements are added later, they will be disclosed clearly so editorial trust remains easier to evaluate rather than harder.</p>
+<p>kuchniatwist is not launching with display advertising, affiliate links, or sponsored content. If those arrangements are added later, they will be disclosed clearly so editorial trust remains easier to evaluate rather than harder.</p>
 <p>That commitment matters because monetization affects how readers interpret recommendations, links, and product mentions. If commercial relationships are introduced later, they should be presented in a way that makes evaluation easier, not murkier. Editorial usefulness should remain legible even when the business model evolves.</p>
 <h2>What readers can expect from the archive</h2>
 <p>Across all three pillars, readers can expect a tone that values specificity over filler and clarity over theatrical confidence. The site aims to feel maintained, reachable, and worth revisiting. That standard applies not only to post bodies but also to the trust pages, contact routes, and visible context around them.</p>
@@ -579,7 +579,7 @@ HTML,
 <p>Slow pot meals return more than dinner. They return a sense of sequence. They remind the cook that not every useful task has to happen at once. First soften something. Then add liquid. Then let time carry the middle. That shape is comforting because it breaks the work into stages the body can believe in.</p>
 <p>There is also a domestic generosity to a pot. It usually makes enough for tomorrow, enough for another person, or enough to rescue the next evening when energy is even lower than expected. That surplus is not glamorous, but it is one of the quiet strengths of home cooking. A pot thinks ahead almost automatically.</p>
 <p>Perhaps that is why the soup pot feels emotionally larger than its material value. It is only a vessel, but it often signals that a meal can gather itself slowly instead of needing to be assembled in a rush. In a crowded week, that is no small promise.</p>
-<p>For a journal like Kuchnia Twist, the soup pot also stands for a style of food writing. It favors steady usefulness over spectacle, structure over performance, and the kinds of meals readers actually make when life is not especially photogenic. That is part of why it belongs in the archive as both tool and symbol.</p>
+<p>For a journal like kuchniatwist, the soup pot also stands for a style of food writing. It favors steady usefulness over spectacle, structure over performance, and the kinds of meals readers actually make when life is not especially photogenic. That is part of why it belongs in the archive as both tool and symbol.</p>
 <h2>Why modest equipment deserves this much attention</h2>
 <p>There is a tendency to celebrate dramatic equipment because it photographs well and sounds impressive. But the real architecture of a home kitchen is usually built from quieter tools that solve recurring problems. The soup pot solves many of them at once: capacity, patience, flexibility, leftovers, and a pace that does not punish distraction.</p>
 <p>That makes it more than a piece of metal on a shelf. It becomes part of how a household manages time and appetite. When a tool does that much invisible work, writing about it stops feeling sentimental and starts feeling practical.</p>

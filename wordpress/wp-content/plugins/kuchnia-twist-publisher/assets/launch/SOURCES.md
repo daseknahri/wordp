@@ -1,4 +1,4 @@
-Launch image sources for Kuchnia Twist seed content.
+Launch image sources for kuchniatwist seed content.
 
 - `about-kitchen-counter.jpg` — "Preparing ingredients on a kitchen counter with a cutting board and mushrooms" by Shixart1985, `CC BY 2.0` — https://commons.wikimedia.org/wiki/File:Preparing_ingredients_on_a_kitchen_counter_with_a_cutting_board_and_mushrooms.jpg
 - `contact-kitchen-onion.jpg` — "Chef prepares red onion at kitchen counter for cooking in the morning" by Shixart1985, `CC BY 2.0` — https://commons.wikimedia.org/wiki/File:Chef_prepares_red_onion_at_kitchen_counter_for_cooking_in_the_morning.jpg

@@ -78,7 +78,7 @@ add_filter('wp_robots', function (array $robots) {
 function kuchnia_twist_meta_description()
 {
     if (is_front_page()) {
-        return __('Cookable recipes and clear food facts from Kuchnia Twist, an independent home-cooking journal.', 'kuchnia-twist');
+        return __('Cookable recipes and clear food facts from kuchniatwist, an independent home-cooking journal.', 'kuchnia-twist');
     }
 
     if (is_home() || is_archive() || is_search()) {
@@ -460,7 +460,7 @@ function kuchnia_twist_publication_settings()
         'social_facebook_url'   => '',
         'social_pinterest_url'  => '',
         'social_tiktok_url'     => '',
-        'social_follow_label'   => __('Follow Kuchnia Twist', 'kuchnia-twist'),
+        'social_follow_label'   => __('Follow kuchniatwist', 'kuchnia-twist'),
     ];
 
     return wp_parse_args(get_option('kuchnia_twist_settings', []), $defaults);
@@ -543,7 +543,7 @@ function kuchnia_twist_trust_page_definitions()
     return [
         'about' => [
             'title'   => __('About', 'kuchnia-twist'),
-            'excerpt' => __('Learn about Kuchnia Twist, the editorial desk, and the journal standards.', 'kuchnia-twist'),
+            'excerpt' => __('Learn about kuchniatwist, the editorial desk, and the journal standards.', 'kuchnia-twist'),
         ],
         'contact' => [
             'title'   => __('Contact', 'kuchnia-twist'),
@@ -551,7 +551,7 @@ function kuchnia_twist_trust_page_definitions()
         ],
         'privacy-policy' => [
             'title'   => __('Privacy Policy', 'kuchnia-twist'),
-            'excerpt' => __('How Kuchnia Twist handles data, cookies, and third-party services.', 'kuchnia-twist'),
+            'excerpt' => __('How kuchniatwist handles data, cookies, and third-party services.', 'kuchnia-twist'),
         ],
         'cookie-policy' => [
             'title'   => __('Cookie Policy', 'kuchnia-twist'),
@@ -563,11 +563,11 @@ function kuchnia_twist_trust_page_definitions()
         ],
         'terms' => [
             'title'   => __('Terms', 'kuchnia-twist'),
-            'excerpt' => __('Terms of use for the Kuchnia Twist journal and its content.', 'kuchnia-twist'),
+            'excerpt' => __('Terms of use for the kuchniatwist journal and its content.', 'kuchnia-twist'),
         ],
         'advertising-disclosure' => [
             'title'   => __('Advertising Disclosure', 'kuchnia-twist'),
-            'excerpt' => __('How advertising and sponsorships are handled at Kuchnia Twist.', 'kuchnia-twist'),
+            'excerpt' => __('How advertising and sponsorships are handled at kuchniatwist.', 'kuchnia-twist'),
         ],
     ];
 }
@@ -675,7 +675,7 @@ function kuchnia_twist_social_follow_label()
     $settings = kuchnia_twist_publication_settings();
     $label = trim((string) ($settings['social_follow_label'] ?? ''));
 
-    return $label !== '' ? $label : __('Follow Kuchnia Twist', 'kuchnia-twist');
+    return $label !== '' ? $label : __('Follow kuchniatwist', 'kuchnia-twist');
 }
 
 function kuchnia_twist_social_profiles()
@@ -1250,8 +1250,8 @@ function kuchnia_twist_archive_context()
 
     if (is_home()) {
         $context['eyebrow'] = __('Latest posts', 'kuchnia-twist');
-        $context['title'] = __('The latest from Kuchnia Twist', 'kuchnia-twist');
-        $context['description'] = __('The newest recipes and food facts from Kuchnia Twist, gathered in one clean feed.', 'kuchnia-twist');
+        $context['title'] = __('The latest from kuchniatwist', 'kuchnia-twist');
+        $context['description'] = __('The newest recipes and food facts from kuchniatwist, gathered in one clean feed.', 'kuchnia-twist');
     } elseif (is_search()) {
         $query_text = trim((string) get_search_query());
         $match_count = $wp_query instanceof WP_Query ? (int) $wp_query->found_posts : 0;
@@ -1389,9 +1389,9 @@ function kuchnia_twist_page_profile($post = null)
     $profiles = [
         'about' => [
             'eyebrow' => __('About the journal', 'kuchnia-twist'),
-            'intro' => __('Kuchnia Twist is a home-cooking journal focused on cookable recipes and clear food facts for everyday kitchens.', 'kuchnia-twist'),
+            'intro' => __('kuchniatwist is a home-cooking journal focused on cookable recipes and clear food facts for everyday kitchens.', 'kuchnia-twist'),
             'body' => [
-                __('Kuchnia Twist stays close to real kitchens: recipes you can cook and food facts you can use without guesswork.', 'kuchnia-twist'),
+                __('kuchniatwist stays close to real kitchens: recipes you can cook and food facts you can use without guesswork.', 'kuchnia-twist'),
                 __('Every post is edited to be practical and clear. Ingredients are chosen with intention, steps are written to avoid guesswork, and explanations stay focused on what helps you cook.', 'kuchnia-twist'),
                 __('If something needs a correction or more detail, the contact page is always open.', 'kuchnia-twist'),
             ],
@@ -1464,7 +1464,7 @@ function kuchnia_twist_page_profile($post = null)
             'eyebrow' => __('Privacy policy', 'kuchnia-twist'),
             'intro' => __('This page explains the data handling involved in running the site today and what changes if ads or analytics are added later.', 'kuchnia-twist'),
             'body' => [
-                __('Kuchnia Twist collects the minimum data needed to serve pages, prevent abuse, and respond to messages. That can include standard server logs and basic WordPress cookies.', 'kuchnia-twist'),
+                __('kuchniatwist collects the minimum data needed to serve pages, prevent abuse, and respond to messages. That can include standard server logs and basic WordPress cookies.', 'kuchnia-twist'),
                 __('Third-party vendors, including Google, use cookies to serve ads based on a user\'s prior visits to this website or other websites.', 'kuchnia-twist'),
                 __('Google’s advertising cookies enable Google and its partners to serve ads based on visits to this site and/or other sites on the Internet.', 'kuchnia-twist'),
                 sprintf(
@@ -1560,7 +1560,7 @@ function kuchnia_twist_page_profile($post = null)
         ],
         'terms' => [
             'eyebrow' => __('Terms of use', 'kuchnia-twist'),
-            'intro' => __('These terms explain how the site can be used and what readers can expect when they visit Kuchnia Twist.', 'kuchnia-twist'),
+            'intro' => __('These terms explain how the site can be used and what readers can expect when they visit kuchniatwist.', 'kuchnia-twist'),
             'body' => [
                 __('By using this site, you agree to the terms below. If you do not agree, please do not use the site.', 'kuchnia-twist'),
                 __('The content is provided for general cooking guidance and editorial information. It should not replace professional advice.', 'kuchnia-twist'),
@@ -1583,9 +1583,9 @@ function kuchnia_twist_page_profile($post = null)
         ],
         'advertising-disclosure' => [
             'eyebrow' => __('Advertising disclosure', 'kuchnia-twist'),
-            'intro' => __('This page explains how advertising and sponsorships are handled on Kuchnia Twist.', 'kuchnia-twist'),
+            'intro' => __('This page explains how advertising and sponsorships are handled on kuchniatwist.', 'kuchnia-twist'),
             'body' => [
-                __('Kuchnia Twist may display advertising to support the site. Ads are served by third-party partners and are kept separate from editorial decisions.', 'kuchnia-twist'),
+                __('kuchniatwist may display advertising to support the site. Ads are served by third-party partners and are kept separate from editorial decisions.', 'kuchnia-twist'),
                 __('If a post includes sponsorships or affiliate links, it will be clearly labeled in the post.', 'kuchnia-twist'),
                 __('We do not accept paid placements that change editorial standards or cooking guidance.', 'kuchnia-twist'),
             ],
@@ -1626,7 +1626,7 @@ function kuchnia_twist_page_has_meaningful_body($post = null)
         'replace this placeholder',
         'use this page to add your contact details',
         'explain how recipes are tested',
-        'kuchnia twist is a food journal built around recipes',
+        'kuchniatwist is a food journal built around recipes',
     ];
 
     foreach ($placeholder_markers as $marker) {

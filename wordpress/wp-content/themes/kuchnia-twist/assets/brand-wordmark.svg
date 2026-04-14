@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 132" role="img" aria-labelledby="title desc">
-  <title id="title">Kuchnia Twist wordmark</title>
-  <desc id="desc">Wordmark for Kuchnia Twist editorial food journal.</desc>
+  <title id="title">kuchniatwist wordmark</title>
+  <desc id="desc">Wordmark for kuchniatwist editorial food journal.</desc>
   <rect width="520" height="132" rx="24" fill="none"/>
-  <text x="0" y="62" font-family="Georgia, 'Times New Roman', serif" font-size="54" font-weight="700" fill="#1f140d">Kuchnia Twist</text>
+  <text x="0" y="62" font-family="Georgia, 'Times New Roman', serif" font-size="54" font-weight="700" fill="#1f140d">kuchniatwist</text>
   <line x1="2" y1="84" x2="182" y2="84" stroke="#b1552e" stroke-width="1.5"/>
   <text x="198" y="88" font-family="'Source Sans 3', Arial, sans-serif" font-size="14" letter-spacing="5" fill="#6b2915">EDITORIAL FOOD JOURNAL</text>
 </svg>

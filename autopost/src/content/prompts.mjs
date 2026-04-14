@@ -130,7 +130,7 @@ export function createPromptBuilders(deps) {
       "- seo_description should sound like a natural search snippet that adds one clear concrete reason to click. Front-load that reason instead of burying it.",
       "- seo_description should stay under 155 characters.",
       "- Return image_prompt and image_alt for the article hero image even if real images are already uploaded.",
-      "- Include at least three internal Kuchnia Twist links across content_pages.",
+      "- Include at least three internal kuchniatwist links across content_pages.",
       "- Avoid copy like 'when it comes to', 'in today's world', 'this article explores', or other generic filler openings.",
       "Pagination rules:",
       "- Return 2 or 3 article pages in content_pages. Use 2 pages for tighter topics and 3 only when every page earns its place.",

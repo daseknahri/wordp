@@ -1,8 +1,8 @@
-# Kuchnia Twist: Typed Content Publishing
+# kuchniatwist: Typed Content Publishing
 
-This repo now ships a typed publishing system for `Kuchnia Twist`:
+This repo now ships a typed publishing system for `kuchniatwist`:
 
-- a custom WordPress image that installs the `Kuchnia Twist` theme and publisher plugin
+- a custom WordPress image that installs the `kuchniatwist` theme and publisher plugin
 - a background worker that picks up queued jobs from WordPress
 - one canonical multi-page article package for each generated post
 - Facebook Page posting with the blog link added as the first comment
@@ -175,7 +175,7 @@ Typed-contract jobs are explicitly marked in `content_machine.contracts` so lega
 
 After deployment, go to wp-admin:
 
-1. Open `Kuchnia Twist -> Settings`
+1. Open `kuchniatwist -> Settings`
 2. Fill in:
    - publication role, voice brief, and guardrails
    - recipe article/social guidance
@@ -187,7 +187,7 @@ After deployment, go to wp-admin:
    - UTM source and campaign prefix
 3. Save settings
 
-Then open `Kuchnia Twist` and create a job:
+Then open `kuchniatwist` and create a job:
 
 1. Choose `Recipe` or `Food Fact`
 2. Enter the dish name or working title/topic seed
@@ -282,8 +282,8 @@ Retries for failed or partial jobs bypass the manual schedule and move back into
 
 After each deploy:
 
-1. Open `Kuchnia Twist` in wp-admin and confirm the worker status strip shows a recent heartbeat.
-2. Open `Kuchnia Twist -> Settings` and confirm:
+1. Open `kuchniatwist` in wp-admin and confirm the worker status strip shows a recent heartbeat.
+2. Open `kuchniatwist -> Settings` and confirm:
    - worker secret is present
    - OpenAI is ready
    - Facebook is ready, or the warning is expected
@@ -337,7 +337,7 @@ Acceptance checklist:
 ## Notes
 
 - The plugin seeds `About`, `Contact`, `Privacy Policy`, `Cookie Policy`, and `Editorial Policy` with launch-ready copy and media, and now keeps a seed hash so later launch-copy improvements can refresh untouched seeded pages without overwriting manual edits.
-- The theme is switched automatically to `Kuchnia Twist` on first load.
+- The theme is switched automatically to `kuchniatwist` on first load.
 - The active publishing machine is a manual typed engine right now. `recipe` and `food_fact` are active, future AI idea generation / autopilot posting is not active yet, and older dormant paths are kept only for compatibility.
 - Facebook Groups are manual in phase 1. The system prepares the copy, but it does not auto-post into groups.
 - The worker is stateless now. It polls for queued jobs instead of keeping its own post history file.

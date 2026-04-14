@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Kuchnia Twist Publisher
- * Description: Topic-driven article and Facebook publishing workflow for Kuchnia Twist.
+ * Plugin Name: kuchniatwist Publisher
+ * Description: Topic-driven article and Facebook publishing workflow for kuchniatwist.
  * Version: 1.0.0
  * Author: OpenAI
  * Text Domain: kuchnia-twist

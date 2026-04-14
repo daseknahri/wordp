@@ -16,7 +16,7 @@ export const config = {
   internalWordPressUrl: trimTrailingSlash(process.env.AUTOPOST_WORDPRESS_INTERNAL_URL || "http://wordpress"),
   publicWordPressUrl: trimTrailingSlash(process.env.WORDPRESS_URL || process.env.AUTOPOST_WORDPRESS_URL || ""),
   sharedSecret: process.env.CONTENT_PIPELINE_SHARED_SECRET || "",
-  fallbackSiteName: "Kuchnia Twist",
+  fallbackSiteName: "kuchniatwist",
   fallbackBrandVoice: "Warm, useful, story-aware, and editorial without sounding stiff.",
   minWords: toNumber(process.env.AUTOPOST_MIN_WORDS, 1000),
   maxWords: toNumber(process.env.AUTOPOST_MAX_WORDS, 1500),

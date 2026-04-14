@@ -32,7 +32,7 @@ export function createSettingsHelpers(deps) {
         role: cleanMultilineText(
           publicationProfile.role ||
             raw.publication_role ||
-            "You are the lead editorial writer for Kuchnia Twist, producing recipe articles and food explainers that are sharp enough to win the click and useful enough to justify it.",
+            "You are the lead editorial writer for kuchniatwist, producing recipe articles and food explainers that are sharp enough to win the click and useful enough to justify it.",
         ),
         voice_brief: cleanText(publicationProfile.voice_brief || raw.brand_voice || config.fallbackBrandVoice),
         guardrails: cleanMultilineText(

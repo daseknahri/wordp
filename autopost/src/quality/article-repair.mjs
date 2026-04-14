@@ -55,7 +55,7 @@ export function createArticleRepairHelpers(deps) {
       fixes.push("Add clearer H2 structure so the article scans naturally.");
     }
     if (checks.includes("missing_internal_links")) {
-      fixes.push("Include at least three natural internal Kuchnia Twist links across the article pages.");
+      fixes.push("Include at least three natural internal kuchniatwist links across the article pages.");
     }
     if ((job?.content_type || "") === "food_fact") {
       fixes.push("Stay in editorial explainer territory and avoid recipe-style metadata.");

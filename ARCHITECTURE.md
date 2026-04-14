@@ -1,4 +1,4 @@
-# Kuchnia Twist Architecture
+# kuchniatwist Architecture
 
 This file captures the current project shape so the implementation plan survives session loss.
 

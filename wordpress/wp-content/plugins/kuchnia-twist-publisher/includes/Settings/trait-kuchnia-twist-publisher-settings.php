@@ -236,7 +236,7 @@ trait Kuchnia_Twist_Publisher_Settings_Trait
     private function default_publication_role(): string
     {
         return implode("\n", [
-            'You are the lead editorial writer for Kuchnia Twist.',
+            'You are the lead editorial writer for kuchniatwist.',
             'Write for a food publication that wants strong clicks, honest payoff, and articles that feel worth the visit.',
             'Your job is to produce publishable recipe articles and food explainers that sound human, specific, and confident.',
             'Win the click with real value, then reward the visit with clear structure, useful detail, and sharp editorial judgment.',
@@ -361,14 +361,14 @@ trait Kuchnia_Twist_Publisher_Settings_Trait
     {
         return [
             'topics_text'                => implode("\n", kuchnia_twist_active_launch_topics()),
-            'publication_profile_name'   => 'Kuchnia Twist',
+            'publication_profile_name'   => 'kuchniatwist',
             'publication_role'           => $this->default_publication_role(),
             'brand_voice'                => $this->default_voice_brief(),
             'global_guardrails'          => $this->default_global_guardrails(),
             'editorial_do_guidance'      => 'Lead with concrete kitchen detail, use helpful headings, and keep the tone calm, specific, and useful.',
             'editorial_dont_guidance'    => 'Avoid filler openings, AI mention, fabricated first-person memories, and unsupported expert language.',
             'banned_claim_guidance'      => 'Avoid medical, nutritional, or safety claims beyond ordinary kitchen guidance the publication can reasonably support.',
-            'shared_link_policy'         => 'Include at least three relevant internal Kuchnia Twist links inside the article body.',
+            'shared_link_policy'         => 'Include at least three relevant internal kuchniatwist links inside the article body.',
             'recipe_master_prompt'       => $this->default_recipe_master_direction(),
             'article_prompt'             => $this->default_recipe_article_guidance(),
             'food_fact_article_prompt'   => $this->default_food_fact_article_guidance(),
@@ -380,7 +380,7 @@ trait Kuchnia_Twist_Publisher_Settings_Trait
             'default_cta'                => 'Read the full article on the blog.',
             'editor_name'                => '',
             'editor_role'                => 'Founding editor',
-            'editor_bio'                 => 'Kuchnia Twist is edited as a warm home-cooking journal focused on practical recipes, useful ingredient explainers, and slower story-led kitchen essays.',
+            'editor_bio'                 => 'kuchniatwist is edited as a warm home-cooking journal focused on practical recipes, useful ingredient explainers, and slower story-led kitchen essays.',
             'editor_public_email'        => '',
             'editor_business_email'      => '',
             'editor_photo_id'            => 0,
@@ -388,7 +388,7 @@ trait Kuchnia_Twist_Publisher_Settings_Trait
             'social_facebook_url'        => '',
             'social_pinterest_url'       => '',
             'social_tiktok_url'          => '',
-            'social_follow_label'        => 'Follow Kuchnia Twist',
+            'social_follow_label'        => 'Follow kuchniatwist',
             'openai_model'               => 'gpt-5-mini',
             'openai_image_model'         => 'gpt-image-1.5',
             'openai_api_key'             => '',
@@ -418,7 +418,7 @@ trait Kuchnia_Twist_Publisher_Settings_Trait
 
         $legacy_publication_role_defaults = [
             implode("\n", [
-                'You are the lead editorial writer for Kuchnia Twist.',
+                'You are the lead editorial writer for kuchniatwist.',
                 'Write for a food publication that wants strong clicks, honest payoff, and articles that feel worth the visit.',
                 'Your job is to produce publishable recipe articles and food explainers that sound human, specific, and confident.',
             ]),

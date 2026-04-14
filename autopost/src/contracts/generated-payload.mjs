@@ -228,7 +228,7 @@ export function createGeneratedPayloadHelpers(deps) {
       titleOverride ||
       cleanText(readGeneratedString(source, ["title", "headline", "post_title", "postTitle", "name"])) ||
       cleanText(job?.topic) ||
-      "Fresh from Kuchnia Twist";
+      "Fresh from kuchniatwist";
     const slug = normalizeSlug(readGeneratedString(source, ["slug", "post_slug", "postSlug"]) || title);
     let contentPages = resolveGeneratedContentPages(source, job);
     const sourceContentHtml = resolveGeneratedContentHtml(source, job);
@@ -247,7 +247,7 @@ export function createGeneratedPayloadHelpers(deps) {
     const excerpt =
       trimText(cleanText(readGeneratedString(source, ["excerpt", "summary", "dek", "standfirst", "description"])), 220) ||
       fallbackExcerpt ||
-      `${title} on Kuchnia Twist.`;
+      `${title} on kuchniatwist.`;
     const seoDescription =
       trimText(cleanText(readGeneratedString(source, ["seo_description", "seoDescription", "meta_description", "metaDescription", "search_description", "searchDescription"])), 155) ||
       trimText(excerpt, 155);
