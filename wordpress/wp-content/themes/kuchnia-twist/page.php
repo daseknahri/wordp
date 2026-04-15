@@ -107,20 +107,13 @@ get_header();
                         <?php if (!empty($editor_profile['bio'])) : ?>
                             <p><?php echo esc_html($editor_profile['bio']); ?></p>
                         <?php endif; ?>
-                        <?php if ($public_email !== '' || $business_email !== '') : ?>
+                        <?php $about_email = $public_email !== '' ? $public_email : $business_email; ?>
+                        <?php if ($about_email !== '') : ?>
                             <div class="author-card__contacts">
-                                <?php if ($public_email !== '') : ?>
-                                    <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>">
-                                        <span class="author-card__contact-label"><?php esc_html_e('Editorial email', 'kuchnia-twist'); ?></span>
-                                        <span class="author-card__contact-value"><?php echo esc_html(antispambot($public_email)); ?></span>
-                                    </a>
-                                <?php endif; ?>
-                                <?php if ($business_email !== '') : ?>
-                                    <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($business_email)); ?>">
-                                        <span class="author-card__contact-label"><?php esc_html_e('Business email', 'kuchnia-twist'); ?></span>
-                                        <span class="author-card__contact-value"><?php echo esc_html(antispambot($business_email)); ?></span>
-                                    </a>
-                                <?php endif; ?>
+                                <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($about_email)); ?>">
+                                    <span class="author-card__contact-label"><?php esc_html_e('Editorial email', 'kuchnia-twist'); ?></span>
+                                    <span class="author-card__contact-value"><?php echo esc_html(antispambot($about_email)); ?></span>
+                                </a>
                             </div>
                         <?php endif; ?>
                     </div>

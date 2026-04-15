@@ -21,6 +21,12 @@ $recipe_lead       = $recipes_posts[0] ?? null;
 $recipe_stack      = $recipe_lead ? array_slice($recipes_posts, 1) : [];
 $fact_lead         = $facts_posts[0] ?? null;
 $facts_stack       = $fact_lead ? array_slice($facts_posts, 1) : [];
+$editor_profile    = kuchnia_twist_editor_profile();
+$editor_name       = trim((string) ($editor_profile['name'] ?? ''));
+$editor_role       = trim((string) ($editor_profile['role'] ?? ''));
+$editor_bio        = trim((string) ($editor_profile['bio'] ?? ''));
+$editor_email      = kuchnia_twist_public_contact_email() ?: kuchnia_twist_business_contact_email();
+$about_page        = get_page_by_path('about');
 
 if ($hero_post && has_post_thumbnail($hero_post)) {
     $hero_image_markup = get_the_post_thumbnail($hero_post, 'kuchnia-twist-hero', [
@@ -77,6 +83,37 @@ $hero_class = 'home-hero' . ($hero_image_markup === '' ? ' home-hero--without-me
         </div>
     </div>
 </section>
+
+<?php if ($editor_name !== '') : ?>
+<section class="section" data-reveal>
+    <div class="home-identity-card author-card author-card--home">
+        <div class="author-card__avatar">
+            <?php kuchnia_twist_render_editor_portrait($editor_name, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
+        </div>
+        <div class="author-card__body">
+            <span class="eyebrow"><?php esc_html_e('Editor', 'kuchnia-twist'); ?></span>
+            <h2><?php echo esc_html($editor_name); ?></h2>
+            <?php if ($editor_role !== '') : ?>
+                <p class="author-card__role"><?php echo esc_html($editor_role); ?></p>
+            <?php endif; ?>
+            <?php if ($editor_bio !== '') : ?>
+                <p><?php echo esc_html($editor_bio); ?></p>
+            <?php endif; ?>
+            <?php if ($editor_email !== '') : ?>
+                <div class="author-card__contacts">
+                    <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($editor_email)); ?>">
+                        <span class="author-card__contact-label"><?php esc_html_e('Editorial email', 'kuchnia-twist'); ?></span>
+                        <span class="author-card__contact-value"><?php echo esc_html(antispambot($editor_email)); ?></span>
+                    </a>
+                </div>
+            <?php endif; ?>
+            <?php if ($about_page instanceof WP_Post) : ?>
+                <a class="chip-link" href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('About the editor', 'kuchnia-twist'); ?></a>
+            <?php endif; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
 
 <section class="editorial-module section" data-reveal>
         <div class="section-heading section-heading--split">

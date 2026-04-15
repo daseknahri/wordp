@@ -16,22 +16,23 @@ $journal_label  = 'site-footer-journal-label';
             <div class="site-footer__lead">
                 <div class="site-footer__brand">
                     <?php $brand_mark = kuchnia_twist_brand_mark_url(); ?>
-                    <?php if ($brand_mark !== '') : ?>
-                        <span class="site-footer__logo">
-                            <img class="site-footer__logo-image" src="<?php echo esc_url($brand_mark); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>" width="28" height="28" loading="lazy" decoding="async">
-                        </span>
-                    <?php endif; ?>
-                    <div>
-                        <h2><?php bloginfo('name'); ?></h2>
+                    <div class="site-footer__brand-copy">
+                        <div class="site-footer__brand-heading">
+                            <?php if ($brand_mark !== '') : ?>
+                                <span class="site-footer__logo">
+                                    <img class="site-footer__logo-image" src="<?php echo esc_url($brand_mark); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>" width="28" height="28" loading="lazy" decoding="async">
+                                </span>
+                            <?php endif; ?>
+                            <h2><?php bloginfo('name'); ?></h2>
+                        </div>
                         <p class="site-footer__summary"><?php echo esc_html(kuchnia_twist_site_summary()); ?></p>
-                        <?php if ($public_email !== '' || $business_email !== '') : ?>
+                        <?php $footer_email = $public_email !== '' ? $public_email : $business_email; ?>
+                        <?php if ($footer_email !== '') : ?>
                             <div class="site-footer__contacts">
-                                <?php if ($public_email !== '') : ?>
-                                    <a class="site-footer__contact" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>"><?php echo esc_html(antispambot($public_email)); ?></a>
-                                <?php endif; ?>
-                                <?php if ($business_email !== '') : ?>
-                                    <a class="site-footer__contact" href="mailto:<?php echo esc_attr(antispambot($business_email)); ?>"><?php echo esc_html(antispambot($business_email)); ?></a>
-                                <?php endif; ?>
+                                <a class="site-footer__contact" href="mailto:<?php echo esc_attr(antispambot($footer_email)); ?>">
+                                    <span class="author-card__contact-label"><?php esc_html_e('Editorial email', 'kuchnia-twist'); ?></span>
+                                    <span class="author-card__contact-value"><?php echo esc_html(antispambot($footer_email)); ?></span>
+                                </a>
                             </div>
                         <?php endif; ?>
                     </div>

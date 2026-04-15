@@ -2589,11 +2589,34 @@ body.front-page .home-hero__content {
   margin-top: 4px;
 }
 
+.author-card--page,
+.author-card--home {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.author-card--page .author-card__avatar,
+.author-card--home .author-card__avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 24px;
+}
+
 .trust-shell__author {
   padding: 14px;
   border: 1px solid rgba(38, 23, 15, 0.08);
   border-radius: 20px;
   background: rgba(255, 252, 247, 0.9);
+  box-shadow: var(--shadow-sm);
+}
+
+.home-identity-card {
+  padding: 16px;
+  border: 1px solid rgba(38, 23, 15, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 252, 247, 0.88);
   box-shadow: var(--shadow-sm);
 }
 
@@ -2687,6 +2710,18 @@ body.front-page .home-hero__content {
   display: grid;
   gap: 10px;
   align-items: center;
+}
+
+.site-footer__brand-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.site-footer__brand-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
 .site-footer__follow {
