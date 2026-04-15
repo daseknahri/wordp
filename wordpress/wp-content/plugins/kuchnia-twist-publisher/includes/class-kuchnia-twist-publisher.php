@@ -1943,6 +1943,21 @@ final class Kuchnia_Twist_Publisher extends Kuchnia_Twist_Publisher_Base
             'the trust layer around the archive matters as much as the archive itself',
             'a useful site should feel maintained in public',
             'same public trust layer as this policy',
+            'add your preferred public email address here before launch',
+            'business or partnership email: add it here if you want a separate contact line',
+            'the goal of this page is simple: make contact feel clear, legitimate, and easy to understand',
+            'if you add a public inbox, it helps to set a simple expectation',
+            'suggested text:',
+            'our website address is: https://kuchniatwist.pl',
+            'visitor comments may be checked through an automated spam detection service',
+            'an anonymized string created from your email address',
+            'if you upload images to the website, you should avoid uploading images with embedded location data',
+            'if you leave a comment on our site you may opt-in to saving your name, email address and website in cookies',
+            'if you visit our login page, we will set a temporary cookie',
+            'if you request a password reset, your ip address will be included in the reset email',
+            'for users that register on our website (if any)',
+            'this does not include any data we are obliged to keep for administrative, legal, or security purposes',
+            'these websites may collect data about you, use cookies, embed additional third-party tracking',
         ];
 
         foreach ($starter_markers as $marker) {

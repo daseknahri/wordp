@@ -75,20 +75,20 @@ HTML,
             'featured_alt' => 'A cook preparing red onion on a kitchen counter in the morning light.',
             'content' => <<<'HTML'
 <p>If you need to reach kuchniatwist about a recipe, a correction, a sourcing question, or a relevant partnership enquiry, this is the right place to do it. The public contact email is <strong>[kuchnia_twist_editor_public_email]</strong>.</p>
-<p>This site is run like a small food journal with a named editor rather than an anonymous content feed. That means useful messages are taken seriously, especially when they improve clarity, catch an error, or help the archive feel more trustworthy over time. Readers should not have to guess whether there is a real route back to the site owner. The route should stay visible on purpose.</p>
+<p>kuchniatwist is run like a small food journal with a named editor, not like an anonymous content feed. That means reader messages matter, especially when they help make a recipe clearer, correct a factual point, or improve the usefulness of the archive over time.</p>
 <h2>When to write</h2>
 <ul>
 <li>Recipe clarification or kitchen troubleshooting after cooking from the site.</li>
 <li>Corrections, factual updates, or sourcing questions for a published article.</li>
 <li>Relevant business, media, or partnership enquiries that fit the journal.</li>
 </ul>
-<p>If your note helps the site become clearer, more accurate, or easier to use, it belongs here. Good contact pages are not only for problems. They are also for thoughtful reader feedback, small corrections, and practical questions that reveal where an article can be better than it was on first publication.</p>
+<p>If your message helps the site become clearer, more accurate, or easier to use, it belongs here. Good contact pages are not only for problems. They are also for thoughtful reader feedback, small corrections, and practical questions that reveal where an article can be better than it was on first publication.</p>
 <h2>Response expectations</h2>
-<p>kuchniatwist is run as a small food journal, so the goal is a thoughtful reply within a few business days rather than an instant support queue. Messages that improve clarity, accuracy, or trust are treated as part of maintaining the site, not as an interruption.</p>
-<p>That response window matters because it sets a reasonable expectation without pretending the site is a large media operation. A small journal can still be current, careful, and reachable. What matters is not instant automation but visible follow-through when a message deserves attention.</p>
+<p>Because this is a small independent publication, the goal is a thoughtful reply within a few business days rather than an instant support queue. Messages that improve clarity, accuracy, or trust are treated as part of maintaining the site, not as an interruption.</p>
+<p>That matters because a smaller journal can still be current, careful, and reachable without pretending to be a large media operation. What counts is visible follow-through when a message deserves attention.</p>
 <h2>Corrections and standards</h2>
 <p>If a reader spots an unclear instruction, a misleading phrase, or a factual issue, that note helps strengthen the archive. The site aims to fix practical errors quickly and update articles when clearer wording or better structure improves usefulness.</p>
-<p>kuchniatwist treats corrections as part of maintaining the journal rather than as a reputational inconvenience. If a recipe step reads ambiguously, if an ingredient explanation is too loose, or if a food story blurs a line it should not blur, the site is better when that issue is acknowledged and improved. A healthy archive depends on that habit.</p>
+<p>Corrections are treated as part of maintaining the journal rather than as a reputational inconvenience. If a recipe step reads ambiguously or an ingredient explanation is too loose, the archive is better when that issue is acknowledged and improved.</p>
 <h2>Business and partnership notes</h2>
 <p>Relevant partnership, licensing, or media requests are welcome when they fit the journal's food focus and tone. The most useful enquiries are the straightforward ones: what you are asking for, why it fits the site, and what timing matters. If a separate business route is published later, it will sit alongside the public contact email rather than replacing it.</p>
 <p>For standards around recipes, explainers, stories, and commercial transparency, see the [kuchnia_twist_link slug="editorial-policy"]Editorial Policy[/kuchnia_twist_link]. For privacy-related questions, the [kuchnia_twist_link slug="privacy-policy"]Privacy Policy[/kuchnia_twist_link] explains what is and is not in use at launch.</p>
@@ -100,18 +100,18 @@ HTML,
             'seo_description' => 'Read the kuchniatwist privacy policy covering site data, reader contact, cookies, and advertising disclosures.',
             'content' => <<<'HTML'
 <p>This privacy policy explains what kuchniatwist collects, what third-party services may be involved in serving the site, and how advertising-related privacy expectations are handled.</p>
-<p>The goal of this page is to describe the site as it actually operates, not as a generic website might operate. Privacy language is most useful when it matches the real tools in use. That means explaining ordinary hosting and contact handling, and also acknowledging when third-party vendors such as Google may use cookies to serve or measure ads.</p>
+<p>The goal is to describe the site as it actually operates, not to paste generic legal filler. That means covering ordinary hosting and reader contact, and also acknowledging when third-party vendors such as Google may use cookies to serve or measure ads.</p>
 <h2>Information collected at launch</h2>
 <p>Like most websites, the site may process basic server and security information needed to deliver pages, protect the service, and troubleshoot technical issues. That can include IP addresses, browser details, timestamps, and referring URLs handled by the hosting stack.</p>
 <p>If you send an email to the public contact address, the details you include in that message may be used to reply, handle a correction, or manage a legitimate editorial or business enquiry.</p>
-<p>WordPress itself may also process limited technical information needed to support normal publishing and administration. That information is handled for site operation, moderation, and maintenance rather than for off-site profiling. The journal is not built around harvesting reader data as a business model.</p>
+<p>WordPress may also process limited technical information needed to support normal publishing and administration. That information is handled for site operation, moderation, and maintenance rather than for off-site profiling. The journal is not built around harvesting reader data as a business model.</p>
 <h2>What the information is used for</h2>
 <ul>
 <li>To keep the website available and secure.</li>
 <li>To respond to reader and business messages.</li>
 <li>To review and improve published content when a clarification or correction is needed.</li>
 </ul>
-<p>In practice, that means collected information is tied to site delivery and reader communication. If a technical log helps diagnose a problem, it is used for maintenance. If an email raises a correction, it is used to reply and improve the relevant article. The site does not use launch-stage data to build advertising profiles, audience segments, or remarketing campaigns.</p>
+<p>In practice, that means collected information is tied to site delivery and reader communication. If a technical log helps diagnose a problem, it is used for maintenance. If an email raises a correction, it is used to reply and improve the relevant article. The site does not use contact messages as fuel for mailing lists, audience segmentation, or remarketing campaigns.</p>
 <h2>Advertising and third-party vendors</h2>
 <p>The site may display advertising to support publishing. Third-party vendors, including Google, may use cookies to serve ads based on a user's prior visits to this website or other websites.</p>
 <p>Google's advertising cookies enable Google and its partners to serve ads based on visits to this site and/or other sites on the Internet. You can opt out of personalized advertising by visiting <a href="https://adssettings.google.com" target="_blank" rel="noopener">Ads Settings</a>, or opt out of some third-party vendors' use of cookies for personalized advertising by visiting <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">aboutads.info</a>.</p>
