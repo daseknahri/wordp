@@ -22,10 +22,10 @@ $trust_nav     = kuchnia_twist_trust_nav_items();
         <div class="site-header__bar">
             <div class="masthead">
                 <a class="masthead__brand" href="<?php echo esc_url(home_url('/')); ?>" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
-                    <?php $site_icon = function_exists('get_site_icon_url') ? get_site_icon_url(64) : ''; ?>
-                    <?php if (is_string($site_icon) && $site_icon !== '') : ?>
+                    <?php $brand_mark = kuchnia_twist_brand_mark_url(); ?>
+                    <?php if ($brand_mark !== '') : ?>
                         <span class="masthead__brand-mark" aria-hidden="true">
-                            <img class="masthead__brand-mark-image" src="<?php echo esc_url($site_icon); ?>" alt="" width="28" height="28" loading="eager" decoding="async">
+                            <img class="masthead__brand-mark-image" src="<?php echo esc_url($brand_mark); ?>" alt="" width="28" height="28" loading="eager" decoding="async">
                         </span>
                     <?php endif; ?>
                     <span class="masthead__wordmark-text"><?php bloginfo('name'); ?></span>

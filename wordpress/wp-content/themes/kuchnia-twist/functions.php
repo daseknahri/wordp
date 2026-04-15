@@ -446,6 +446,12 @@ function kuchnia_twist_asset_url($relative_path)
     return trailingslashit(get_template_directory_uri()) . ltrim($relative_path, '/');
 }
 
+function kuchnia_twist_brand_mark_url()
+{
+    $asset = kuchnia_twist_asset_url('assets/brand-seal.svg');
+    return is_string($asset) ? $asset : '';
+}
+
 function kuchnia_twist_editor_portrait_relative_path()
 {
     return 'assets/editor-portrait.png';

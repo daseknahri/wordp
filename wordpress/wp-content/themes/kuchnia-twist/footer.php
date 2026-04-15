@@ -15,10 +15,10 @@ $journal_label  = 'site-footer-journal-label';
         <div class="site-footer__inner">
             <div class="site-footer__lead">
                 <div class="site-footer__brand">
-                    <?php $site_icon = function_exists('get_site_icon_url') ? get_site_icon_url(64) : ''; ?>
-                    <?php if (is_string($site_icon) && $site_icon !== '') : ?>
+                    <?php $brand_mark = kuchnia_twist_brand_mark_url(); ?>
+                    <?php if ($brand_mark !== '') : ?>
                         <span class="site-footer__logo">
-                            <img class="site-footer__logo-image" src="<?php echo esc_url($site_icon); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>" width="28" height="28" loading="lazy" decoding="async">
+                            <img class="site-footer__logo-image" src="<?php echo esc_url($brand_mark); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>" width="28" height="28" loading="lazy" decoding="async">
                         </span>
                     <?php endif; ?>
                     <div>
