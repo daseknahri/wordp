@@ -60,6 +60,29 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     };
 
+    const resetOverlayState = () => {
+      if (searchPanel) {
+        searchPanel.hidden = true;
+        searchPanel.setAttribute("aria-hidden", "true");
+      }
+
+      if (menuPanel) {
+        menuPanel.hidden = true;
+        menuPanel.setAttribute("aria-hidden", "true");
+      }
+
+      header.classList.remove("is-search-open", "is-menu-open");
+      document.body.classList.remove("has-search-sheet", "has-menu-sheet");
+      setContentInert(false);
+      activeOverlay = null;
+
+      searchToggles.forEach((button) => button.setAttribute("aria-expanded", "false"));
+
+      if (menuToggle) {
+        menuToggle.setAttribute("aria-expanded", "false");
+      }
+    };
+
     const closeSearch = () => {
       if (!searchPanel) {
         return;
@@ -251,9 +274,26 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     };
 
+    resetOverlayState();
     updateHeaderState();
     window.addEventListener("scroll", updateHeaderState, { passive: true });
     window.addEventListener("resize", syncOverlayState);
+    window.addEventListener("pageshow", resetOverlayState);
+    window.addEventListener("pagehide", resetOverlayState);
+
+    document.addEventListener("click", (event) => {
+      const target = event.target.closest("a[href]");
+      if (!target) {
+        return;
+      }
+
+      const href = target.getAttribute("href") || "";
+      if (href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:") || target.target === "_blank") {
+        return;
+      }
+
+      resetOverlayState();
+    });
   }
 
   if (footerSections.length) {
