@@ -1746,24 +1746,17 @@ function kuchnia_twist_render_browser_chrome_meta()
 }
 
 add_action('wp_head', function () {
-    if (has_site_icon()) {
-        kuchnia_twist_render_browser_chrome_meta();
-        return;
-    }
-
-    echo '<link rel="icon" href="' . esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')) . '" type="image/svg+xml">';
+    echo '<link rel="icon" href="' . esc_url(kuchnia_twist_brand_mark_url()) . '" type="image/svg+xml">';
     echo "\n";
-    echo '<link rel="apple-touch-icon" href="' . esc_url(kuchnia_twist_asset_url('assets/brand-seal.svg')) . '">' . "\n";
+    echo '<link rel="apple-touch-icon" href="' . esc_url(kuchnia_twist_brand_mark_url()) . '">' . "\n";
     kuchnia_twist_render_browser_chrome_meta();
 }, 1);
 
 function kuchnia_twist_schema_logo_url()
 {
-    if (function_exists('has_site_icon') && has_site_icon()) {
-        $site_icon = get_site_icon_url(512);
-        if (is_string($site_icon) && $site_icon !== '') {
-            return $site_icon;
-        }
+    $brand_mark = kuchnia_twist_brand_mark_url();
+    if ($brand_mark !== '') {
+        return $brand_mark;
     }
 
     $custom_logo_id = (int) get_theme_mod('custom_logo');
