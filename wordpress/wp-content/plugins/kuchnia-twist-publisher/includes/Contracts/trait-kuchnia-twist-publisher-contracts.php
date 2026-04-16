@@ -173,13 +173,10 @@ trait Kuchnia_Twist_Publisher_Contracts_Trait
                     'id'           => sanitize_key((string) ($variant['id'] ?? '')),
                     'angle_key'    => $this->normalize_hook_angle_key((string) ($variant['angle_key'] ?? $variant['angleKey'] ?? ''), $content_type),
                     'hook'         => sanitize_text_field((string) ($variant['hook'] ?? '')),
-                    'caption'      => sanitize_textarea_field((string) ($variant['caption'] ?? '')),
+                    'caption'      => sanitize_textarea_field((string) ($variant['caption'] ?? ($variant['post_message'] ?? $variant['postMessage'] ?? ''))),
                     'cta_hint'     => sanitize_text_field((string) ($variant['cta_hint'] ?? $variant['ctaHint'] ?? '')),
                     'post_message' => sanitize_textarea_field((string) ($variant['post_message'] ?? $variant['postMessage'] ?? '')),
                 ]);
-                if (empty($normalized['post_message'])) {
-                    $normalized['post_message'] = $this->build_facebook_post_preview($normalized);
-                }
 
                 return $normalized;
             },
@@ -208,7 +205,7 @@ trait Kuchnia_Twist_Publisher_Contracts_Trait
                 'label'           => sanitize_text_field((string) ($page['label'] ?? '')),
                 'angle_key'       => $this->normalize_hook_angle_key((string) ($page['angle_key'] ?? $page['angleKey'] ?? ''), $content_type),
                 'hook'            => sanitize_text_field((string) ($page['hook'] ?? '')),
-                'caption'         => sanitize_textarea_field((string) ($page['caption'] ?? '')),
+                'caption'         => sanitize_textarea_field((string) ($page['caption'] ?? ($page['post_message'] ?? $page['postMessage'] ?? ''))),
                 'cta_hint'        => sanitize_text_field((string) ($page['cta_hint'] ?? $page['ctaHint'] ?? '')),
                 'post_message'    => sanitize_textarea_field((string) ($page['post_message'] ?? $page['postMessage'] ?? '')),
                 'post_id'         => sanitize_text_field((string) ($page['post_id'] ?? $page['postId'] ?? '')),
@@ -219,13 +216,6 @@ trait Kuchnia_Twist_Publisher_Contracts_Trait
                 'status'          => sanitize_key((string) ($page['status'] ?? '')),
                 'error'           => sanitize_text_field((string) ($page['error'] ?? '')),
             ];
-
-            if ($normalized[$id]['post_message'] === '') {
-                $normalized[$id]['post_message'] = $this->build_facebook_post_preview($normalized[$id]);
-            }
-            if ($normalized[$id]['comment_message'] === '') {
-                $normalized[$id]['comment_message'] = $this->build_facebook_comment_preview($job, $normalized[$id]);
-            }
         }
 
         return ['pages' => $normalized];
@@ -493,39 +483,90 @@ trait Kuchnia_Twist_Publisher_Contracts_Trait
 
     private function build_facebook_post_preview(array $variant): string
     {
+        $settings = $this->get_settings();
         $persisted = trim((string) ($variant['post_message'] ?? $variant['postMessage'] ?? ''));
-        if ($persisted !== '') {
-            return sanitize_textarea_field($persisted);
-        }
-
         $hook = sanitize_text_field((string) ($variant['hook'] ?? ''));
         $caption = $this->strip_hook_echo_from_caption($hook, (string) ($variant['caption'] ?? ''));
+        $post_id = sanitize_text_field((string) ($variant['post_id'] ?? $variant['postId'] ?? ''));
 
-        return trim(implode("\n\n", array_filter([$hook, $caption])));
+        if ($hook !== '' || trim($caption) !== '') {
+            return $this->append_facebook_comment_teaser(
+                trim(implode("\n\n", array_filter([$hook, $caption]))),
+                $this->facebook_post_teaser_cta_setting($settings)
+            );
+        }
+
+        if ($persisted !== '') {
+            if ($post_id !== '') {
+                return sanitize_textarea_field($persisted);
+            }
+
+            return $this->append_facebook_comment_teaser($persisted, $this->facebook_post_teaser_cta_setting($settings));
+        }
+
+        return '';
     }
 
     private function build_facebook_comment_preview(array $job, array $page): string
     {
         $persisted = trim((string) ($page['comment_message'] ?? $page['commentMessage'] ?? ''));
+        $comment_id = sanitize_text_field((string) ($page['comment_id'] ?? $page['commentId'] ?? ''));
         if ($persisted !== '') {
-            return sanitize_textarea_field($persisted);
+            if ($comment_id !== '') {
+                return sanitize_textarea_field($persisted);
+            }
         }
 
         $permalink = esc_url_raw((string) ($job['permalink'] ?? ''));
         if ($permalink === '') {
-            return '';
+            return sanitize_textarea_field($persisted);
         }
 
         $settings = $this->get_settings();
         $content_label = 'facebook_comment_' . sanitize_title((string) ($page['label'] ?? $page['page_id'] ?? 'page'));
         $tracked_url = $this->build_tracked_distribution_url($permalink, $settings, $job, $content_label);
-        $cta = sanitize_text_field((string) ($settings['default_cta'] ?? ''));
-        $message = trim(implode(' ', array_filter([
-            $cta !== '' ? $cta : __('Read the full article on the blog.', 'kuchnia-twist'),
+        $cta = $this->facebook_comment_link_cta_setting($settings);
+        $message = trim(implode("\n", array_filter([
+            $this->down_pointing_finger_emoji() . ' ' . ($cta !== '' ? $cta : __('Read the full article on the blog.', 'kuchnia-twist')),
             $tracked_url,
         ])));
 
         return sanitize_textarea_field($message);
+    }
+
+    private function append_facebook_comment_teaser(string $message, string $teaser = ''): string
+    {
+        $message = sanitize_textarea_field($message);
+        if ($message === '' || preg_match('/\bfirst comment\b/i', $message) === 1) {
+            return $message;
+        }
+
+        $teaser = sanitize_text_field($teaser);
+        if ($teaser === '') {
+            $teaser = $this->facebook_post_teaser_cta_setting();
+        }
+
+        return sanitize_textarea_field(trim($message . "\n\n" . $teaser));
+    }
+
+    private function facebook_post_teaser_cta_setting(array $settings = []): string
+    {
+        if (empty($settings)) {
+            $settings = $this->get_settings();
+        }
+
+        $cta = sanitize_text_field((string) ($settings['facebook_post_teaser_cta'] ?? ''));
+        return $cta !== '' ? $cta : ($this->down_pointing_finger_emoji() . ' ' . __('Full article in the first comment below.', 'kuchnia-twist'));
+    }
+
+    private function facebook_comment_link_cta_setting(array $settings = []): string
+    {
+        if (empty($settings)) {
+            $settings = $this->get_settings();
+        }
+
+        $cta = sanitize_text_field((string) ($settings['facebook_comment_link_cta'] ?? $settings['default_cta'] ?? ''));
+        return $cta !== '' ? $cta : __('Read the full article on the blog.', 'kuchnia-twist');
     }
 
     private function derive_legacy_facebook_caption(array $generated, array $job = []): string

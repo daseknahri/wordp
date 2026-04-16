@@ -78,6 +78,7 @@ import { createJobUtils } from "./src/runtime/job-utils.mjs";
 import { createTimeHelpers } from "./src/runtime/time.mjs";
 import { createRuntimeCore } from "./src/runtime/core.mjs";
 import { createWorkerRunner } from "./src/runtime/worker-runner.mjs";
+import { createLateBoundMethodFacade } from "./src/runtime/late-bound.mjs";
 
 const textHelpers = createTextHelpers();
 const cleanMultilineText = (...args) => textHelpers.cleanMultilineText(...args);
@@ -184,415 +185,205 @@ let facebookHelpers;
 let imageAssetHelpers;
 let generationRunner;
 let jobUtils;
+const {
+  buildFacebookComment,
+  buildFacebookCommentUrl,
+  buildFacebookPostMessage,
+  buildFacebookPostUrl,
+  buildFallbackFacebookCaption,
+  normalizeFacebookDistribution,
+  normalizeSocialPack,
+  resolveSelectedFacebookPages,
+  seedLegacyFacebookDistribution,
+  publishFacebookDistribution,
+  normalizeCaptionOpeningFingerprint,
+  normalizeHookFingerprint,
+  normalizeSocialFingerprint,
+} = createLateBoundMethodFacade(
+  () => facebookHelpers,
+  "Facebook helpers are not ready.",
+  {
+    buildFacebookComment: "buildFacebookComment",
+    buildFacebookCommentUrl: "buildFacebookCommentUrl",
+    buildFacebookPostMessage: "buildFacebookPostMessage",
+    buildFacebookPostUrl: "buildFacebookPostUrl",
+    buildFallbackFacebookCaption: "buildFallbackFacebookCaption",
+    normalizeFacebookDistribution: "normalizeFacebookDistribution",
+    normalizeSocialPack: "normalizeSocialPack",
+    resolveSelectedFacebookPages: "resolveSelectedFacebookPages",
+    seedLegacyFacebookDistribution: "seedLegacyFacebookDistribution",
+    publishFacebookDistribution: "publishFacebookDistribution",
+    normalizeCaptionOpeningFingerprint: "normalizeCaptionOpeningFingerprint",
+    normalizeHookFingerprint: "normalizeHookFingerprint",
+    normalizeSocialFingerprint: "normalizeSocialFingerprint",
+  },
+);
 
-const buildFacebookComment = (...args) => {
-  if (!facebookHelpers) {
-    throw new Error("Facebook helpers are not ready.");
-  }
-  return facebookHelpers.buildFacebookComment(...args);
-};
-const buildFacebookCommentUrl = (...args) => {
-  if (!facebookHelpers) {
-    throw new Error("Facebook helpers are not ready.");
-  }
-  return facebookHelpers.buildFacebookCommentUrl(...args);
-};
-const buildFacebookPostMessage = (...args) => {
-  if (!facebookHelpers) {
-    throw new Error("Facebook helpers are not ready.");
-  }
-  return facebookHelpers.buildFacebookPostMessage(...args);
-};
-const buildFacebookPostUrl = (...args) => {
-  if (!facebookHelpers) {
-    throw new Error("Facebook helpers are not ready.");
-  }
-  return facebookHelpers.buildFacebookPostUrl(...args);
-};
-const buildFallbackFacebookCaption = (...args) => {
-  if (!facebookHelpers) {
-    throw new Error("Facebook helpers are not ready.");
-  }
-  return facebookHelpers.buildFallbackFacebookCaption(...args);
-};
-const normalizeFacebookDistribution = (...args) => {
-  if (!facebookHelpers) {
-    throw new Error("Facebook helpers are not ready.");
-  }
-  return facebookHelpers.normalizeFacebookDistribution(...args);
-};
-const normalizeSocialPack = (...args) => {
-  if (!facebookHelpers) {
-    throw new Error("Facebook helpers are not ready.");
-  }
-  return facebookHelpers.normalizeSocialPack(...args);
-};
-const buildFacebookGroupsDraft = (...args) => {
-  if (!channelDraftHelpers) {
-    throw new Error("Channel draft helpers are not ready.");
-  }
-  return channelDraftHelpers.buildFacebookGroupsDraft(...args);
-};
-const buildPinterestDraft = (...args) => {
-  if (!channelDraftHelpers) {
-    throw new Error("Channel draft helpers are not ready.");
-  }
-  return channelDraftHelpers.buildPinterestDraft(...args);
-};
-const resolveSelectedFacebookPages = (...args) => {
-  if (!facebookHelpers) {
-    throw new Error("Facebook helpers are not ready.");
-  }
-  return facebookHelpers.resolveSelectedFacebookPages(...args);
-};
-const seedLegacyFacebookDistribution = (...args) => {
-  if (!facebookHelpers) {
-    throw new Error("Facebook helpers are not ready.");
-  }
-  return facebookHelpers.seedLegacyFacebookDistribution(...args);
-};
-const publishFacebookDistribution = (...args) => {
-  if (!facebookHelpers) {
-    throw new Error("Facebook helpers are not ready.");
-  }
-  return facebookHelpers.publishFacebookDistribution(...args);
-};
-function hydrateStoredGeneratedPayload(...args) {
-  if (!generatedPayloadHelpers) {
-    throw new Error("Generated payload helpers are not ready.");
-  }
-  return generatedPayloadHelpers.hydrateStoredGeneratedPayload(...args);
-}
-function normalizeGeneratedPayload(...args) {
-  if (!generatedPayloadHelpers) {
-    throw new Error("Generated payload helpers are not ready.");
-  }
-  return generatedPayloadHelpers.normalizeGeneratedPayload(...args);
-}
-function normalizeRecipe(...args) {
-  if (!generatedPayloadHelpers) {
-    throw new Error("Generated payload helpers are not ready.");
-  }
-  return generatedPayloadHelpers.normalizeRecipe(...args);
-}
-function readGeneratedArray(...args) {
-  if (!generatedPayloadHelpers) {
-    throw new Error("Generated payload helpers are not ready.");
-  }
-  return generatedPayloadHelpers.readGeneratedArray(...args);
-}
-function readGeneratedString(...args) {
-  if (!generatedPayloadHelpers) {
-    throw new Error("Generated payload helpers are not ready.");
-  }
-  return generatedPayloadHelpers.readGeneratedString(...args);
-}
-const ensureJobImages = (...args) => {
-  if (!imageAssetHelpers) {
-    throw new Error("Image asset helpers are not ready.");
-  }
-  return imageAssetHelpers.ensureJobImages(...args);
-};
-const generateCoreArticlePackage = (...args) => {
-  if (!generationRunner) {
-    throw new Error("Generation runner is not ready.");
-  }
-  return generationRunner.generateCoreArticlePackage(...args);
-};
-const generateSocialCandidatePool = (...args) => {
-  if (!generationRunner) {
-    throw new Error("Generation runner is not ready.");
-  }
-  return generationRunner.generateSocialCandidatePool(...args);
-};
-const assertFacebookConfigured = (...args) => {
-  if (!jobUtils) {
-    throw new Error("Job utils are not ready.");
-  }
-  return jobUtils.assertFacebookConfigured(...args);
-};
-const assertRecipeDistributionTargets = (...args) => {
-  if (!jobUtils) {
-    throw new Error("Job utils are not ready.");
-  }
-  return jobUtils.assertRecipeDistributionTargets(...args);
-};
-const firstAttachment = (...args) => {
-  if (!jobUtils) {
-    throw new Error("Job utils are not ready.");
-  }
-  return jobUtils.firstAttachment(...args);
-};
-const firstSuccessfulDistributionResult = (...args) => {
-  if (!jobUtils) {
-    throw new Error("Job utils are not ready.");
-  }
-  return jobUtils.firstSuccessfulDistributionResult(...args);
-};
-const summarizeFacebookFailures = (...args) => {
-  if (!jobUtils) {
-    throw new Error("Job utils are not ready.");
-  }
-  return jobUtils.summarizeFacebookFailures(...args);
-};
-const ensureInternalLinks = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.pageContentHelpers.ensureInternalLinks(...args);
-};
-const ensureInternalLinksOnPages = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.pageContentHelpers.ensureInternalLinksOnPages(...args);
-};
-const mergeContentPagesIntoHtml = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.pageContentHelpers.mergeContentPagesIntoHtml(...args);
-};
-const normalizeContentPageItem = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.pageContentHelpers.normalizeContentPageItem(...args);
-};
-const extractFirstHeading = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.pageFlowHelpers.extractFirstHeading(...args);
-};
-const normalizeGeneratedPageFlow = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.pageFlowHelpers.normalizeGeneratedPageFlow(...args);
-};
-const resolveGeneratedContentHtml = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.pageSplittingHelpers.resolveGeneratedContentHtml(...args);
-};
-const resolveGeneratedContentPages = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.pageSplittingHelpers.resolveGeneratedContentPages(...args);
-};
-const splitHtmlIntoPages = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.pageSplittingHelpers.splitHtmlIntoPages(...args);
-};
-const stabilizeGeneratedContentPages = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.pageSplittingHelpers.stabilizeGeneratedContentPages(...args);
-};
-const buildArticleSocialSignals = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.socialSignalHelpers.buildArticleSocialSignals(...args);
-};
-const buildImagePrompt = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.buildImagePrompt(...args);
-};
-const validateGeneratedPayload = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.articleValidationHelpers.validateGeneratedPayload(...args);
-};
-const buildCoreArticlePrompt = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.promptBuilders.buildCoreArticlePrompt(...args);
-};
-const buildSocialCandidatePrompt = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.promptBuilders.buildSocialCandidatePrompt(...args);
-};
-const summarizeArticleStage = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.summarizeArticleStage(...args);
-};
-const summarizeSocialCandidatePool = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.summarizeSocialCandidatePool(...args);
-};
-const buildQualitySummary = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.buildQualitySummary(...args);
-};
-const summarizeSelectedSocialPack = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.summarizeSelectedSocialPack(...args);
-};
-const ensureSocialPackCoverage = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.ensureSocialPackCoverage(...args);
-};
-const assertQualityGate = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.validatorSummaryHelpers.assertQualityGate(...args);
-};
-const mergeValidatorSummary = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.validatorSummaryHelpers.mergeValidatorSummary(...args);
-};
-const normalizeCaptionOpeningFingerprint = (...args) => {
-  if (!facebookHelpers) {
-    throw new Error("Facebook helpers are not ready.");
-  }
-  return facebookHelpers.normalizeCaptionOpeningFingerprint(...args);
-};
-const normalizeHookFingerprint = (...args) => {
-  if (!facebookHelpers) {
-    throw new Error("Facebook helpers are not ready.");
-  }
-  return facebookHelpers.normalizeHookFingerprint(...args);
-};
-const normalizeSocialFingerprint = (...args) => {
-  if (!facebookHelpers) {
-    throw new Error("Facebook helpers are not ready.");
-  }
-  return facebookHelpers.normalizeSocialFingerprint(...args);
-};
-const deriveLegacyFacebookCaptionMirror = (...args) => {
-  if (!channelAdapterHelpers) {
-    throw new Error("Channel adapter helpers are not ready.");
-  }
-  return channelAdapterHelpers.deriveLegacyFacebookCaptionMirror(...args);
-};
-const deriveLegacyGroupShareKitMirror = (...args) => {
-  if (!channelAdapterHelpers) {
-    throw new Error("Channel adapter helpers are not ready.");
-  }
-  return channelAdapterHelpers.deriveLegacyGroupShareKitMirror(...args);
-};
-const resolveCanonicalContentPackage = (...args) => {
-  if (!channelAdapterHelpers) {
-    throw new Error("Channel adapter helpers are not ready.");
-  }
-  return channelAdapterHelpers.resolveCanonicalContentPackage(...args);
-};
-const resolveFacebookChannelAdapter = (...args) => {
-  if (!channelAdapterHelpers) {
-    throw new Error("Channel adapter helpers are not ready.");
-  }
-  return channelAdapterHelpers.resolveFacebookChannelAdapter(...args);
-};
-const syncGeneratedContractContainers = (...args) => {
-  if (!channelAdapterHelpers) {
-    throw new Error("Channel adapter helpers are not ready.");
-  }
-  return channelAdapterHelpers.syncGeneratedContractContainers(...args);
-};
-const desiredSocialSignalTargets = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.desiredSocialSignalTargets(...args);
-};
-const findBestSocialCandidateIndex = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.findBestSocialCandidateIndex(...args);
-};
-const buildFallbackSocialPack = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.buildFallbackSocialPack(...args);
-};
-const qualityCheckReasonMessage = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.qualityCheckReasonMessage(...args);
-};
-const buildEditorialReadinessSummary = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.buildEditorialReadinessSummary(...args);
-};
-const extractValidatorSummary = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.extractValidatorSummary(...args);
-};
-const extractGeneratedContractVersions = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.extractGeneratedContractVersions(...args);
-};
-const isCanonicalContractVersion = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.isCanonicalContractVersion(...args);
-};
-const collectCanonicalContractChecks = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.collectCanonicalContractChecks(...args);
-};
-const filterChannelWarningChecks = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.filterChannelWarningChecks(...args);
-};
-const buildContentPackageQualitySummary = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.buildContentPackageQualitySummary(...args);
-};
-const buildFacebookChannelQualitySummary = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.buildFacebookChannelQualitySummary(...args);
-};
-const buildDormantChannelQualitySummary = (...args) => {
-  if (!contentHelpers) {
-    throw new Error("Content helpers are not ready.");
-  }
-  return contentHelpers.qualityEntryPoints.buildDormantChannelQualitySummary(...args);
-};
+const {
+  buildFacebookGroupsDraft,
+  buildPinterestDraft,
+} = createLateBoundMethodFacade(
+  () => channelDraftHelpers,
+  "Channel draft helpers are not ready.",
+  {
+    buildFacebookGroupsDraft: "buildFacebookGroupsDraft",
+    buildPinterestDraft: "buildPinterestDraft",
+  },
+);
+
+const {
+  hydrateStoredGeneratedPayload,
+  normalizeGeneratedPayload,
+  normalizeRecipe,
+  readGeneratedArray,
+  readGeneratedString,
+} = createLateBoundMethodFacade(
+  () => generatedPayloadHelpers,
+  "Generated payload helpers are not ready.",
+  {
+    hydrateStoredGeneratedPayload: "hydrateStoredGeneratedPayload",
+    normalizeGeneratedPayload: "normalizeGeneratedPayload",
+    normalizeRecipe: "normalizeRecipe",
+    readGeneratedArray: "readGeneratedArray",
+    readGeneratedString: "readGeneratedString",
+  },
+);
+
+const {
+  ensureJobImages,
+} = createLateBoundMethodFacade(
+  () => imageAssetHelpers,
+  "Image asset helpers are not ready.",
+  {
+    ensureJobImages: "ensureJobImages",
+  },
+);
+
+const {
+  generateCoreArticlePackage,
+  generateSocialCandidatePool,
+} = createLateBoundMethodFacade(
+  () => generationRunner,
+  "Generation runner is not ready.",
+  {
+    generateCoreArticlePackage: "generateCoreArticlePackage",
+    generateSocialCandidatePool: "generateSocialCandidatePool",
+  },
+);
+
+const {
+  assertFacebookConfigured,
+  assertRecipeDistributionTargets,
+  firstAttachment,
+  firstSuccessfulDistributionResult,
+  summarizeFacebookFailures,
+} = createLateBoundMethodFacade(
+  () => jobUtils,
+  "Job utils are not ready.",
+  {
+    assertFacebookConfigured: "assertFacebookConfigured",
+    assertRecipeDistributionTargets: "assertRecipeDistributionTargets",
+    firstAttachment: "firstAttachment",
+    firstSuccessfulDistributionResult: "firstSuccessfulDistributionResult",
+    summarizeFacebookFailures: "summarizeFacebookFailures",
+  },
+);
+
+const {
+  ensureInternalLinks,
+  ensureInternalLinksOnPages,
+  mergeContentPagesIntoHtml,
+  normalizeContentPageItem,
+  extractFirstHeading,
+  normalizeGeneratedPageFlow,
+  resolveGeneratedContentHtml,
+  resolveGeneratedContentPages,
+  splitHtmlIntoPages,
+  stabilizeGeneratedContentPages,
+  buildArticleSocialSignals,
+  buildImagePrompt,
+  validateGeneratedPayload,
+  buildCoreArticlePrompt,
+  buildSocialCandidatePrompt,
+  summarizeArticleStage,
+  summarizeSocialCandidatePool,
+  buildQualitySummary,
+  summarizeSelectedSocialPack,
+  ensureSocialPackCoverage,
+  assertQualityGate,
+  mergeValidatorSummary,
+  desiredSocialSignalTargets,
+  findBestSocialCandidateIndex,
+  buildFallbackSocialPack,
+  qualityCheckReasonMessage,
+  buildEditorialReadinessSummary,
+  extractValidatorSummary,
+  extractGeneratedContractVersions,
+  isCanonicalContractVersion,
+  collectCanonicalContractChecks,
+  filterChannelWarningChecks,
+  buildContentPackageQualitySummary,
+  buildFacebookChannelQualitySummary,
+  buildDormantChannelQualitySummary,
+} = createLateBoundMethodFacade(
+  () => contentHelpers,
+  "Content helpers are not ready.",
+  {
+    ensureInternalLinks: ["pageContentHelpers", "ensureInternalLinks"],
+    ensureInternalLinksOnPages: ["pageContentHelpers", "ensureInternalLinksOnPages"],
+    mergeContentPagesIntoHtml: ["pageContentHelpers", "mergeContentPagesIntoHtml"],
+    normalizeContentPageItem: ["pageContentHelpers", "normalizeContentPageItem"],
+    extractFirstHeading: ["pageFlowHelpers", "extractFirstHeading"],
+    normalizeGeneratedPageFlow: ["pageFlowHelpers", "normalizeGeneratedPageFlow"],
+    resolveGeneratedContentHtml: ["pageSplittingHelpers", "resolveGeneratedContentHtml"],
+    resolveGeneratedContentPages: ["pageSplittingHelpers", "resolveGeneratedContentPages"],
+    splitHtmlIntoPages: ["pageSplittingHelpers", "splitHtmlIntoPages"],
+    stabilizeGeneratedContentPages: ["pageSplittingHelpers", "stabilizeGeneratedContentPages"],
+    buildArticleSocialSignals: ["socialSignalHelpers", "buildArticleSocialSignals"],
+    buildImagePrompt: "buildImagePrompt",
+    validateGeneratedPayload: ["articleValidationHelpers", "validateGeneratedPayload"],
+    buildCoreArticlePrompt: ["promptBuilders", "buildCoreArticlePrompt"],
+    buildSocialCandidatePrompt: ["promptBuilders", "buildSocialCandidatePrompt"],
+    summarizeArticleStage: ["qualityEntryPoints", "summarizeArticleStage"],
+    summarizeSocialCandidatePool: ["qualityEntryPoints", "summarizeSocialCandidatePool"],
+    buildQualitySummary: ["qualityEntryPoints", "buildQualitySummary"],
+    summarizeSelectedSocialPack: ["qualityEntryPoints", "summarizeSelectedSocialPack"],
+    ensureSocialPackCoverage: ["qualityEntryPoints", "ensureSocialPackCoverage"],
+    assertQualityGate: ["validatorSummaryHelpers", "assertQualityGate"],
+    mergeValidatorSummary: ["validatorSummaryHelpers", "mergeValidatorSummary"],
+    desiredSocialSignalTargets: ["qualityEntryPoints", "desiredSocialSignalTargets"],
+    findBestSocialCandidateIndex: ["qualityEntryPoints", "findBestSocialCandidateIndex"],
+    buildFallbackSocialPack: ["qualityEntryPoints", "buildFallbackSocialPack"],
+    qualityCheckReasonMessage: ["qualityEntryPoints", "qualityCheckReasonMessage"],
+    buildEditorialReadinessSummary: ["qualityEntryPoints", "buildEditorialReadinessSummary"],
+    extractValidatorSummary: ["qualityEntryPoints", "extractValidatorSummary"],
+    extractGeneratedContractVersions: ["qualityEntryPoints", "extractGeneratedContractVersions"],
+    isCanonicalContractVersion: ["qualityEntryPoints", "isCanonicalContractVersion"],
+    collectCanonicalContractChecks: ["qualityEntryPoints", "collectCanonicalContractChecks"],
+    filterChannelWarningChecks: ["qualityEntryPoints", "filterChannelWarningChecks"],
+    buildContentPackageQualitySummary: ["qualityEntryPoints", "buildContentPackageQualitySummary"],
+    buildFacebookChannelQualitySummary: ["qualityEntryPoints", "buildFacebookChannelQualitySummary"],
+    buildDormantChannelQualitySummary: ["qualityEntryPoints", "buildDormantChannelQualitySummary"],
+  },
+);
+
+const {
+  deriveLegacyFacebookCaptionMirror,
+  deriveLegacyGroupShareKitMirror,
+  resolveCanonicalContentPackage,
+  resolveFacebookChannelAdapter,
+  syncGeneratedContractContainers,
+} = createLateBoundMethodFacade(
+  () => channelAdapterHelpers,
+  "Channel adapter helpers are not ready.",
+  {
+    deriveLegacyFacebookCaptionMirror: "deriveLegacyFacebookCaptionMirror",
+    deriveLegacyGroupShareKitMirror: "deriveLegacyGroupShareKitMirror",
+    resolveCanonicalContentPackage: "resolveCanonicalContentPackage",
+    resolveFacebookChannelAdapter: "resolveFacebookChannelAdapter",
+    syncGeneratedContractContainers: "syncGeneratedContractContainers",
+  },
+);
 
 const contractsHelpers = createContractsHelpers({
   buildArticleSocialSignals,

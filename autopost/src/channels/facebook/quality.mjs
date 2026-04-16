@@ -539,7 +539,6 @@ export function buildFallbackSocialPack({
     angleDefinitionsForType,
     buildAngleSequence,
     buildArticleSocialSignals,
-    buildFacebookPostMessage,
     buildFallbackCaption,
     cleanMultilineText,
     sharedWordsRatio,
@@ -726,7 +725,6 @@ export function buildFallbackSocialPack({
         closerLine,
       );
     }
-    builtVariant.post_message = buildFacebookPostMessage(builtVariant, "");
     return builtVariant;
   });
 }
@@ -743,7 +741,6 @@ export function ensureSocialPackCoverage({
   const {
     buildAngleSequence,
     buildArticleSocialSignals,
-    buildFacebookPostMessage,
     classifySocialHookForm,
     cleanMultilineText,
     cleanText,
@@ -806,6 +803,13 @@ export function ensureSocialPackCoverage({
   let contrastCount = 0;
   let painPointCount = 0;
   let payoffCount = 0;
+  const buildCanonicalVariant = (source, angleKey, pageLabel, fallbackId) => ({
+    id: cleanText(source?.id || fallbackId),
+    angle_key: angleKey,
+    hook: cleanText(source?.hook || ""),
+    caption: cleanMultilineText(source?.caption || ""),
+    cta_hint: cleanText(source?.cta_hint || source?.ctaHint || (pageLabel ? `Use on ${pageLabel}` : "")),
+  });
 
   return Array.from({ length: desiredCount }, (_, index) => {
     const desiredAngle = angleSequence[index];
@@ -848,13 +852,7 @@ export function ensureSocialPackCoverage({
     });
     const selectedCandidate = bestCandidateIndex >= 0 ? unusedCandidates.splice(bestCandidateIndex, 1)[0] : null;
     const base = selectedCandidate || fallback[index] || fallback[fallback.length - 1];
-    let variant = {
-      ...base,
-      angle_key: desiredAngle,
-      cta_hint: cleanText(base?.cta_hint || (pages[index]?.label ? `Use on ${pages[index]?.label}` : "")),
-      post_message: cleanMultilineText(base?.post_message || base?.postMessage || ""),
-    };
-    variant.post_message = variant.post_message || buildFacebookPostMessage(variant, "");
+    let variant = buildCanonicalVariant(base, desiredAngle, pages[index]?.label || "", `variant-${index + 1}`);
 
     const fingerprint = normalizeSocialFingerprint(variant);
     const hookFingerprint = normalizeHookFingerprint(variant);
@@ -866,11 +864,12 @@ export function ensureSocialPackCoverage({
       (captionOpeningFingerprint && usedCaptionOpenings.has(captionOpeningFingerprint)) ||
       socialVariantLooksWeak(variant, article.title || "", contentType, articleSignals)
     ) {
-      variant = {
-        ...(fallback[index] || fallback[fallback.length - 1]),
-        angle_key: angleSequence[index],
-      };
-      variant.post_message = cleanMultilineText(variant.post_message || "") || buildFacebookPostMessage(variant, "");
+      variant = buildCanonicalVariant(
+        fallback[index] || fallback[fallback.length - 1],
+        angleSequence[index],
+        pages[index]?.label || "",
+        `variant-${index + 1}`,
+      );
     }
 
     usedFingerprints.add(normalizeSocialFingerprint(variant));

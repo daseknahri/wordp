@@ -23,6 +23,21 @@ export function createSettingsHelpers(deps) {
     const cadence = isPlainObject(provided.cadence) ? provided.cadence : {};
     const models = isPlainObject(provided.models) ? provided.models : {};
     const contracts = isPlainObject(provided.contracts) ? provided.contracts : {};
+    const defaultCtas = isPlainObject(provided.default_ctas) ? provided.default_ctas : {};
+    const facebookPostTeaserCta = cleanText(
+      defaultCtas.facebook_post_teaser ||
+      provided.facebook_post_teaser_cta ||
+      raw.facebook_post_teaser_cta ||
+      "\u{1F447} Full article in the first comment below.",
+    );
+    const facebookCommentLinkCta = cleanText(
+      defaultCtas.facebook_comment_link ||
+      provided.facebook_comment_link_cta ||
+      raw.facebook_comment_link_cta ||
+      provided.default_cta ||
+      raw.default_cta ||
+      "Read the full article on the blog.",
+    );
 
     return {
       promptVersion: String(provided.prompt_version || PROMPT_VERSION),
@@ -32,7 +47,7 @@ export function createSettingsHelpers(deps) {
         role: cleanMultilineText(
           publicationProfile.role ||
             raw.publication_role ||
-            "You are the lead editorial writer for kuchniatwist, producing recipe articles and food explainers that are sharp enough to win the click and useful enough to justify it.",
+            "You are the lead editorial writer for kuchniatwist, producing recipe articles and food explainers that are sharp enough to win the click, useful enough to justify it, and strong enough to earn the next visit.",
         ),
         voice_brief: cleanText(publicationProfile.voice_brief || raw.brand_voice || config.fallbackBrandVoice),
         guardrails: cleanMultilineText(
@@ -41,14 +56,14 @@ export function createSettingsHelpers(deps) {
             [publicationProfile.do_guidance, publicationProfile.dont_guidance, publicationProfile.banned_claims]
               .filter(Boolean)
               .join("\n") ||
-            "No fake personal stories, invented reporting, fabricated authority, or made-up facts. No filler SEO intros, generic throat-clearing, or padded explanations. No spammy clickbait, fake cliffhangers, or hollow viral language. No medical or nutrition claims beyond ordinary kitchen guidance. Keep paragraphs short, specific, and human. Avoid generic openers like 'when it comes to' or 'in today's busy world.'",
+            "No fake personal stories, invented reporting, fabricated authority, or made-up facts. No filler SEO intros, generic throat-clearing, or padded explanations. No spammy clickbait, fake cliffhangers, or hollow viral language. No medical or nutrition claims beyond ordinary kitchen guidance. Keep paragraphs short, specific, and human. Avoid generic openers like 'when it comes to' or 'in today's busy world.' Never burn trust for the sake of a social click.",
         ),
       },
       contentTypeRegistry: CONTENT_TYPE_REGISTRY,
       activeContentTypes: ACTIVE_CONTENT_TYPE_KEYS,
       contentPresets: {
-        recipe: normalizePreset(contentPresets.recipe, "Create dependable, craveable, and realistic home-cooking recipes with believable timings, coherent ingredient amounts, repeatable results, and enough practical detail to justify the click.", 1200),
-        food_fact: normalizePreset(contentPresets.food_fact, "Treat the entered title as a working topic, answer it directly, correct confusion, and finish with a practical takeaway worth the click.", 1100),
+        recipe: normalizePreset(contentPresets.recipe, "Create dependable, craveable, and realistic home-cooking recipes with believable timings, coherent ingredient amounts, repeatable results, and enough practical detail to justify the click and earn a repeat visit.", 1200),
+        food_fact: normalizePreset(contentPresets.food_fact, "Treat the entered title as a working topic, answer it directly, correct confusion, and finish with a practical takeaway worth the click and memorable enough to bring the reader back.", 1100),
       },
       channelRegistry: CHANNEL_REGISTRY,
       channelPresets: {
@@ -61,18 +76,18 @@ export function createSettingsHelpers(deps) {
         },
         article: {
           recipe: {
-            guidance: cleanMultilineText(channelPresets.article?.recipe?.guidance || channelPresets.article?.guidance || raw.article_prompt || "Open with appetite and concrete payoff, build 2 to 3 intentional pages, and keep the recipe practical, credible, and worth the click."),
+            guidance: cleanMultilineText(channelPresets.article?.recipe?.guidance || channelPresets.article?.guidance || raw.article_prompt || "Open with appetite and concrete payoff, build 2 to 3 intentional pages, keep the recipe practical and credible, and make page 1 strong enough for social visitors while the full piece rewards repeat readers."),
           },
           food_fact: {
-            guidance: cleanMultilineText(channelPresets.article?.food_fact?.guidance || raw.food_fact_article_prompt || "Treat the entered title as a working topic, answer it fast, explain what people get wrong, and land a practical takeaway without drifting into recipe structure."),
+            guidance: cleanMultilineText(channelPresets.article?.food_fact?.guidance || raw.food_fact_article_prompt || "Treat the entered title as a working topic, answer it fast, explain what people get wrong, and land a practical takeaway without drifting into recipe structure. Reward social visitors quickly and give returning readers a sharper kitchen insight."),
           },
         },
         facebook_caption: {
           recipe: {
-            guidance: cleanMultilineText(channelPresets.facebook_caption?.recipe?.guidance || channelPresets.facebook_caption?.guidance || raw.facebook_caption_guidance || "Generate a strong pool of recipe Facebook candidates with short hooks, 2 to 5 short caption lines, distinct angles, no title echo, no repeated hook-as-caption opener, and no links or hashtags."),
+            guidance: cleanMultilineText(channelPresets.facebook_caption?.recipe?.guidance || channelPresets.facebook_caption?.guidance || raw.facebook_caption_guidance || "Generate a strong pool of recipe Facebook candidates with short hooks, 2 to 5 short caption lines, distinct angles, no title echo, no repeated hook-as-caption opener, and no links or hashtags. Pull the right reader onto the blog with an honest concrete payoff."),
           },
           food_fact: {
-            guidance: cleanMultilineText(channelPresets.facebook_caption?.food_fact?.guidance || raw.food_fact_facebook_caption_guidance || "Generate a strong pool of food-fact Facebook candidates with myth-busting, surprising-truth, or kitchen-mistake angles. No title echo, no links, no hashtags, and no empty hype."),
+            guidance: cleanMultilineText(channelPresets.facebook_caption?.food_fact?.guidance || raw.food_fact_facebook_caption_guidance || "Generate a strong pool of food-fact Facebook candidates with myth-busting, surprising-truth, or kitchen-mistake angles. No title echo, no links, no hashtags, and no empty hype. Make the click feel worth it and trustworthy."),
           },
         },
         facebook_groups: {
@@ -111,19 +126,36 @@ export function createSettingsHelpers(deps) {
       contracts: {
         strict_contract_mode: Boolean(contracts.strict_contract_mode ?? raw.strict_contract_mode ?? config.strictContractMode),
       },
-      defaultCta: cleanText(provided.default_cta || raw.default_cta || "Read the full article on the blog."),
+      defaultCtas: {
+        facebook_post_teaser: facebookPostTeaserCta,
+        facebook_comment_link: facebookCommentLinkCta,
+      },
+      facebookPostTeaserCta,
+      facebookCommentLinkCta,
+      defaultCta: facebookCommentLinkCta,
     };
   }
 
   function mergeSettings(raw) {
     const contentMachine = resolveContentMachine(raw);
+    const facebookPostTeaserCta =
+      raw.facebook_post_teaser_cta ||
+      contentMachine.facebookPostTeaserCta ||
+      "\u{1F447} Full article in the first comment below.";
+    const facebookCommentLinkCta =
+      raw.facebook_comment_link_cta ||
+      contentMachine.facebookCommentLinkCta ||
+      contentMachine.defaultCta ||
+      "Read the full article on the blog.";
 
     return {
       siteName: raw.site_name || config.fallbackSiteName,
       siteUrl: trimTrailingSlash(raw.site_url || config.publicWordPressUrl || config.internalWordPressUrl),
       brandVoice: contentMachine.publicationProfile.voice_brief || raw.brand_voice || config.fallbackBrandVoice,
       articlePrompt: resolveTypedGuidance({ contentMachine }, "article", "recipe", raw.article_prompt || "Open with appetite and payoff, use useful H2 sections, and keep the recipe practical, cookable, and worth the click."),
-      defaultCta: raw.default_cta || contentMachine.defaultCta || "Read the full article on the blog.",
+      facebookPostTeaserCta,
+      facebookCommentLinkCta,
+      defaultCta: facebookCommentLinkCta,
       imageStyle: contentMachine.channelPresets.image.guidance || raw.image_style || "Realistic, appetizing food photography with natural light, clean plating, believable texture, and no text overlays.",
       imageGenerationMode: raw.image_generation_mode || "uploaded_first_generate_missing",
       facebookGraphVersion: raw.facebook_graph_version || "v22.0",

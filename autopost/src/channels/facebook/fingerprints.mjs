@@ -6,7 +6,7 @@ export function createFacebookFingerprintHelpers(deps) {
   } = deps;
 
   function normalizeSocialFingerprint(variant) {
-    return buildFacebookPostMessage(variant, "")
+    return buildFacebookPostMessage(variant, "", "")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, " ")
       .trim();

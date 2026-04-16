@@ -101,6 +101,7 @@ function buildArticleValidatorSummary(articleStageSummary, attempt, warned, last
     article_excerpt_adds_value: articleStageSummary.metrics.excerpt_adds_value,
     article_opening_adds_value: articleStageSummary.metrics.opening_adds_value,
     article_opening_front_load_score: articleStageSummary.metrics.opening_front_load_score,
+    article_page_one_internal_links: articleStageSummary.metrics.page_one_internal_links,
   };
 }
 
@@ -150,6 +151,9 @@ function buildArticleStageRepairNote(summary, job) {
   }
   if (checks.includes("weak_page_summaries")) {
     fixes.push("Make page summaries preview concrete payoff instead of thin restatements.");
+  }
+  if (checks.includes("weak_reader_path")) {
+    fixes.push("Include at least one natural internal kuchniatwist link on page 1 so a social visitor has a clear next read beyond the current story.");
   }
   if (checks.includes("weak_structure")) {
     fixes.push("Add clearer H2 structure so the article scans naturally.");

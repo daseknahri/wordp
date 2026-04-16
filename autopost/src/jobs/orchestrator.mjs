@@ -3,17 +3,14 @@ export function createJobOrchestrator(deps) {
     assertFacebookConfigured,
     assertQualityGate,
     assertRecipeDistributionTargets,
-    buildFallbackFacebookCaption,
     buildQualitySummary,
     claimNextJob,
     completeJob,
-    deriveLegacyFacebookCaptionMirror,
-    deriveLegacyGroupShareKitMirror,
     ensureJobImages,
     ensureOpenAiConfigured,
     ensureSocialPackCoverage,
+    finalizeFacebookPhaseState,
     firstAttachment,
-    firstSuccessfulDistributionResult,
     formatError,
     generatePackage,
     hydrateStoredGeneratedPayload,
@@ -24,14 +21,10 @@ export function createJobOrchestrator(deps) {
     normalizeGeneratedPayload,
     publishBlogPost,
     publishFacebookDistribution,
+    refreshFacebookPhaseState,
     resolveCanonicalContentPackage,
-    resolveFacebookChannelAdapter,
-    resolvePreferredAngle,
-    resolveSelectedFacebookPages,
     safeFailJob,
-    seedLegacyFacebookDistribution,
     summarizeFacebookFailures,
-    syncGeneratedContractContainers,
     toInt,
     updateJobProgress,
     isFutureUtcTimestamp,
@@ -82,21 +75,26 @@ export function createJobOrchestrator(deps) {
     let permalink = String(job.permalink || "");
     let facebookPostId = String(job.facebook_post_id || "");
     let facebookCommentId = String(job.facebook_comment_id || "");
+    const facebookPostTeaserCta = String(settings.facebookPostTeaserCta || "");
     let generated = hydrateStoredGeneratedPayload(job.generated_payload, job);
     let contentPackage = resolveCanonicalContentPackage(generated, job);
-    let facebookCaption = String(deriveLegacyFacebookCaptionMirror(resolveFacebookChannelAdapter(generated, job), job.facebook_caption || generated.facebook_caption || ""));
-    let groupShareKit = String(deriveLegacyGroupShareKitMirror(generated, job) || job.group_share_kit || generated.group_share_kit || "");
+    let {
+      distribution,
+      facebookCaption,
+      groupShareKit,
+      preferredAngle,
+      selectedPages,
+      socialPack,
+    } = refreshFacebookPhaseState({
+      job,
+      settings,
+      generated,
+      facebookPostTeaserCta,
+      fallbackCaption: job.facebook_caption || generated.facebook_caption || "",
+      fallbackGroupShareKit: job.group_share_kit || generated.group_share_kit || "",
+    });
     let featuredImage = firstAttachment(job.featured_image, job.blog_image);
     let facebookImage = firstAttachment(job.facebook_image_result, job.facebook_image, featuredImage);
-    let socialPack = resolveFacebookChannelAdapter(generated, job).selected;
-    let selectedPages = resolveSelectedFacebookPages(job, settings);
-    let preferredAngle = resolvePreferredAngle(job);
-    let distribution = seedLegacyFacebookDistribution(
-      resolveFacebookChannelAdapter(generated, job).distribution,
-      selectedPages,
-      job,
-      facebookCaption,
-    );
 
     log(`processing ${jobLabel}`);
 
@@ -107,18 +105,12 @@ export function createJobOrchestrator(deps) {
         ensureOpenAiConfigured(settings);
         generated = await generatePackage(job, settings);
         contentPackage = resolveCanonicalContentPackage(generated, job);
-        facebookCaption = deriveLegacyFacebookCaptionMirror(resolveFacebookChannelAdapter(generated, job), generated.facebook_caption || "");
-        groupShareKit = deriveLegacyGroupShareKitMirror(generated, job);
-        socialPack = resolveFacebookChannelAdapter(generated, job).selected;
-        selectedPages = resolveSelectedFacebookPages(job, settings);
-        assertRecipeDistributionTargets(job, selectedPages);
-        preferredAngle = resolvePreferredAngle(job);
-        distribution = seedLegacyFacebookDistribution(
-          resolveFacebookChannelAdapter(generated, job).distribution,
-          selectedPages,
+        ({ distribution, facebookCaption, groupShareKit, preferredAngle, selectedPages, socialPack } = refreshFacebookPhaseState({
           job,
-          facebookCaption,
-        );
+          settings,
+          generated,
+          facebookPostTeaserCta,
+        }));
 
         ({ featuredImage, facebookImage, generated } = await ensureJobImages(job, settings, generated, {
           featuredImage,
@@ -136,14 +128,18 @@ export function createJobOrchestrator(deps) {
             ...generated,
             social_pack: socialPack,
           },
-          {
-            ...qualitySummary,
-            target_pages: qualitySummary.quality_checks?.target_pages || selectedPages.length,
-            social_variants: qualitySummary.quality_checks?.social_variants || socialPack.length,
-          },
-        );
-        facebookCaption = deriveLegacyFacebookCaptionMirror(resolveFacebookChannelAdapter(generated, job), generated.facebook_caption || "");
-        groupShareKit = deriveLegacyGroupShareKitMirror(generated, job);
+        {
+          ...qualitySummary,
+          target_pages: qualitySummary.quality_checks?.target_pages || selectedPages.length,
+          social_variants: qualitySummary.quality_checks?.social_variants || socialPack.length,
+        },
+      );
+        ({ facebookCaption, groupShareKit } = refreshFacebookPhaseState({
+          job,
+          settings,
+          generated,
+          facebookPostTeaserCta,
+        }));
 
         const scheduled = await updateJobProgress(job.id, {
           status: "scheduled",
@@ -164,20 +160,16 @@ export function createJobOrchestrator(deps) {
         job = scheduled?.job || job;
         generated = normalizeGeneratedPayload(job.generated_payload || generated, job);
         contentPackage = resolveCanonicalContentPackage(generated, job);
-        facebookCaption = String(deriveLegacyFacebookCaptionMirror(resolveFacebookChannelAdapter(generated, job), job.facebook_caption || generated.facebook_caption || facebookCaption));
-        groupShareKit = String(deriveLegacyGroupShareKitMirror(generated, job) || job.group_share_kit || generated.group_share_kit || groupShareKit);
+        ({ distribution, facebookCaption, groupShareKit, preferredAngle, selectedPages, socialPack } = refreshFacebookPhaseState({
+          job,
+          settings,
+          generated,
+          facebookPostTeaserCta,
+          fallbackCaption: job.facebook_caption || generated.facebook_caption || facebookCaption,
+          fallbackGroupShareKit: job.group_share_kit || generated.group_share_kit || groupShareKit,
+        }));
         featuredImage = firstAttachment(job.featured_image, job.blog_image, featuredImage);
         facebookImage = firstAttachment(job.facebook_image_result, job.facebook_image, featuredImage, facebookImage);
-        socialPack = resolveFacebookChannelAdapter(generated, job).selected;
-        selectedPages = resolveSelectedFacebookPages(job, settings);
-        assertRecipeDistributionTargets(job, selectedPages);
-        preferredAngle = resolvePreferredAngle(job);
-        distribution = seedLegacyFacebookDistribution(
-          resolveFacebookChannelAdapter(generated, job).distribution,
-          selectedPages,
-          job,
-          facebookCaption,
-        );
         log(`generated ${jobLabel} and continuing directly to publish`);
       }
 
@@ -185,18 +177,12 @@ export function createJobOrchestrator(deps) {
         ensureOpenAiConfigured(settings);
         generated = await generatePackage(job, settings);
         contentPackage = resolveCanonicalContentPackage(generated, job);
-        facebookCaption = deriveLegacyFacebookCaptionMirror(resolveFacebookChannelAdapter(generated, job), generated.facebook_caption || "");
-        groupShareKit = deriveLegacyGroupShareKitMirror(generated, job);
-        socialPack = resolveFacebookChannelAdapter(generated, job).selected;
-        selectedPages = resolveSelectedFacebookPages(job, settings);
-        assertRecipeDistributionTargets(job, selectedPages);
-        preferredAngle = resolvePreferredAngle(job);
-        distribution = seedLegacyFacebookDistribution(
-          resolveFacebookChannelAdapter(generated, job).distribution,
-          selectedPages,
+        ({ distribution, facebookCaption, groupShareKit, preferredAngle, selectedPages, socialPack } = refreshFacebookPhaseState({
           job,
-          facebookCaption,
-        );
+          settings,
+          generated,
+          facebookPostTeaserCta,
+        }));
       }
 
       ({ featuredImage, facebookImage, generated } = await ensureJobImages(job, settings, generated, {
@@ -221,7 +207,12 @@ export function createJobOrchestrator(deps) {
           social_variants: qualitySummary.quality_checks?.social_variants || socialPack.length,
         },
       );
-      facebookCaption = deriveLegacyFacebookCaptionMirror(resolveFacebookChannelAdapter(generated, job), generated.facebook_caption || "");
+      ({ distribution, facebookCaption, groupShareKit, preferredAngle, selectedPages, socialPack } = refreshFacebookPhaseState({
+        job,
+        settings,
+        generated,
+        facebookPostTeaserCta,
+      }));
       contentPackage = resolveCanonicalContentPackage(generated, job);
       assertQualityGate(qualitySummary);
 
@@ -246,15 +237,9 @@ export function createJobOrchestrator(deps) {
       });
 
       selectedPages = resolveSelectedFacebookPages(job, settings);
-      assertRecipeDistributionTargets(job, selectedPages);
       assertFacebookConfigured(selectedPages);
       socialPack = ensureSocialPackCoverage(socialPack, selectedPages, generated, settings, job.content_type || "recipe", preferredAngle);
-      distribution = seedLegacyFacebookDistribution(
-        resolveFacebookChannelAdapter(generated, job).distribution,
-        selectedPages,
-        job,
-        facebookCaption,
-      );
+      distribution = seedLegacyFacebookDistribution(distribution, selectedPages, job, facebookCaption);
 
       const facebookResult = await publishFacebookDistribution({
         settings,
@@ -269,20 +254,19 @@ export function createJobOrchestrator(deps) {
       });
 
       distribution = facebookResult.distribution;
-      const firstSuccess = firstSuccessfulDistributionResult(distribution, job.content_type || "recipe");
-      facebookPostId = firstSuccess?.post_id || "";
-      facebookCommentId = firstSuccess?.comment_id || "";
-      facebookCaption = firstSuccess?.caption || socialPack[0]?.caption || buildFallbackFacebookCaption(generated, settings.defaultCta);
-      generated = syncGeneratedContractContainers({
-        ...generated,
-        social_pack: socialPack,
-        facebook_distribution: distribution,
-        facebook_urls: {
-          ...(generated.facebook_urls || {}),
-          facebook_comment: firstSuccess?.comment_url || "",
-          facebook_post: firstSuccess?.post_url || "",
-        },
-      }, job);
+      ({
+        facebookCaption,
+        facebookCommentId,
+        facebookPostId,
+        generated,
+      } = finalizeFacebookPhaseState({
+        job,
+        settings,
+        generated,
+        distribution,
+        socialPack,
+        facebookPostTeaserCta,
+      }));
 
       if (facebookResult.failedPages.length > 0) {
         const message = summarizeFacebookFailures(facebookResult.failedPages);

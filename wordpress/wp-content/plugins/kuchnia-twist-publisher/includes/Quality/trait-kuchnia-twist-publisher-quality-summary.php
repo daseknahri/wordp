@@ -4,116 +4,6 @@ defined('ABSPATH') || exit;
 
 trait Kuchnia_Twist_Publisher_Quality_Summary_Trait
 {
-    private function quality_status_label(string $status): string
-    {
-        return match (sanitize_key($status)) {
-            'pass'  => __('Quality Pass', 'kuchnia-twist'),
-            'warn'  => __('Quality Warn', 'kuchnia-twist'),
-            'block' => __('Quality Block', 'kuchnia-twist'),
-            default => __('Quality Unknown', 'kuchnia-twist'),
-        };
-    }
-
-    private function quality_status_class(string $status): string
-    {
-        $normalized = sanitize_key($status);
-        if (!in_array($normalized, ['pass', 'warn', 'block'], true)) {
-            return 'quality-warn';
-        }
-
-        return 'quality-' . $normalized;
-    }
-
-    private function editorial_readiness_label(string $status): string
-    {
-        return match (sanitize_key($status)) {
-            'ready'   => __('Test Ready', 'kuchnia-twist'),
-            'review'  => __('Needs Review', 'kuchnia-twist'),
-            'blocked' => __('Blocked', 'kuchnia-twist'),
-            default   => __('Needs Review', 'kuchnia-twist'),
-        };
-    }
-
-    private function editorial_readiness_class(string $status): string
-    {
-        return match (sanitize_key($status)) {
-            'ready'   => 'quality-pass',
-            'blocked' => 'quality-block',
-            default   => 'quality-warn',
-        };
-    }
-
-    private function build_editorial_readiness_summary(array $args): array
-    {
-        $quality_status = sanitize_key((string) ($args['quality_status'] ?? 'warn'));
-        $quality_score = (int) ($args['quality_score'] ?? 0);
-        $title_strong = !empty($args['title_strong']);
-        $opening_alignment_score = (int) ($args['opening_alignment_score'] ?? 0);
-        $page_count = (int) ($args['page_count'] ?? 1);
-        $strong_page_openings = (int) ($args['strong_page_openings'] ?? 0);
-        $strong_page_summaries = (int) ($args['strong_page_summaries'] ?? 0);
-        $target_pages = (int) ($args['target_pages'] ?? 0);
-        $strong_social_variants = (int) ($args['strong_social_variants'] ?? 0);
-        $lead_social_score = (int) ($args['lead_social_score'] ?? 0);
-        $lead_social_specific = !empty($args['lead_social_specific']);
-        $lead_social_front_loaded = !empty($args['lead_social_front_loaded']);
-        $lead_social_promise_sync = !empty($args['lead_social_promise_sync']);
-        $blocking_checks = !empty($args['blocking_checks']) && is_array($args['blocking_checks']) ? array_values($args['blocking_checks']) : [];
-        $warning_checks = !empty($args['warning_checks']) && is_array($args['warning_checks']) ? array_values($args['warning_checks']) : [];
-
-        $readiness = 'review';
-        if ($quality_status === 'block') {
-            $readiness = 'blocked';
-        } elseif (
-            $quality_score >= 88
-            && $title_strong
-            && $opening_alignment_score >= 2
-            && $page_count >= 2
-            && $page_count <= 3
-            && $strong_page_openings >= $page_count
-            && $strong_page_summaries >= $page_count
-            && $strong_social_variants >= max(1, $target_pages)
-            && $lead_social_score >= 18
-            && $lead_social_specific
-            && $lead_social_front_loaded
-            && $lead_social_promise_sync
-        ) {
-            $readiness = 'ready';
-        }
-
-        $highlights = [];
-        if ($title_strong && $opening_alignment_score >= 2) {
-            $highlights[] = __('Headline and page-one opening land the same promise.', 'kuchnia-twist');
-        }
-        if ($page_count >= 2 && $page_count <= 3 && $strong_page_summaries >= $page_count) {
-            $highlights[] = sprintf(
-                __('Article flow feels intentional across %d pages.', 'kuchnia-twist'),
-                $page_count
-            );
-        }
-        if ($strong_social_variants >= max(1, $target_pages) && $lead_social_score >= 18) {
-            $highlights[] = __('Social pack has a strong lead and enough usable variants.', 'kuchnia-twist');
-        }
-        if (empty($highlights) && $quality_status !== 'block' && $quality_score >= 75) {
-            $highlights[] = __('Core package is usable for live testing.', 'kuchnia-twist');
-        }
-
-        $messages = $this->quality_failed_check_messages();
-        $watchouts = [];
-        foreach (array_slice(array_merge($blocking_checks, $warning_checks), 0, 3) as $failed_check) {
-            $watchouts[] = sanitize_text_field((string) ($messages[(string) $failed_check] ?? $this->format_human_label((string) $failed_check)));
-        }
-        if (empty($watchouts) && $readiness === 'ready') {
-            $watchouts[] = __('No major editorial warnings.', 'kuchnia-twist');
-        }
-
-        return [
-            'editorial_readiness' => $readiness,
-            'editorial_highlights' => array_values(array_filter($highlights, static fn ($item): bool => trim((string) $item) !== '')),
-            'editorial_watchouts' => array_values(array_filter($watchouts, static fn ($item): bool => trim((string) $item) !== '')),
-        ];
-    }
-
     private function job_content_machine_meta(array $job): array
     {
         $generated = is_array($job['generated_payload'] ?? null) ? $job['generated_payload'] : [];
@@ -472,4 +362,5 @@ trait Kuchnia_Twist_Publisher_Quality_Summary_Trait
             'distribution_source' => sanitize_key((string) ($validator_summary['distribution_source'] ?? '')),
         ];
     }
+
 }

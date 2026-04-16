@@ -900,9 +900,6 @@ export function createSocialVariantHelpers(deps) {
     if (stripHookEchoFromCaption(hook, caption) === caption) {
       score += 2;
     }
-    if (cleanMultilineText(variant?.post_message || "")) {
-      score += 1;
-    }
     if (articleContext) {
       if (contextOverlap >= 0.16 && contextOverlap <= 0.7) {
         score += 4;

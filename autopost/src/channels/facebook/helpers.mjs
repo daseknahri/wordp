@@ -3,6 +3,7 @@ import { createFacebookApiHelpers } from "./api.mjs";
 import { createFacebookDistributionHelpers } from "./distribution.mjs";
 import { createFacebookFingerprintHelpers } from "./fingerprints.mjs";
 import { createFacebookPublishHelpers } from "./publish.mjs";
+import { createFacebookStateHelpers } from "./state.mjs";
 
 export function createFacebookHelpers(deps) {
   const {
@@ -42,6 +43,15 @@ export function createFacebookHelpers(deps) {
     normalizeFacebookDistribution: adapterHelpers.normalizeFacebookDistribution,
   });
 
+  const stateHelpers = createFacebookStateHelpers({
+    buildFacebookCommentUrl: adapterHelpers.buildFacebookCommentUrl,
+    buildFacebookPostUrl: adapterHelpers.buildFacebookPostUrl,
+    cleanMultilineText,
+    cleanText,
+    formatError,
+    normalizeAngleKey,
+  });
+
   const apiHelpers = createFacebookApiHelpers({
     buildFacebookPostUrl: adapterHelpers.buildFacebookPostUrl,
     formPostJson,
@@ -49,18 +59,15 @@ export function createFacebookHelpers(deps) {
 
   const publishHelpers = createFacebookPublishHelpers({
     buildFacebookComment: adapterHelpers.buildFacebookComment,
-    buildFacebookCommentUrl: adapterHelpers.buildFacebookCommentUrl,
     buildFacebookPostMessage: adapterHelpers.buildFacebookPostMessage,
-    buildFacebookPostUrl: adapterHelpers.buildFacebookPostUrl,
     buildFallbackFacebookCaption: adapterHelpers.buildFallbackFacebookCaption,
-    cleanText,
-    cleanMultilineText,
-    formatError,
-    normalizeAngleKey,
+    buildFacebookPublishPageState: stateHelpers.buildFacebookPublishPageState,
+    markFacebookPublishFailure: stateHelpers.markFacebookPublishFailure,
     normalizeFacebookDistribution: adapterHelpers.normalizeFacebookDistribution,
     normalizeSlug,
     publishFacebookComment: apiHelpers.publishFacebookComment,
     publishFacebookPost: apiHelpers.publishFacebookPost,
+    resolveFacebookPublishCtas: stateHelpers.resolveFacebookPublishCtas,
     resolveCanonicalContentPackage,
     trimText,
   });

@@ -3,16 +3,14 @@ export function createFacebookPublishHelpers(deps) {
     buildFacebookComment,
     buildFacebookCommentUrl,
     buildFacebookPostMessage,
-    buildFacebookPostUrl,
     buildFallbackFacebookCaption,
-    cleanText,
-    cleanMultilineText,
-    formatError,
-    normalizeAngleKey,
+    buildFacebookPublishPageState,
+    markFacebookPublishFailure,
     normalizeFacebookDistribution,
     normalizeSlug,
     publishFacebookComment,
     publishFacebookPost,
+    resolveFacebookPublishCtas,
     resolveCanonicalContentPackage,
     trimText,
   } = deps;
@@ -42,30 +40,29 @@ export function createFacebookPublishHelpers(deps) {
   }) {
     const nextDistribution = normalizeFacebookDistribution(distribution, contentType);
     const failedPages = [];
+    const publishCtas = resolveFacebookPublishCtas(settings);
 
     for (let index = 0; index < pages.length; index += 1) {
       const page = pages[index];
       const pageLabel = page.label || page.page_id;
       const existing = nextDistribution.pages[page.page_id] || {};
       const variant = socialPack[index] || socialPack[index % socialPack.length] || {};
-      const message = buildFacebookPostMessage(variant, buildFallbackFacebookCaption(generated, settings.defaultCta));
+      const message = buildFacebookPostMessage(
+        variant,
+        buildFallbackFacebookCaption(generated),
+        publishCtas.postTeaserCta,
+      );
       const commentUrl = buildTrackedUrl(permalink, settings, generated, `facebook_comment_${normalizeSlug(pageLabel)}`);
-      const commentMessage = buildFacebookComment(settings.defaultCta, commentUrl);
-      const pageState = {
-        ...existing,
-        page_id: page.page_id,
-        label: pageLabel,
-        angle_key: normalizeAngleKey(variant.angle_key || existing.angle_key || existing.angleKey || "", contentType),
-        hook: cleanText(variant.hook || existing.hook || ""),
-        caption: cleanMultilineText(variant.caption || existing.caption || ""),
-        cta_hint: cleanText(variant.cta_hint || existing.cta_hint || ""),
-        post_message: cleanMultilineText(existing.post_message || existing.postMessage || message) || message,
-        post_url: cleanText(existing.post_url || (existing.post_id ? buildFacebookPostUrl(existing.post_id) : "")),
-        comment_message: cleanMultilineText(existing.comment_message || existing.commentMessage || commentMessage) || commentMessage,
-        comment_url: cleanText(existing.comment_url || (existing.post_id && existing.comment_id ? buildFacebookCommentUrl(existing.post_id, existing.comment_id) : "")),
-        status: cleanText(existing.status || ""),
-        error: "",
-      };
+      const commentMessage = buildFacebookComment(publishCtas.commentLinkCta, commentUrl);
+      const pageState = buildFacebookPublishPageState({
+        existing,
+        page,
+        pageLabel,
+        variant,
+        message,
+        commentMessage,
+        contentType,
+      });
 
       try {
         if (!pageState.post_id) {
@@ -91,15 +88,9 @@ export function createFacebookPublishHelpers(deps) {
         pageState.status = "completed";
         nextDistribution.pages[page.page_id] = pageState;
       } catch (error) {
-        pageState.status = pageState.post_id ? "comment_failed" : "post_failed";
-        pageState.error = formatError(error);
+        const failure = markFacebookPublishFailure(pageState, pageLabel, error);
         nextDistribution.pages[page.page_id] = pageState;
-        failedPages.push({
-          page_id: page.page_id,
-          label: pageLabel,
-          error: pageState.error,
-          stage: pageState.status,
-        });
+        failedPages.push(failure);
       }
     }
 

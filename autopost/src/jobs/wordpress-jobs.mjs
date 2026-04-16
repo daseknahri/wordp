@@ -7,6 +7,7 @@ export function createWordPressJobClient(deps) {
     formatError,
     log,
     resolveCanonicalContentPackage,
+    resolveFacebookDefaultCtas,
     resolveFacebookChannelAdapter,
     toInt,
     wpRequest,
@@ -26,7 +27,12 @@ export function createWordPressJobClient(deps) {
 
   async function publishBlogPost(jobId, job, generated, featuredImageId, facebookImageId) {
     const contentPackage = resolveCanonicalContentPackage(generated, job);
-    const facebookCaption = deriveLegacyFacebookCaptionMirror(resolveFacebookChannelAdapter(generated, job), generated.facebook_caption || "");
+    const { facebookPostTeaserCta } = resolveFacebookDefaultCtas(generated, job);
+    const facebookCaption = deriveLegacyFacebookCaptionMirror(
+      resolveFacebookChannelAdapter(generated, job),
+      generated.facebook_caption || "",
+      facebookPostTeaserCta,
+    );
     const groupShareKit = deriveLegacyGroupShareKitMirror(generated);
     return wpRequest(`/wp-json/kuchnia-twist/v1/jobs/${jobId}/publish-blog`, {
       method: "POST",

@@ -35,6 +35,7 @@ export function summarizeArticleStage({
   const pageFlow = normalizeGeneratedPageFlow(Array.isArray(contentPackage.page_flow) ? contentPackage.page_flow : [], contentPages);
   const pageWordCounts = contentPages.map((page) => countWords(page.replace(/<[^>]+>/g, " ")));
   const pageCount = contentPages.length || 1;
+  const pageOneInternalLinks = countInternalLinks(contentPages[0] || "");
   const shortestPageWords = pageWordCounts.length ? Math.min(...pageWordCounts) : 0;
   const strongPageOpenings = contentPages.filter((page, index) => pageStartsWithExpectedLead(page, index)).length;
   const uniquePageLabels = new Set(pageFlow.map((page) => normalizePageFlowLabelFingerprint(page?.label || "")).filter(Boolean));
@@ -76,6 +77,7 @@ export function summarizeArticleStage({
   if (pageCount > 1 && strongPageLabels < pageCount) checks.push("weak_page_labels");
   if (pageCount > 1 && uniquePageLabels.size < pageCount) checks.push("repetitive_page_labels");
   if (pageCount > 1 && strongPageSummaries < pageCount) checks.push("weak_page_summaries");
+  if (pageCount > 1 && pageOneInternalLinks < 1) checks.push("weak_reader_path");
   if (h2Count < 2) checks.push("weak_structure");
   if (internalLinks < 3) checks.push("missing_internal_links");
 
@@ -103,6 +105,7 @@ export function summarizeArticleStage({
       unique_page_labels: uniquePageLabels.size,
       strong_page_labels: strongPageLabels,
       strong_page_summaries: strongPageSummaries,
+      page_one_internal_links: pageOneInternalLinks,
       h2_count: h2Count,
       internal_links: internalLinks,
       recipe_complete: recipeComplete,

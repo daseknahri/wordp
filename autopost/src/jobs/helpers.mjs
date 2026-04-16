@@ -1,3 +1,4 @@
+import { createFacebookPhaseHelpers } from "./facebook-phase.mjs";
 import { createJobOrchestrator } from "./orchestrator.mjs";
 import { createPackageGenerator } from "./package-generator.mjs";
 import { createWordPressJobClient } from "./wordpress-jobs.mjs";
@@ -11,6 +12,7 @@ export function createJobsHelpers(deps) {
     formatError,
     log,
     resolveCanonicalContentPackage,
+    resolveFacebookDefaultCtas,
     resolveFacebookChannelAdapter,
     toInt,
     wpRequest,
@@ -51,6 +53,19 @@ export function createJobsHelpers(deps) {
     summarizeFacebookFailures,
   } = deps;
 
+  const facebookPhaseHelpers = createFacebookPhaseHelpers({
+    assertRecipeDistributionTargets,
+    buildFallbackFacebookCaption,
+    deriveLegacyFacebookCaptionMirror,
+    deriveLegacyGroupShareKitMirror,
+    firstSuccessfulDistributionResult,
+    resolveFacebookChannelAdapter,
+    resolvePreferredAngle,
+    resolveSelectedFacebookPages,
+    seedLegacyFacebookDistribution,
+    syncGeneratedContractContainers,
+  });
+
   const wordPressJobClient = createWordPressJobClient({
     WORKER_VERSION,
     config,
@@ -59,6 +74,7 @@ export function createJobsHelpers(deps) {
     formatError,
     log,
     resolveCanonicalContentPackage,
+    resolveFacebookDefaultCtas,
     resolveFacebookChannelAdapter,
     toInt,
     wpRequest,
@@ -93,17 +109,14 @@ export function createJobsHelpers(deps) {
     assertFacebookConfigured,
     assertQualityGate,
     assertRecipeDistributionTargets,
-    buildFallbackFacebookCaption,
     buildQualitySummary,
     claimNextJob: (...args) => wordPressJobClient.claimNextJob(...args),
     completeJob: (...args) => wordPressJobClient.completeJob(...args),
-    deriveLegacyFacebookCaptionMirror,
-    deriveLegacyGroupShareKitMirror,
     ensureJobImages,
     ensureOpenAiConfigured,
     ensureSocialPackCoverage,
+    finalizeFacebookPhaseState: (...args) => facebookPhaseHelpers.finalizeFacebookPhaseState(...args),
     firstAttachment,
-    firstSuccessfulDistributionResult,
     formatError,
     generatePackage: (...args) => packageGenerator.generatePackage(...args),
     hydrateStoredGeneratedPayload,
@@ -115,14 +128,10 @@ export function createJobsHelpers(deps) {
     normalizeGeneratedPayload,
     publishBlogPost: (...args) => wordPressJobClient.publishBlogPost(...args),
     publishFacebookDistribution,
+    refreshFacebookPhaseState: (...args) => facebookPhaseHelpers.refreshFacebookPhaseState(...args),
     resolveCanonicalContentPackage,
-    resolveFacebookChannelAdapter,
-    resolvePreferredAngle,
-    resolveSelectedFacebookPages,
     safeFailJob: (...args) => wordPressJobClient.safeFailJob(...args),
-    seedLegacyFacebookDistribution,
     summarizeFacebookFailures,
-    syncGeneratedContractContainers,
     toInt,
     updateJobProgress: (...args) => wordPressJobClient.updateJobProgress(...args),
   });

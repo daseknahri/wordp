@@ -25,6 +25,38 @@ export function createChannelAdapterHelpers(deps) {
     trimText,
   } = deps;
 
+  function resolveFacebookDefaultCtas(generated, job = null) {
+    const generatedContentMachine = isPlainObject(generated?.content_machine) ? generated.content_machine : {};
+    const requestPayload = isPlainObject(job?.request_payload) ? job.request_payload : {};
+    const requestContentMachine = isPlainObject(requestPayload.content_machine) ? requestPayload.content_machine : {};
+    const generatedDefaultCtas = isPlainObject(generatedContentMachine.default_ctas) ? generatedContentMachine.default_ctas : {};
+    const requestDefaultCtas = isPlainObject(requestContentMachine.default_ctas) ? requestContentMachine.default_ctas : {};
+
+    const facebookPostTeaserCta = cleanText(
+      generated?.facebook_post_teaser_cta ||
+      requestPayload.facebook_post_teaser_cta ||
+      generatedDefaultCtas.facebook_post_teaser ||
+      requestDefaultCtas.facebook_post_teaser ||
+      "\u{1F447} Full article in the first comment below.",
+    );
+    const facebookCommentLinkCta = cleanText(
+      generated?.facebook_comment_link_cta ||
+      requestPayload.facebook_comment_link_cta ||
+      generatedDefaultCtas.facebook_comment_link ||
+      requestDefaultCtas.facebook_comment_link ||
+      generatedContentMachine.default_cta ||
+      requestContentMachine.default_cta ||
+      generated?.default_cta ||
+      requestPayload.default_cta ||
+      "Read the full article on the blog.",
+    );
+
+    return {
+      facebookPostTeaserCta,
+      facebookCommentLinkCta,
+    };
+  }
+
   function resolveCanonicalContentPackage(generated, job = null) {
     const existingPackage = isPlainObject(generated?.content_package) ? generated.content_package : {};
     const contentType = cleanText(existingPackage.content_type || generated?.content_type || job?.content_type || "recipe") || "recipe";
@@ -172,11 +204,11 @@ export function createChannelAdapterHelpers(deps) {
     };
   }
 
-  function deriveLegacyFacebookCaptionMirror(facebookChannel, fallbackCaption = "") {
+  function deriveLegacyFacebookCaptionMirror(facebookChannel, fallbackCaption = "", teaserCta = "") {
     const selected = Array.isArray(facebookChannel?.selected) ? facebookChannel.selected : [];
     const firstSelected = selected.find((variant) => isPlainObject(variant));
     if (firstSelected) {
-      return buildFacebookPostMessage(firstSelected, cleanMultilineText(firstSelected.caption || fallbackCaption || ""));
+      return buildFacebookPostMessage(firstSelected, cleanMultilineText(firstSelected.caption || fallbackCaption || ""), teaserCta);
     }
 
     const distributionPages = isPlainObject(facebookChannel?.distribution?.pages)
@@ -184,7 +216,7 @@ export function createChannelAdapterHelpers(deps) {
       : [];
     const firstPage = distributionPages.find((page) => isPlainObject(page));
     if (firstPage) {
-      return buildFacebookPostMessage(firstPage, cleanMultilineText(firstPage.caption || fallbackCaption || ""));
+      return buildFacebookPostMessage(firstPage, cleanMultilineText(firstPage.caption || fallbackCaption || ""), teaserCta);
     }
 
     return cleanMultilineText(fallbackCaption || "");
@@ -221,9 +253,11 @@ export function createChannelAdapterHelpers(deps) {
     const facebookChannel = resolveFacebookChannelAdapter({ ...generated, content_package: contentPackage }, job);
     const pinterestChannel = resolvePinterestChannelAdapter({ ...generated, content_package: contentPackage }, job);
     const facebookGroupsChannel = resolveFacebookGroupsChannelAdapter({ ...generated, content_package: contentPackage }, job);
+    const defaultCtas = resolveFacebookDefaultCtas(generated, job);
     const legacyFacebookCaption = deriveLegacyFacebookCaptionMirror(
       facebookChannel,
       cleanMultilineText(generated?.facebook_caption || ""),
+      defaultCtas.facebookPostTeaserCta,
     );
     const topLevelRecipe = contentPackage.content_type === "recipe"
       ? normalizeRecipe(contentPackage.recipe || generated?.recipe || {}, contentPackage.content_type)
@@ -250,6 +284,11 @@ export function createChannelAdapterHelpers(deps) {
       group_share_kit: deriveLegacyGroupShareKitMirror({ ...generated, channels: { ...(isPlainObject(generated?.channels) ? generated.channels : {}), facebook_groups: facebookGroupsChannel } }, job),
       content_machine: {
         ...contentMachine,
+        default_ctas: {
+          facebook_post_teaser: defaultCtas.facebookPostTeaserCta,
+          facebook_comment_link: defaultCtas.facebookCommentLinkCta,
+        },
+        default_cta: defaultCtas.facebookCommentLinkCta,
         contracts: {
           ...contracts,
           legacy_job: legacyJob,
@@ -270,6 +309,7 @@ export function createChannelAdapterHelpers(deps) {
     deriveLegacyFacebookCaptionMirror,
     deriveLegacyGroupShareKitMirror,
     resolveCanonicalContentPackage,
+    resolveFacebookDefaultCtas,
     resolveFacebookChannelAdapter,
     resolveFacebookGroupsChannelAdapter,
     resolvePinterestChannelAdapter,

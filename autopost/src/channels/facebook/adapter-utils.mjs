@@ -3,33 +3,47 @@ export function createFacebookAdapterHelpers(deps) {
     cleanText,
     cleanMultilineText,
     normalizeAngleKey,
-    normalizeSocialLineFingerprint,
     resolveCanonicalContentPackage,
     stripHookEchoFromCaption,
   } = deps;
 
-  function buildFacebookComment(defaultCta, trackedUrl) {
-    const cta = cleanText(defaultCta) || "Read the full article on the blog.";
-    return cleanMultilineText(`${cta} ${trackedUrl}`.trim());
+  const DEFAULT_FACEBOOK_POST_TEASER_CTA = "\u{1F447} Full article in the first comment below.";
+  const DEFAULT_FACEBOOK_COMMENT_LINK_CTA = "Read the full article on the blog.";
+
+  function buildFacebookCommentTeaser(teaserCta = DEFAULT_FACEBOOK_POST_TEASER_CTA) {
+    return cleanText(teaserCta) || DEFAULT_FACEBOOK_POST_TEASER_CTA;
   }
 
-  function buildFacebookPostMessage(variant, fallbackCaption) {
+  function appendFacebookCommentTeaser(message, teaserCta = DEFAULT_FACEBOOK_POST_TEASER_CTA) {
+    const normalized = cleanMultilineText(message || "");
+    if (!normalized || /\bfirst comment\b/i.test(normalized)) {
+      return normalized;
+    }
+
+    return cleanMultilineText(`${normalized}\n\n${buildFacebookCommentTeaser(teaserCta)}`);
+  }
+
+  function buildFacebookComment(commentLinkCta, trackedUrl) {
+    const cta = cleanText(commentLinkCta) || DEFAULT_FACEBOOK_COMMENT_LINK_CTA;
+    return cleanMultilineText(`\u{1F447} ${cta}\n${trackedUrl}`.trim());
+  }
+
+  function buildFacebookPostMessage(variant, fallbackCaption, teaserCta = DEFAULT_FACEBOOK_POST_TEASER_CTA) {
     const hook = cleanText(variant?.hook || "");
     const caption = stripHookEchoFromCaption(hook, variant?.caption || fallbackCaption || "");
 
     if (hook && caption) {
-      return `${hook}\n\n${caption}`.trim();
+      return appendFacebookCommentTeaser(`${hook}\n\n${caption}`.trim(), teaserCta);
     }
 
-    return hook || caption;
+    return appendFacebookCommentTeaser(hook || caption, teaserCta);
   }
 
-  function buildFallbackFacebookCaption(generated, defaultCta) {
+  function buildFallbackFacebookCaption(generated) {
     const contentPackage = resolveCanonicalContentPackage(generated);
     return [
       cleanText(contentPackage.title),
       cleanText(contentPackage.excerpt),
-      cleanText(defaultCta) || "Read the full article on the blog.",
     ]
       .filter(Boolean)
       .join("\n\n")
@@ -67,7 +81,8 @@ export function createFacebookAdapterHelpers(deps) {
         }
 
         const hook = cleanText(item.hook || item.headline || "");
-        const caption = cleanMultilineText(item.caption || item.body || "");
+        const persistedPostMessage = cleanMultilineText(item.post_message || item.postMessage || "");
+        const caption = cleanMultilineText(item.caption || item.body || persistedPostMessage || "");
         const ctaHint = cleanText(item.cta_hint || item.ctaHint || "");
         const angleKey = normalizeAngleKey(item.angle_key || item.angleKey || "", contentType);
 
@@ -81,10 +96,7 @@ export function createFacebookAdapterHelpers(deps) {
           hook,
           caption,
           cta_hint: ctaHint,
-          post_message: cleanMultilineText(item.post_message || item.postMessage || ""),
         };
-
-        normalized.post_message = normalized.post_message || buildFacebookPostMessage(normalized, "");
 
         return normalized;
       })
@@ -108,7 +120,7 @@ export function createFacebookAdapterHelpers(deps) {
                 label: cleanText(page.label || ""),
                 angle_key: normalizeAngleKey(page.angle_key || page.angleKey || "", contentType),
                 hook: cleanText(page.hook || ""),
-                caption: cleanMultilineText(page.caption || ""),
+                caption: cleanMultilineText(page.caption || page.post_message || page.postMessage || ""),
                 cta_hint: cleanText(page.cta_hint || page.ctaHint || ""),
                 post_message: cleanMultilineText(page.post_message || page.postMessage || ""),
                 post_id: cleanText(page.post_id || page.postId || ""),
@@ -119,7 +131,6 @@ export function createFacebookAdapterHelpers(deps) {
                 status: cleanText(page.status || ""),
                 error: cleanText(page.error || ""),
               };
-              normalizedPage.post_message = normalizedPage.post_message || buildFacebookPostMessage(normalizedPage, "");
               return normalizedPage;
             })(),
           ];
@@ -130,6 +141,7 @@ export function createFacebookAdapterHelpers(deps) {
 
   return {
     buildFacebookComment,
+    buildFacebookCommentTeaser,
     buildFacebookCommentUrl,
     buildFacebookPostMessage,
     buildFacebookPostUrl,
