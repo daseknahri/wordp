@@ -2584,6 +2584,16 @@ body.front-page .home-hero__content {
   border-radius: 18px;
 }
 
+.author-card--rail.author-card--page {
+  gap: 12px;
+}
+
+.author-card--rail.author-card--page .author-card__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+}
+
 .author-card--rail .chip-link {
   justify-self: start;
   margin-top: 4px;

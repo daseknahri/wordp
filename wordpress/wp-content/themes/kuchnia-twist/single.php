@@ -17,12 +17,9 @@ while (have_posts()) :
     $is_updated         = get_the_modified_date('U') !== get_the_date('U');
     $editor_profile     = kuchnia_twist_editor_profile();
     $about_page         = get_page_by_path('about');
-    $public_email       = kuchnia_twist_public_contact_email();
-    $business_email     = kuchnia_twist_business_contact_email();
     $story_links        = kuchnia_twist_adjacent_story_links($post_id);
     $editor_name        = trim((string) ($editor_profile['name'] ?? ''));
     $editor_role        = trim((string) ($editor_profile['role'] ?? ''));
-    $editor_bio         = trim((string) ($editor_profile['bio'] ?? ''));
     $is_recipe          = $content_type === 'recipe' && !empty($recipe_data);
     $current_page       = max(1, (int) ($article['current_page'] ?? ($page ?? 1)));
     $total_pages        = max(1, (int) ($article['page_count'] ?? ($numpages ?? 1)));
@@ -171,7 +168,7 @@ while (have_posts()) :
 
                 <?php if ($editor_name !== '') : ?>
                     <section class="article-rail">
-                        <div class="author-card author-card--rail">
+                        <div class="author-card author-card--rail author-card--page">
                             <div class="author-card__avatar">
                                 <?php kuchnia_twist_render_editor_portrait($editor_name, ['class' => 'author-card__image', 'loading' => 'lazy', 'decoding' => 'async']); ?>
                             </div>
@@ -180,25 +177,6 @@ while (have_posts()) :
                                 <h2><?php echo esc_html($editor_name); ?></h2>
                                 <?php if ($editor_role !== '') : ?>
                                     <p class="author-card__role"><?php echo esc_html($editor_role); ?></p>
-                                <?php endif; ?>
-                                <?php if ($editor_bio !== '') : ?>
-                                    <p><?php echo esc_html($editor_bio); ?></p>
-                                <?php endif; ?>
-                                <?php if ($public_email !== '' || $business_email !== '') : ?>
-                                    <div class="author-card__contacts">
-                                        <?php if ($public_email !== '') : ?>
-                                            <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($public_email)); ?>">
-                                                <span class="author-card__contact-label"><?php esc_html_e('Editorial email', 'kuchnia-twist'); ?></span>
-                                                <span class="author-card__contact-value"><?php echo esc_html(antispambot($public_email)); ?></span>
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if ($business_email !== '') : ?>
-                                            <a class="author-card__contact" href="mailto:<?php echo esc_attr(antispambot($business_email)); ?>">
-                                                <span class="author-card__contact-label"><?php esc_html_e('Business email', 'kuchnia-twist'); ?></span>
-                                                <span class="author-card__contact-value"><?php echo esc_html(antispambot($business_email)); ?></span>
-                                            </a>
-                                        <?php endif; ?>
-                                    </div>
                                 <?php endif; ?>
                                 <?php if ($about_page instanceof WP_Post) : ?>
                                     <a class="chip-link" href="<?php echo esc_url(get_permalink($about_page)); ?>"><?php esc_html_e('About the editor', 'kuchnia-twist'); ?></a>
