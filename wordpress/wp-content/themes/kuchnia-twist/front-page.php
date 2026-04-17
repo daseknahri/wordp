@@ -28,11 +28,11 @@ $editor_bio        = trim((string) ($editor_profile['bio'] ?? ''));
 $about_page        = get_page_by_path('about');
 
 if ($hero_post && has_post_thumbnail($hero_post)) {
-    $hero_image_markup = get_the_post_thumbnail($hero_post, 'kuchnia-twist-hero', [
+    $hero_image_markup = get_the_post_thumbnail($hero_post, 'full', [
         'loading'       => 'eager',
         'fetchpriority' => 'high',
         'decoding'      => 'async',
-        'sizes'         => '(max-width: 767px) 100vw, (max-width: 1199px) 92vw, 56vw',
+        'sizes'         => '100vw',
         'alt'           => trim((string) get_post_meta(get_post_thumbnail_id($hero_post), '_wp_attachment_image_alt', true)) ?: get_the_title($hero_post),
     ]);
 }
