@@ -927,12 +927,19 @@ function kuchnia_twist_editor_profile()
 
 function kuchnia_twist_render_editor_portrait($alt = '', array $attributes = [])
 {
+    $profile = kuchnia_twist_editor_profile();
+    $fallback_name = trim((string) ($profile['name'] ?? ''));
+
     $defaults = [
         'class'    => 'author-card__image',
         'loading'  => 'lazy',
         'decoding' => 'async',
         'src'      => kuchnia_twist_editor_portrait_url(),
-        'alt'      => $alt !== '' ? $alt : __('Anna Kowalska, editor at kuchniatwist', 'kuchnia-twist'),
+        'alt'      => $alt !== '' ? $alt : sprintf(
+            /* translators: %s: editor name */
+            __('%s, editor at kuchniatwist', 'kuchnia-twist'),
+            $fallback_name !== '' ? $fallback_name : __('Kuchnia Twist editorial desk', 'kuchnia-twist')
+        ),
     ];
 
     $attributes = wp_parse_args($attributes, $defaults);
@@ -968,6 +975,31 @@ function kuchnia_twist_estimated_read_time($post_id = 0)
     return max(1, (int) ceil($words / 220));
 }
 
+function kuchnia_twist_attachment_alt_text($attachment_id = 0, string $fallback = '')
+{
+    $attachment_id = (int) $attachment_id;
+    if ($attachment_id <= 0) {
+        return $fallback;
+    }
+
+    $alt = trim((string) get_post_meta($attachment_id, '_wp_attachment_image_alt', true));
+    if ($alt !== '') {
+        return $alt;
+    }
+
+    $caption = trim((string) wp_get_attachment_caption($attachment_id));
+    if ($caption !== '') {
+        return $caption;
+    }
+
+    $title = trim((string) get_the_title($attachment_id));
+    if ($title !== '') {
+        return $title;
+    }
+
+    return $fallback;
+}
+
 function kuchnia_twist_get_post_media_markup($post_id = 0, $size = 'kuchnia-twist-card', array $attrs = [])
 {
     $post_id = $post_id ?: get_the_ID();
@@ -976,6 +1008,9 @@ function kuchnia_twist_get_post_media_markup($post_id = 0, $size = 'kuchnia-twis
         return '';
     }
 
+    $thumbnail_id = (int) get_post_thumbnail_id($post_id);
+    $fallback_alt = trim((string) get_the_title($post_id));
+
     return (string) get_the_post_thumbnail(
         $post_id,
         $size,
@@ -983,6 +1018,7 @@ function kuchnia_twist_get_post_media_markup($post_id = 0, $size = 'kuchnia-twis
             [
                 'loading'  => 'lazy',
                 'decoding' => 'async',
+                'alt'      => kuchnia_twist_attachment_alt_text($thumbnail_id, $fallback_alt),
             ],
             $attrs
         )

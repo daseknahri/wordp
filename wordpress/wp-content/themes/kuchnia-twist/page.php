@@ -19,11 +19,12 @@ get_header();
     $has_profile_body = (!$render_post_body && !empty($profile_body)) || (!$render_post_body && !empty($profile_body_list));
 
     if (has_post_thumbnail()) {
+        $page_thumbnail_id = (int) get_post_thumbnail_id(get_the_ID());
         $page_art = get_the_post_thumbnail(get_the_ID(), 'kuchnia-twist-hero', [
             'loading'  => 'eager',
             'decoding' => 'async',
             'sizes'    => '(max-width: 767px) 100vw, (max-width: 1199px) 92vw, 40vw',
-            'alt'      => trim((string) get_post_meta(get_post_thumbnail_id(get_the_ID()), '_wp_attachment_image_alt', true)) ?: get_the_title(),
+            'alt'      => kuchnia_twist_attachment_alt_text($page_thumbnail_id, get_the_title()),
         ]);
     }
     ?>

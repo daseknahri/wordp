@@ -91,7 +91,14 @@ while (have_posts()) :
 
         <?php if (has_post_thumbnail()) : ?>
             <figure class="article-hero__media">
-                <?php the_post_thumbnail('kuchnia-twist-hero', ['loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async']); ?>
+                <?php
+                the_post_thumbnail('kuchnia-twist-hero', [
+                    'loading'       => 'eager',
+                    'fetchpriority' => 'high',
+                    'decoding'      => 'async',
+                    'alt'           => kuchnia_twist_attachment_alt_text((int) get_post_thumbnail_id($post_id), get_the_title($post_id)),
+                ]);
+                ?>
             </figure>
         <?php endif; ?>
 
