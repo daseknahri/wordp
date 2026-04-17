@@ -59,6 +59,7 @@ export function createFacebookHelpers(deps) {
 
   const publishHelpers = createFacebookPublishHelpers({
     buildFacebookComment: adapterHelpers.buildFacebookComment,
+    buildFacebookCommentUrl: adapterHelpers.buildFacebookCommentUrl,
     buildFacebookPostMessage: adapterHelpers.buildFacebookPostMessage,
     buildFallbackFacebookCaption: adapterHelpers.buildFallbackFacebookCaption,
     buildFacebookPublishPageState: stateHelpers.buildFacebookPublishPageState,
