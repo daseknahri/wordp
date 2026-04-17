@@ -111,6 +111,55 @@ trait Kuchnia_Twist_Publisher_Admin_Job_Summary_Generated_Trait
 
     private function job_generated_snapshot_core_rows(array $generated_snapshot, array $validator_summary): array
     {
+        $generated_snapshot = wp_parse_args(
+            $generated_snapshot,
+            [
+                'title'                  => '',
+                'slug'                   => '',
+                'word_count'             => 0,
+                'page_count'             => 0,
+                'shortest_page_words'    => 0,
+                'strong_page_openings'   => 0,
+                'unique_page_labels'     => 0,
+                'strong_page_labels'     => 0,
+                'strong_page_summaries'  => 0,
+                'h2_count'               => 0,
+                'internal_links'         => 0,
+                'social_variants'        => 0,
+                'unique_social_hooks'    => 0,
+                'unique_social_openings' => 0,
+                'unique_social_angles'   => 0,
+                'strong_social_variants' => 0,
+                'target_pages'           => 0,
+                'quality_status'         => '',
+                'quality_score'          => '',
+                'editorial_readiness'    => '',
+                'package_layer'          => '',
+                'package_contract'       => '',
+                'input_mode'             => '',
+                'rendering_mode'         => '',
+                'facebook_adapter'       => '',
+                'facebook_contract'      => '',
+                'facebook_layer'         => '',
+                'facebook_groups_adapter'=> '',
+                'facebook_groups_contract' => '',
+                'facebook_groups_ready'  => '',
+                'pinterest_adapter'      => '',
+                'pinterest_contract'     => '',
+                'pinterest_ready'        => '',
+            ]
+        );
+
+        $validator_summary = wp_parse_args(
+            $validator_summary,
+            [
+                'distribution_source'         => '',
+                'repair_attempts'             => null,
+                'article_stage_quality_status'=> '',
+                'article_stage_checks'        => [],
+            ]
+        );
+
         $rows = [];
 
         $this->append_job_generated_snapshot_row($rows, !empty($generated_snapshot['title']), __('Generated title', 'kuchnia-twist'), (string) $generated_snapshot['title']);

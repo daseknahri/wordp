@@ -371,6 +371,7 @@ const {
   deriveLegacyFacebookCaptionMirror,
   deriveLegacyGroupShareKitMirror,
   resolveCanonicalContentPackage,
+  resolveFacebookDefaultCtas,
   resolveFacebookChannelAdapter,
   syncGeneratedContractContainers,
 } = createLateBoundMethodFacade(
@@ -380,6 +381,7 @@ const {
     deriveLegacyFacebookCaptionMirror: "deriveLegacyFacebookCaptionMirror",
     deriveLegacyGroupShareKitMirror: "deriveLegacyGroupShareKitMirror",
     resolveCanonicalContentPackage: "resolveCanonicalContentPackage",
+    resolveFacebookDefaultCtas: "resolveFacebookDefaultCtas",
     resolveFacebookChannelAdapter: "resolveFacebookChannelAdapter",
     syncGeneratedContractContainers: "syncGeneratedContractContainers",
   },
@@ -550,6 +552,7 @@ const jobsHelpers = createJobsHelpers({
   formatError,
   log,
   resolveCanonicalContentPackage,
+  resolveFacebookDefaultCtas,
   resolveFacebookChannelAdapter,
   toInt,
   wpRequest,
