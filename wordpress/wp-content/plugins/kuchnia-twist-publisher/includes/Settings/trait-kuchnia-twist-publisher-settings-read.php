@@ -6,7 +6,8 @@ trait Kuchnia_Twist_Publisher_Settings_Read_Trait
 {
     private function get_settings(): array
     {
-        $settings = wp_parse_args(get_option(self::OPTION_KEY, []), $this->default_settings());
+        $default_settings = $this->default_settings();
+        $settings = wp_parse_args(get_option(self::OPTION_KEY, []), $default_settings);
         $settings['image_generation_mode'] = $this->sanitize_image_generation_mode($settings['image_generation_mode'] ?? 'uploaded_first_generate_missing');
         $strict_contract_env = trim((string) getenv('AUTOPOST_STRICT_CONTRACT_MODE'));
         if ($strict_contract_env !== '') {
@@ -280,6 +281,18 @@ trait Kuchnia_Twist_Publisher_Settings_Read_Trait
         }
 
         $settings['default_cta'] = $settings['facebook_comment_link_cta'];
+
+        $settings['site_public_email'] = sanitize_email((string) ($settings['site_public_email'] ?? ''));
+        if (!is_email($settings['site_public_email'])) {
+            $fallback_site_email = sanitize_email((string) ($settings['editor_business_email'] ?? ''));
+            if (!is_email($fallback_site_email)) {
+                $fallback_site_email = sanitize_email((string) ($settings['editor_public_email'] ?? ''));
+            }
+            if (!is_email($fallback_site_email)) {
+                $fallback_site_email = sanitize_email((string) ($default_settings['site_public_email'] ?? ''));
+            }
+            $settings['site_public_email'] = is_email($fallback_site_email) ? $fallback_site_email : '';
+        }
 
         $settings['facebook_pages'] = $this->facebook_pages($settings, false, false);
         return $settings;

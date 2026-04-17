@@ -1473,42 +1473,50 @@ function kuchnia_twist_page_profile($post = null)
         ],
         'contact' => [
             'eyebrow' => __('Reach the editor', 'kuchnia-twist'),
-            'intro' => __('Use this page for recipe questions, corrections, sourcing notes, or partnership inquiries that fit the journal.', 'kuchnia-twist'),
+            'intro' => __('Use this page for recipe questions, corrections, sourcing notes, and business inquiries that fit the journal.', 'kuchnia-twist'),
             'body' => array_values(array_filter([
-                __('We read every message and keep the feedback loop tight.', 'kuchnia-twist'),
-                __('For recipe help, include the recipe name, the step you were on, and what went wrong so we can answer quickly.', 'kuchnia-twist'),
-                __('For partnerships, share the brand, timeline, and how the collaboration fits a home-cooking journal.', 'kuchnia-twist'),
-                __('Replies typically land within a few business days.', 'kuchnia-twist'),
                 $public_email !== ''
-                    ? sprintf(__('Email us directly at <a href="mailto:%1$s">%1$s</a>.', 'kuchnia-twist'), esc_attr($public_email))
+                    ? sprintf(__('The main site inbox is <a href="mailto:%1$s">%1$s</a>. Use it for reader questions, recipe troubleshooting, corrections, and general notes about the archive.', 'kuchnia-twist'), esc_attr($public_email))
                     : '',
+                $business_email !== '' && $business_email !== $public_email
+                    ? sprintf(__('Business and partnership requests can be sent to <a href="mailto:%1$s">%1$s</a>.', 'kuchnia-twist'), esc_attr($business_email))
+                    : '',
+                $editor['name'] !== ''
+                    ? sprintf(__('Every message is reviewed with the same editorial standards that shape the site, so useful questions and correction notes can reach %s without disappearing into a generic inbox.', 'kuchnia-twist'), esc_html($editor['name']))
+                    : __('Every message is reviewed with the same editorial standards that shape the site, so useful questions and correction notes do not disappear into a generic inbox.', 'kuchnia-twist'),
+                __('For recipe help, include the recipe name, the step you were on, and what happened in the pan, oven, or bowl so the reply can be specific.', 'kuchnia-twist'),
+                __('Replies usually land within a few business days.', 'kuchnia-twist'),
             ], static function ($value) {
                 return is_string($value) && trim($value) !== '';
             })),
             'highlights' => [
-                __('Recipe questions and corrections are welcome.', 'kuchnia-twist'),
-                __('The contact email stays public and easy to find.', 'kuchnia-twist'),
-                __('Replies aim to arrive within a few business days.', 'kuchnia-twist'),
+                __('Reader questions and corrections are welcome.', 'kuchnia-twist'),
+                $public_email !== '' ? $public_email : __('Public contact route stays visible.', 'kuchnia-twist'),
+                $business_email !== '' && $business_email !== $public_email ? $business_email : __('Replies aim to arrive within a few business days.', 'kuchnia-twist'),
             ],
             'sections' => [
                 [
-                    'title' => __('Why readers write', 'kuchnia-twist'),
-                    'body' => __('The most useful messages improve clarity, correct an error, or open a partnership idea that fits the journal without distracting from its food focus.', 'kuchnia-twist'),
+                    'title' => __('Reader and editorial questions', 'kuchnia-twist'),
+                    'body' => $public_email !== ''
+                        ? sprintf(__('For general site questions, recipe troubleshooting, and corrections, write to <a href="mailto:%1$s">%1$s</a>.', 'kuchnia-twist'), esc_attr($public_email))
+                        : __('Use the main site inbox for general site questions, recipe troubleshooting, and corrections.', 'kuchnia-twist'),
                     'items' => [
                         __('Recipe clarification or kitchen troubleshooting.', 'kuchnia-twist'),
                         __('Corrections, sourcing notes, or factual updates.', 'kuchnia-twist'),
-                        __('Partnership and sponsorship inquiries that fit the journal.', 'kuchnia-twist'),
+                        __('Questions about a published page, ingredient note, or unclear step.', 'kuchnia-twist'),
                     ],
                 ],
                 [
-                    'title' => __('How the contact routes work', 'kuchnia-twist'),
-                    'body' => $business_email !== ''
-                        ? sprintf(__('The journal keeps one public contact email at %1$s and a separate business route at %2$s, so readers and partners have a clear way to reach the right person.', 'kuchnia-twist'), $public_email, $business_email)
-                        : sprintf(__('The journal keeps one public contact email at %s so readers always have a clear route back to the site.', 'kuchnia-twist'), $public_email),
+                    'title' => __('Business and partnership route', 'kuchnia-twist'),
+                    'body' => $business_email !== '' && $business_email !== $public_email
+                        ? sprintf(__('Business, licensing, and partnership requests should go to <a href="mailto:%1$s">%1$s</a> so the commercial route stays separate from reader mail.', 'kuchnia-twist'), esc_attr($business_email))
+                        : ($public_email !== ''
+                            ? sprintf(__('Use <a href="mailto:%1$s">%1$s</a> for relevant business inquiries as well. If a separate business inbox is added later, it should appear here.', 'kuchnia-twist'), esc_attr($public_email))
+                            : __('Use the published site inbox for relevant business inquiries until a separate business route is configured.', 'kuchnia-twist')),
                 ],
                 [
-                    'title' => __('Corrections matter', 'kuchnia-twist'),
-                    'body' => __('A clear contact page makes it easier for readers to flag unclear steps, factual errors, or missing context before those problems linger in the archive.', 'kuchnia-twist'),
+                    'title' => __('What happens after you write', 'kuchnia-twist'),
+                    'body' => __('The goal is not an automated support queue. The goal is a clear public route that helps the site answer good questions, fix unclear guidance, and keep the archive trustworthy over time.', 'kuchnia-twist'),
                 ],
             ],
         ],

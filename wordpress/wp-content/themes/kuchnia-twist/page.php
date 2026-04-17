@@ -14,7 +14,9 @@ get_header();
     $updated_label    = get_the_modified_date();
     $profile_body     = $profile['body'] ?? [];
     $profile_body_list = $profile['body_list'] ?? [];
-    $has_profile_body = !$has_body && (!empty($profile_body) || !empty($profile_body_list));
+    $prefer_profile_body = $page_slug === 'contact' && $profile;
+    $render_post_body = $has_body && !$prefer_profile_body;
+    $has_profile_body = (!$render_post_body && !empty($profile_body)) || (!$render_post_body && !empty($profile_body_list));
 
     if (has_post_thumbnail()) {
         $page_art = get_the_post_thumbnail(get_the_ID(), 'kuchnia-twist-hero', [
@@ -53,9 +55,9 @@ get_header();
             <?php endif; ?>
         </header>
 
-        <?php if ($has_body || $has_profile_body) : ?>
+        <?php if ($render_post_body || $has_profile_body) : ?>
             <div class="prose trust-shell__prose">
-                <?php if ($has_body) : ?>
+                <?php if ($render_post_body) : ?>
                     <?php the_content(); ?>
                 <?php else : ?>
                     <?php foreach ($profile_body as $paragraph) : ?>
