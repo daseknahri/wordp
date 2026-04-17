@@ -449,3 +449,4 @@ trait Kuchnia_Twist_Publisher_Admin_Publisher_Page_Trait
         </div>
         <?php
     }
+}
