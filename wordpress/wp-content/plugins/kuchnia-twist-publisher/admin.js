@@ -90,6 +90,85 @@
     }
   };
 
+  const formatBytes = (bytes) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) {
+      return "0 B";
+    }
+
+    const units = ["B", "KB", "MB", "GB"];
+    let value = bytes;
+    let unitIndex = 0;
+
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+
+    const precision = value >= 10 || unitIndex === 0 ? 0 : 1;
+    return `${value.toFixed(precision)} ${units[unitIndex]}`;
+  };
+
+  const updateUploadLimitNote = (form) => {
+    const note = form.find("[data-upload-limit-note]");
+    if (!note.length) {
+      return;
+    }
+
+    const uploadMaxBytes = Number(form.attr("data-upload-max-bytes") || 0);
+    const postMaxBytes = Number(form.attr("data-post-max-bytes") || 0);
+    let totalBytes = 0;
+
+    form.find("[data-upload-file-input]").each(function () {
+      const file = this.files && this.files[0];
+      if (file && Number.isFinite(file.size)) {
+        totalBytes += file.size;
+      }
+    });
+
+    const baseMessage = `Current server limit: ${formatBytes(uploadMaxBytes)} per file and ${formatBytes(postMaxBytes)} per request.`;
+    if (totalBytes > 0) {
+      note.text(`${baseMessage} Selected now: ${formatBytes(totalBytes)} total.`);
+      return;
+    }
+
+    note.text(`${baseMessage} Two large phone photos may need compression before upload.`);
+  };
+
+  const validateUploadSizes = (form) => {
+    const uploadMaxBytes = Number(form.attr("data-upload-max-bytes") || 0);
+    const postMaxBytes = Number(form.attr("data-post-max-bytes") || 0);
+    let totalBytes = 0;
+    let oversizeFile = null;
+
+    form.find("[data-upload-file-input]").each(function () {
+      const file = this.files && this.files[0];
+      if (!file || !Number.isFinite(file.size)) {
+        return;
+      }
+
+      totalBytes += file.size;
+      if (!oversizeFile && uploadMaxBytes > 0 && file.size > uploadMaxBytes) {
+        oversizeFile = file;
+      }
+    });
+
+    if (oversizeFile) {
+      const message = `${oversizeFile.name} is ${formatBytes(oversizeFile.size)}, which is larger than the current per-file upload limit of ${formatBytes(uploadMaxBytes)}.`;
+      announce(message);
+      window.alert(message);
+      return false;
+    }
+
+    if (postMaxBytes > 0 && totalBytes > postMaxBytes) {
+      const message = `The selected images total ${formatBytes(totalBytes)}, which is larger than the current request limit of ${formatBytes(postMaxBytes)}.`;
+      announce(message);
+      window.alert(message);
+      return false;
+    }
+
+    return true;
+  };
+
   $(document).on("click", ".kt-media-select", function (event) {
     event.preventDefault();
 
@@ -238,9 +317,23 @@
     updateComposerTypeState();
   });
 
+  $(document).on("change", "[data-upload-file-input]", function () {
+    updateUploadLimitNote($(this).closest("form"));
+  });
+
+  $(document).on("submit", ".kt-form[data-upload-max-bytes][data-post-max-bytes]", function (event) {
+    const form = $(this);
+    if (!validateUploadSizes(form)) {
+      event.preventDefault();
+    }
+  });
+
   syncFacebookPageRows();
   updateFacebookSelectionState();
   updateComposerTypeState();
+  $(".kt-form[data-upload-max-bytes][data-post-max-bytes]").each(function () {
+    updateUploadLimitNote($(this));
+  });
 
   const adminRoot = $(".kt-admin[data-auto-refresh-seconds]");
   const toggle = $(".kt-auto-refresh-toggle[data-seconds]");

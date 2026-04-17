@@ -20,6 +20,18 @@ mkdir -p \
   /var/www/html/wp-content/themes \
   /var/www/html/wp-content/mu-plugins
 
+php_upload_max_filesize="${PHP_UPLOAD_MAX_FILESIZE:-20M}"
+php_post_max_size="${PHP_POST_MAX_SIZE:-40M}"
+php_memory_limit="${PHP_MEMORY_LIMIT:-256M}"
+php_max_file_uploads="${PHP_MAX_FILE_UPLOADS:-20}"
+
+cat > /usr/local/etc/php/conf.d/kuchnia-twist-upload-limits.ini <<EOF
+upload_max_filesize = ${php_upload_max_filesize}
+post_max_size = ${php_post_max_size}
+memory_limit = ${php_memory_limit}
+max_file_uploads = ${php_max_file_uploads}
+EOF
+
 sync_item /opt/kuchnia-twist/wp-content/plugins/kuchnia-twist-publisher /var/www/html/wp-content/plugins/kuchnia-twist-publisher
 sync_item /opt/kuchnia-twist/wp-content/themes/kuchnia-twist /var/www/html/wp-content/themes/kuchnia-twist
 sync_item /opt/kuchnia-twist/wp-content/mu-plugins/kuchnia-twist-bootstrap.php /var/www/html/wp-content/mu-plugins/kuchnia-twist-bootstrap.php

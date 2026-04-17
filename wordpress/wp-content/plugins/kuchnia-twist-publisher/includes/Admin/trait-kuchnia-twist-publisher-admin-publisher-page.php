@@ -27,6 +27,10 @@ trait Kuchnia_Twist_Publisher_Admin_Publisher_Page_Trait
         $next_scheduled_job   = $this->next_scheduled_job();
         $scheduled_waiting    = $this->count_ready_waiting_jobs();
         $auto_refresh_seconds = ($selected_id === 0 && ($counts['queued'] + $counts['running']) > 0) ? 20 : 0;
+        $upload_max_bytes     = (int) wp_max_upload_size();
+        $post_max_bytes       = (int) wp_convert_hr_to_bytes((string) ini_get('post_max_size'));
+        $upload_limit_label   = size_format(max($upload_max_bytes, 0));
+        $post_limit_label     = size_format(max($post_max_bytes, 0));
         ?>
         <div class="wrap kt-admin"<?php echo $auto_refresh_seconds > 0 ? ' data-auto-refresh-seconds="' . esc_attr((string) $auto_refresh_seconds) . '"' : ''; ?>>
             <div class="kt-page-head">
@@ -183,7 +187,7 @@ trait Kuchnia_Twist_Publisher_Admin_Publisher_Page_Trait
                             <span class="kt-requirement-pill"><?php esc_html_e('Optional exact publish time', 'kuchnia-twist'); ?></span>
                         <?php endif; ?>
                     </div>
-                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" class="kt-form">
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" class="kt-form" data-upload-max-bytes="<?php echo esc_attr((string) $upload_max_bytes); ?>" data-post-max-bytes="<?php echo esc_attr((string) $post_max_bytes); ?>">
                         <?php wp_nonce_field('kuchnia_twist_create_job'); ?>
                         <input type="hidden" name="action" value="kuchnia_twist_create_job">
                         <div class="kt-field-grid">
@@ -213,13 +217,24 @@ trait Kuchnia_Twist_Publisher_Admin_Publisher_Page_Trait
                         <div class="kt-field-grid">
                             <label>
                                 <span><?php esc_html_e('Blog Hero Image', 'kuchnia-twist'); ?></span>
-                                <input type="file" name="blog_image" accept="image/*" <?php echo $manual_only ? 'required' : ''; ?>>
+                                <input type="file" name="blog_image" accept="image/*" <?php echo $manual_only ? 'required' : ''; ?> data-upload-file-input>
                             </label>
                             <label>
                                 <span><?php esc_html_e('Facebook Image', 'kuchnia-twist'); ?></span>
-                                <input type="file" name="facebook_image" accept="image/*" <?php echo $manual_only ? 'required' : ''; ?>>
+                                <input type="file" name="facebook_image" accept="image/*" <?php echo $manual_only ? 'required' : ''; ?> data-upload-file-input>
                             </label>
                         </div>
+                        <p class="kt-detail-note" data-upload-limit-note>
+                            <?php
+                            echo esc_html(
+                                sprintf(
+                                    __('Current server limit: %1$s per file and %2$s per request. Two large phone photos may need compression before upload.', 'kuchnia-twist'),
+                                    $upload_limit_label,
+                                    $post_limit_label
+                                )
+                            );
+                            ?>
+                        </p>
                         <div class="kt-field-grid">
                             <fieldset class="kt-field-span-full kt-checkbox-card">
                                 <legend><?php esc_html_e('Facebook Pages', 'kuchnia-twist'); ?></legend>
