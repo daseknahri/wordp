@@ -610,4 +610,3 @@ trait Kuchnia_Twist_Publisher_Quality_Job_Evaluator_Trait
         ];
     }
 }
-}
