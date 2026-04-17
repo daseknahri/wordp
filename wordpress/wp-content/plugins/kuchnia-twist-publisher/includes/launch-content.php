@@ -74,7 +74,7 @@ HTML,
             'featured_asset' => 'contact-kitchen-onion.jpg',
             'featured_alt' => 'A cook preparing red onion on a kitchen counter in the morning light.',
             'content' => <<<'HTML'
-<p>If you need to reach kuchniatwist about a recipe, a correction, a sourcing question, or a relevant partnership enquiry, this is the right place to do it. The public contact email is <strong>[kuchnia_twist_editor_public_email]</strong>.</p>
+<p>If you need to reach kuchniatwist about a recipe, a correction, a sourcing question, or a relevant partnership enquiry, this is the right place to do it. The public contact email is <strong>[kuchnia_twist_site_public_email]</strong>.</p>
 <p>kuchniatwist is run like a small food journal with a named editor, not like an anonymous content feed. That means reader messages matter, especially when they help make a recipe clearer, correct a factual point, or improve the usefulness of the archive over time.</p>
 <h2>When to write</h2>
 <ul>

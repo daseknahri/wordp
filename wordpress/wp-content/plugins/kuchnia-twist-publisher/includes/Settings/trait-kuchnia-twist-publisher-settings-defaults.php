@@ -175,6 +175,7 @@ trait Kuchnia_Twist_Publisher_Settings_Defaults_Trait
             'facebook_post_teaser_cta'   => $this->default_facebook_post_teaser_cta(),
             'facebook_comment_link_cta'  => $this->default_facebook_comment_link_cta(),
             'default_cta'                => $this->default_facebook_comment_link_cta(),
+            'site_public_email'          => '',
             'editor_name'                => '',
             'editor_role'                => 'Founding editor',
             'editor_bio'                 => 'kuchniatwist is edited as a warm home-cooking journal focused on practical recipes, useful ingredient explainers, and slower story-led kitchen essays.',

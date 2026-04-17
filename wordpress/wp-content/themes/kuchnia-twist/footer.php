@@ -4,9 +4,7 @@ defined('ABSPATH') || exit;
 
 $pillar_nav     = kuchnia_twist_pillar_nav_items();
 $trust_nav      = kuchnia_twist_trust_nav_items();
-$editor_profile = kuchnia_twist_editor_profile();
-$public_email   = sanitize_email((string) ($editor_profile['public_email'] ?? ''));
-$business_email = sanitize_email((string) ($editor_profile['business_email'] ?? ''));
+$site_email     = kuchnia_twist_public_contact_email();
 $browse_label   = 'site-footer-browse-label';
 $journal_label  = 'site-footer-journal-label';
 ?>
@@ -26,12 +24,11 @@ $journal_label  = 'site-footer-journal-label';
                             <h2><?php bloginfo('name'); ?></h2>
                         </div>
                         <p class="site-footer__summary"><?php echo esc_html(kuchnia_twist_site_summary()); ?></p>
-                        <?php $footer_email = $public_email !== '' ? $public_email : $business_email; ?>
-                        <?php if ($footer_email !== '') : ?>
+                        <?php if ($site_email !== '') : ?>
                             <div class="site-footer__contacts">
-                                <a class="site-footer__contact" href="mailto:<?php echo esc_attr(antispambot($footer_email)); ?>">
-                                    <span class="author-card__contact-label"><?php esc_html_e('Editorial email', 'kuchnia-twist'); ?></span>
-                                    <span class="author-card__contact-value"><?php echo esc_html(antispambot($footer_email)); ?></span>
+                                <a class="site-footer__contact" href="mailto:<?php echo esc_attr(antispambot($site_email)); ?>">
+                                    <span class="author-card__contact-label"><?php esc_html_e('Contact email', 'kuchnia-twist'); ?></span>
+                                    <span class="author-card__contact-value"><?php echo esc_html(antispambot($site_email)); ?></span>
                                 </a>
                             </div>
                         <?php endif; ?>

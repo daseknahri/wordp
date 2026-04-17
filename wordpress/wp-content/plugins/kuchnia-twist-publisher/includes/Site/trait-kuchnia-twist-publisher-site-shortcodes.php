@@ -8,6 +8,8 @@ trait Kuchnia_Twist_Publisher_Site_Shortcodes_Trait
     {
         add_shortcode('kuchnia_twist_editor_name', [$this, 'shortcode_editor_name']);
         add_shortcode('kuchnia_twist_editor_role', [$this, 'shortcode_editor_role']);
+        add_shortcode('kuchnia_twist_site_public_email', [$this, 'shortcode_site_public_email']);
+        add_shortcode('kuchnia_twist_editor_email', [$this, 'shortcode_editor_email']);
         add_shortcode('kuchnia_twist_editor_public_email', [$this, 'shortcode_editor_public_email']);
         add_shortcode('kuchnia_twist_editor_business_email', [$this, 'shortcode_editor_business_email']);
         add_shortcode('kuchnia_twist_link', [$this, 'shortcode_internal_link']);
@@ -35,11 +37,30 @@ trait Kuchnia_Twist_Publisher_Site_Shortcodes_Trait
         return esc_html($role);
     }
 
-    public function shortcode_editor_public_email(): string
+    public function shortcode_site_public_email(): string
+    {
+        $settings = $this->get_settings();
+        $email = is_email($settings['site_public_email'] ?? '') ? $settings['site_public_email'] : '';
+        if ($email === '') {
+            $email = is_email($settings['editor_business_email'] ?? '') ? $settings['editor_business_email'] : '';
+        }
+        if ($email === '') {
+            $email = is_email($settings['editor_public_email'] ?? '') ? $settings['editor_public_email'] : get_option('admin_email');
+        }
+
+        return esc_html(antispambot((string) $email));
+    }
+
+    public function shortcode_editor_email(): string
     {
         $settings = $this->get_settings();
         $email = is_email($settings['editor_public_email']) ? $settings['editor_public_email'] : get_option('admin_email');
         return esc_html(antispambot((string) $email));
+    }
+
+    public function shortcode_editor_public_email(): string
+    {
+        return $this->shortcode_site_public_email();
     }
 
     public function shortcode_editor_business_email(): string

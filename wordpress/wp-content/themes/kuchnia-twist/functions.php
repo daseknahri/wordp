@@ -468,6 +468,7 @@ function kuchnia_twist_publication_settings()
         'editor_name'           => 'Anna Kowalska',
         'editor_role'           => __('Editorial desk', 'kuchnia-twist'),
         'editor_bio'            => __('Independent home-cooking journal focused on practical recipes and useful food facts.', 'kuchnia-twist'),
+        'site_public_email'     => 'contact@kuchniatwist.pl',
         'editor_public_email'   => 'contact@kuchniatwist.pl',
         'editor_business_email' => '',
         'editor_photo_id'       => 0,
@@ -1269,8 +1270,16 @@ function kuchnia_twist_publication_initials()
 
 function kuchnia_twist_public_contact_email()
 {
-    $profile = kuchnia_twist_editor_profile();
-    $email = sanitize_email((string) ($profile['public_email'] ?? ''));
+    $settings = kuchnia_twist_publication_settings();
+    $email = sanitize_email((string) ($settings['site_public_email'] ?? ''));
+    if (!is_email($email)) {
+        $email = sanitize_email((string) ($settings['editor_business_email'] ?? ''));
+    }
+    if (!is_email($email)) {
+        $profile = kuchnia_twist_editor_profile();
+        $email = sanitize_email((string) ($profile['public_email'] ?? ''));
+    }
+
     return is_email($email) ? $email : '';
 }
 
@@ -1495,7 +1504,7 @@ function kuchnia_twist_page_profile($post = null)
                     'title' => __('How the contact routes work', 'kuchnia-twist'),
                     'body' => $business_email !== ''
                         ? sprintf(__('The journal keeps one public contact email at %1$s and a separate business route at %2$s, so readers and partners have a clear way to reach the right person.', 'kuchnia-twist'), $public_email, $business_email)
-                        : sprintf(__('The journal keeps one public contact email at %s so readers always have a clear route back to the editor.', 'kuchnia-twist'), $public_email),
+                        : sprintf(__('The journal keeps one public contact email at %s so readers always have a clear route back to the site.', 'kuchnia-twist'), $public_email),
                 ],
                 [
                     'title' => __('Corrections matter', 'kuchnia-twist'),
@@ -1878,24 +1887,27 @@ function kuchnia_twist_schema_publisher()
         }
     }
 
-    if (!empty($profile['public_email'])) {
-        $publisher['email'] = $profile['public_email'];
+    $site_email = kuchnia_twist_public_contact_email();
+    $business_email = kuchnia_twist_business_contact_email();
+
+    if ($site_email !== '') {
+        $publisher['email'] = $site_email;
     }
 
     $contact_points = [];
-    if (!empty($profile['public_email'])) {
+    if ($site_email !== '') {
         $contact_points[] = [
             '@type'             => 'ContactPoint',
             'contactType'       => 'editorial',
-            'email'             => $profile['public_email'],
+            'email'             => $site_email,
             'availableLanguage' => 'en',
         ];
     }
-    if (!empty($profile['business_email'])) {
+    if ($business_email !== '') {
         $contact_points[] = [
             '@type'             => 'ContactPoint',
             'contactType'       => 'business',
-            'email'             => $profile['business_email'],
+            'email'             => $business_email,
             'availableLanguage' => 'en',
         ];
     }

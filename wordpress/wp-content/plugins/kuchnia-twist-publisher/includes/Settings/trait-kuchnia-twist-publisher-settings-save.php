@@ -109,6 +109,7 @@ trait Kuchnia_Twist_Publisher_Settings_Save_Trait
             'facebook_post_teaser_cta'   => sanitize_text_field((string) ($posted['facebook_post_teaser_cta'] ?? ($current['facebook_post_teaser_cta'] ?? ''))),
             'facebook_comment_link_cta'  => $facebook_comment_link_cta,
             'default_cta'                => $facebook_comment_link_cta,
+            'site_public_email'          => sanitize_email((string) ($posted['site_public_email'] ?? ($current['site_public_email'] ?? ''))),
             'editor_name'                => sanitize_text_field((string) ($posted['editor_name'] ?? ($current['editor_name'] ?? ''))),
             'editor_role'                => sanitize_text_field((string) ($posted['editor_role'] ?? ($current['editor_role'] ?? ''))),
             'editor_bio'                 => trim((string) ($posted['editor_bio'] ?? ($current['editor_bio'] ?? ''))),
