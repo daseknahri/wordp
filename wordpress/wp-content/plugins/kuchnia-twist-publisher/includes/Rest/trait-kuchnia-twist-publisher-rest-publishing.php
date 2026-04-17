@@ -32,6 +32,8 @@ trait Kuchnia_Twist_Publisher_Rest_Publishing_Trait
             return new WP_Error('invalid_image', __('Image payload could not be decoded.', 'kuchnia-twist'), ['status' => 400]);
         }
 
+        $this->raise_media_processing_limits();
+
         $upload = wp_upload_bits($name, null, $binary);
         if (!empty($upload['error'])) {
             return new WP_Error('upload_failed', $upload['error'], ['status' => 500]);

@@ -16,6 +16,20 @@ add_action('after_setup_theme', function () {
     add_image_size('kuchnia-twist-card', 960, 720, true);
 });
 
+add_filter('big_image_size_threshold', '__return_false');
+
+add_filter('intermediate_image_sizes_advanced', function (array $sizes): array {
+    $allowed = [
+        'thumbnail'           => true,
+        'medium'              => true,
+        'medium_large'        => true,
+        'kuchnia-twist-hero'  => true,
+        'kuchnia-twist-card'  => true,
+    ];
+
+    return array_intersect_key($sizes, $allowed);
+}, 10, 1);
+
 add_action('wp_enqueue_scripts', function () {
     $theme_css = get_template_directory() . '/assets/theme.css';
     $theme_js  = get_template_directory() . '/assets/theme.js';

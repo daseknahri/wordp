@@ -86,6 +86,8 @@ trait Kuchnia_Twist_Publisher_Job_Action_Support_Trait
             return 0;
         }
 
+        $this->raise_media_processing_limits();
+
         require_once ABSPATH . 'wp-admin/includes/file.php';
         require_once ABSPATH . 'wp-admin/includes/media.php';
         require_once ABSPATH . 'wp-admin/includes/image.php';

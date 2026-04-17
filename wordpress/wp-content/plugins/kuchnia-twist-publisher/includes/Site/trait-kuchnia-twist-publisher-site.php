@@ -347,6 +347,8 @@ trait Kuchnia_Twist_Publisher_Site_Trait
             return 0;
         }
 
+        $this->raise_media_processing_limits();
+
         require_once ABSPATH . 'wp-admin/includes/image.php';
         $metadata = wp_generate_attachment_metadata($attachment_id, $upload['file']);
         wp_update_attachment_metadata($attachment_id, $metadata);
