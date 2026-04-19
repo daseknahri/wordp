@@ -54,8 +54,9 @@ export function createImagePromptHelpers(deps) {
       return "";
     }
 
-    const imagePresets = isPlainObject(settings?.contentMachine?.channelPresets?.image)
-      ? settings.contentMachine.channelPresets.image
+    const normalizedSettings = isPlainObject(settings) ? settings : {};
+    const imagePresets = isPlainObject(normalizedSettings.contentMachine?.channelPresets?.image)
+      ? normalizedSettings.contentMachine.channelPresets.image
       : {};
     const platformPresets = isPlainObject(imagePresets.platforms) ? imagePresets.platforms : {};
     const direct = cleanMultilineText(
