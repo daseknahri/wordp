@@ -1,9 +1,11 @@
 export function resolvePublicationProfile(settings) {
-  return settings.contentMachine.publicationProfile || {};
+  const normalizedSettings = settings && typeof settings === "object" ? settings : {};
+  return normalizedSettings.contentMachine?.publicationProfile || {};
 }
 
 export function resolveContentPreset(settings, contentType) {
-  const presets = settings.contentMachine.contentPresets || {};
+  const normalizedSettings = settings && typeof settings === "object" ? settings : {};
+  const presets = normalizedSettings.contentMachine?.contentPresets || {};
   return presets[contentType] || presets.recipe || {};
 }
 
@@ -24,13 +26,14 @@ export function createPromptBuilders(deps) {
   } = deps;
 
   const buildPublicationInvariantLines = (settings, sitePolicy = null) => {
+    const normalizedSettings = settings && typeof settings === "object" ? settings : {};
     const profile = resolvePublicationProfile(settings);
-    const resolvedSitePolicy = sitePolicy || resolveContentSitePolicy(settings);
+    const resolvedSitePolicy = sitePolicy || resolveContentSitePolicy(normalizedSettings);
 
     return [
-      `Publication profile: ${profile.name || resolvedSitePolicy.publicationName || settings.siteName}`,
+      `Publication profile: ${profile.name || resolvedSitePolicy.publicationName || normalizedSettings.siteName}`,
       `Publication role: ${profile.role || "You are the lead editorial writer for the publication."}`,
-      `Voice brief: ${profile.voice_brief || settings.brandVoice}`,
+      `Voice brief: ${profile.voice_brief || normalizedSettings.brandVoice}`,
       `Hard guardrails: ${profile.guardrails || "No fake personal stories, no filler SEO intros, no spammy clickbait, no generic opening filler, and no unsupported health or nutrition claims."}`,
       "Audience reality: many readers arrive cold from social or search, while returning readers expect sharper detail and trustworthy payoff. Serve both without sounding broad or repetitive.",
       "Output discipline: stay publish-ready, specific, and honest. Do not drift into filler, fake memoir, or schema mistakes.",
@@ -78,9 +81,10 @@ export function createPromptBuilders(deps) {
   };
 
   const buildCoreArticlePrompt = (job, settings, repairNote = "") => {
+    const normalizedSettings = settings && typeof settings === "object" ? settings : {};
     const preset = resolveContentPreset(settings, job.content_type);
-    const sitePolicy = resolveContentSitePolicy(settings, job);
-    const articleGuidance = resolveTypedGuidance(settings, "article", job.content_type, preset.guidance || "");
+    const sitePolicy = resolveContentSitePolicy(normalizedSettings, job);
+    const articleGuidance = resolveTypedGuidance(normalizedSettings, "article", job.content_type, preset.guidance || "");
     const presetGuidance = cleanMultilineText(preset.guidance || "");
     const normalizedArticleGuidance = cleanMultilineText(articleGuidance || "");
     const internalLinkMinimum = Math.max(0, Number(sitePolicy.internalLinks.minimumCount || 0));
@@ -120,7 +124,7 @@ export function createPromptBuilders(deps) {
       presetGuidance ? `Content standard: ${presetGuidance}` : "",
       normalizedArticleGuidance && normalizedArticleGuidance !== presetGuidance ? `Article structure guidance: ${normalizedArticleGuidance}` : "",
       `Length target: ${preset.min_words || config.minWords}-${config.maxWords} words for the main article body.`,
-      `Image style guidance: ${settings.contentMachine.channelPresets.image.guidance}`,
+      `Image style guidance: ${normalizedSettings.contentMachine?.channelPresets?.image?.guidance || normalizedSettings.imageStyle || ""}`,
       job.title_override ? `Use this exact article title: ${job.title_override}` : "Generate a strong, editorial article title.",
       "Article rules:",
       "- Write original, useful, human-sounding content.",
@@ -187,9 +191,10 @@ export function createPromptBuilders(deps) {
   };
 
   const buildSocialCandidatePrompt = (job, settings, article, selectedPages, preferredAngle = "", repairNote = "") => {
+    const normalizedSettings = settings && typeof settings === "object" ? settings : {};
     const preset = resolveContentPreset(settings, job.content_type);
-    const sitePolicy = resolveContentSitePolicy(settings, job);
-    const socialGuidance = resolveTypedGuidance(settings, "facebook_caption", job.content_type, "");
+    const sitePolicy = resolveContentSitePolicy(normalizedSettings, job);
+    const socialGuidance = resolveTypedGuidance(normalizedSettings, "facebook_caption", job.content_type, "");
     const anglePlan = buildPageAnglePlan(selectedPages, job.content_type || "recipe", preferredAngle);
     const candidateCount = Math.max(8, Math.min(12, Math.max(selectedPages.length * 2, 8)));
     const socialBrief = buildSocialCreativeBrief(article, job.content_type || "recipe");

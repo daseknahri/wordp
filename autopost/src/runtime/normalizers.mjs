@@ -6,7 +6,8 @@ export function createRuntimeNormalizers(deps) {
   } = deps;
 
   function resolveTypedGuidance(settings, channel, contentType, fallback = "") {
-    const presets = settings.contentMachine.channelPresets || {};
+    const normalizedSettings = settings && typeof settings === "object" ? settings : {};
+    const presets = normalizedSettings.contentMachine?.channelPresets || {};
     const channelPreset = presets[channel];
 
     if (isPlainObject(channelPreset)) {

@@ -87,7 +87,8 @@ function coerceSitePolicy(candidate, job = {}) {
 }
 
 export function resolveContentSitePolicy(settings = {}, job = {}) {
-  const contentMachine = safeObject(settings.contentMachine || settings.content_machine);
+  const normalizedSettings = safeObject(settings);
+  const contentMachine = safeObject(normalizedSettings.contentMachine || normalizedSettings.content_machine);
   const publicationProfile = safeObject(contentMachine.publicationProfile || contentMachine.publication_profile);
   const requestPayload = resolveJobRequestPayload(job);
   const jobMachine = safeObject(requestPayload.content_machine);
@@ -112,7 +113,7 @@ export function resolveContentSitePolicy(settings = {}, job = {}) {
         rawSitePolicy.publication_name ||
         publicationProfile.name ||
         requestPayload.site_name ||
-        settings.siteName,
+        normalizedSettings.siteName,
       DEFAULT_PUBLICATION_NAME,
     ),
     journalLabel: cleanString(

@@ -11,7 +11,8 @@ export async function generateSocialCandidatePool({
   summarizeSocialCandidatePool,
   angleDefinitionsForType,
 }) {
-  const models = settings.contentMachine.models || {};
+  const normalizedSettings = settings && typeof settings === "object" ? settings : {};
+  const models = normalizedSettings.contentMachine?.models || {};
   const repairAttemptsAllowed = models.repair_enabled ? Math.max(0, Math.min(1, Number(models.repair_attempts || 0))) : 0;
   const desiredCount = Math.max(1, Array.isArray(selectedPages) ? selectedPages.length : 0);
   let lastValidationError = "";
@@ -25,7 +26,7 @@ export async function generateSocialCandidatePool({
       },
       {
         role: "user",
-        content: buildSocialCandidatePrompt(job, settings, article, selectedPages, preferredAngle, lastValidationError),
+        content: buildSocialCandidatePrompt(job, normalizedSettings, article, selectedPages, preferredAngle, lastValidationError),
       },
     ]);
 

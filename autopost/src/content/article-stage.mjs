@@ -11,7 +11,8 @@ export async function generateCoreArticlePackage({
   summarizeArticleStage,
   formatError,
 }) {
-  const models = settings.contentMachine.models || {};
+  const normalizedSettings = settings && typeof settings === "object" ? settings : {};
+  const models = normalizedSettings.contentMachine?.models || {};
   const repairAttemptsAllowed = models.repair_enabled ? Math.max(0, Number(models.repair_attempts || 0)) : 0;
   const contentType = job.content_type || "recipe";
   const articleContract = contentType === "recipe"
@@ -30,7 +31,7 @@ export async function generateCoreArticlePackage({
         },
         {
           role: "user",
-          content: buildCoreArticlePrompt(job, settings, lastValidationError),
+          content: buildCoreArticlePrompt(job, normalizedSettings, lastValidationError),
         },
       ]);
 
@@ -50,7 +51,7 @@ export async function generateCoreArticlePackage({
           };
         }
 
-        lastValidationError = buildArticleStageRepairNote(articleStageSummary, job, settings);
+        lastValidationError = buildArticleStageRepairNote(articleStageSummary, job, normalizedSettings);
         continue;
       }
 

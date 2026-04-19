@@ -27,7 +27,8 @@ function interpolateRoute(template, params = {}) {
 }
 
 export function resolvePlatformPolicy(settings = {}, job = null, config = {}) {
-  const contentMachine = safeObject(settings.contentMachine || settings.content_machine);
+  const normalizedSettings = safeObject(settings);
+  const contentMachine = safeObject(normalizedSettings.contentMachine || normalizedSettings.content_machine);
   const jobRequest = safeObject(job?.request_payload || job?.requestPayload);
   const jobMachine = safeObject(jobRequest.content_machine || jobRequest.contentMachine);
   const provided = safeObject(
@@ -69,15 +70,15 @@ export function resolvePlatformPolicy(settings = {}, job = null, config = {}) {
     delivery: {
       utmSource: String(
         delivery.utm_source ||
-          settings.utmSource ||
-          settings.utm_source ||
+          normalizedSettings.utmSource ||
+          normalizedSettings.utm_source ||
           config.fallbackUtmSource ||
           "facebook",
       ),
       utmCampaignPrefix: String(
         delivery.utm_campaign_prefix ||
-          settings.utmCampaignPrefix ||
-          settings.utm_campaign_prefix ||
+          normalizedSettings.utmCampaignPrefix ||
+          normalizedSettings.utm_campaign_prefix ||
           config.fallbackUtmCampaignPrefix ||
           "publication",
       ),
