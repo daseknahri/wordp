@@ -55,9 +55,11 @@ import { createContentHelpers } from "./src/content/helpers.mjs";
 import { resolvePublicationProfile } from "./src/content/prompts.mjs";
 import { createJobsHelpers } from "./src/jobs/helpers.mjs";
 import {
+  buildInternalLinkMarkup,
   countInternalLinks,
   internalLinkTargetsForJob,
-} from "./src/content/internal-links.mjs";
+  resolveContentSitePolicy,
+} from "./src/content/site-policy.mjs";
 import {
   buildChannelProfile,
   buildContentTypeProfile,

@@ -1,15 +1,12 @@
 export function createJobOrchestrator(deps) {
   const {
-    assertFacebookConfigured,
     assertQualityGate,
     assertRecipeDistributionTargets,
     buildQualitySummary,
     claimNextJob,
-    completeJob,
     ensureJobImages,
     ensureOpenAiConfigured,
     ensureSocialPackCoverage,
-    finalizeFacebookPhaseState,
     firstAttachment,
     formatError,
     generatePackage,
@@ -19,14 +16,10 @@ export function createJobOrchestrator(deps) {
     mergeSettings,
     mergeValidatorSummary,
     normalizeGeneratedPayload,
-    publishBlogPost,
-    publishFacebookDistribution,
+    postingMachine,
     refreshFacebookPhaseState,
     resolveCanonicalContentPackage,
-    resolveSelectedFacebookPages,
     safeFailJob,
-    seedLegacyFacebookDistribution,
-    summarizeFacebookFailures,
     toInt,
     updateJobProgress,
     isFutureUtcTimestamp,
@@ -151,7 +144,7 @@ export function createJobOrchestrator(deps) {
           group_share_kit: groupShareKit,
           featured_image_id: featuredImage?.id || 0,
           facebook_image_result_id: facebookImage?.id || featuredImage?.id || 0,
-        });
+        }, job);
 
         const publishOn = String(scheduled?.job?.publish_on || "");
         if (isFutureUtcTimestamp(publishOn)) {
@@ -218,91 +211,45 @@ export function createJobOrchestrator(deps) {
       contentPackage = resolveCanonicalContentPackage(generated, job);
       assertQualityGate(qualitySummary);
 
-      if (!postId || retryTarget === "publish" || retryTarget === "full") {
-        stage = "publishing_blog";
-        await updateJobProgress(job.id, {
-          status: "publishing_blog",
-          stage,
-        });
-
-        const blogPost = await publishBlogPost(job.id, job, generated, featuredImage?.id || 0, facebookImage?.id || featuredImage?.id || 0);
-        postId = blogPost.post_id;
-        permalink = blogPost.permalink;
-
-        log(`published WordPress article #${postId} for ${jobLabel}`);
-      }
-
-      stage = "publishing_facebook";
-      await updateJobProgress(job.id, {
-        status: "publishing_facebook",
-        stage,
-      });
-
-      selectedPages = resolveSelectedFacebookPages(job, settings);
-      assertFacebookConfigured(selectedPages);
-      socialPack = ensureSocialPackCoverage(socialPack, selectedPages, generated, settings, job.content_type || "recipe", preferredAngle);
-      distribution = seedLegacyFacebookDistribution(distribution, selectedPages, job, facebookCaption);
-
-      const facebookResult = await publishFacebookDistribution({
-        settings,
-        generated,
-        permalink,
-        pages: selectedPages,
-        socialPack,
-        distribution,
-        imageUrl: facebookImage?.url || featuredImage?.url || "",
-        contentType: job.content_type || "recipe",
-        retryTarget,
-      });
-
-      distribution = facebookResult.distribution;
-      ({
-        facebookCaption,
-        facebookCommentId,
-        facebookPostId,
-        generated,
-      } = finalizeFacebookPhaseState({
+      const publishResult = await postingMachine.runPublishingFlow({
         job,
         settings,
         generated,
         distribution,
+        facebookCaption,
+        groupShareKit,
         socialPack,
+        featuredImage,
+        facebookImage,
+        retryTarget,
+        postId,
+        permalink,
+        facebookPostId,
+        facebookCommentId,
+        jobLabel,
         facebookPostTeaserCta,
-      }));
+      });
 
-      if (facebookResult.failedPages.length > 0) {
-        const message = summarizeFacebookFailures(facebookResult.failedPages);
-        await safeFailJob(job.id, {
-          status: "partial_failure",
-          stage,
-          facebook_post_id: facebookPostId,
-          facebook_comment_id: facebookCommentId,
-          facebook_caption: facebookCaption,
-          group_share_kit: groupShareKit,
-          generated_payload: generated,
-          error_message: message,
-        });
+      stage = publishResult.stage || stage;
+      distribution = publishResult.distribution || distribution;
+      generated = publishResult.generated || generated;
+      facebookCaption = publishResult.facebookCaption || facebookCaption;
+      groupShareKit = publishResult.groupShareKit || groupShareKit;
+      facebookPostId = publishResult.facebookPostId || facebookPostId;
+      facebookCommentId = publishResult.facebookCommentId || facebookCommentId;
+      postId = toInt(publishResult.postId || postId);
+      permalink = publishResult.permalink || permalink;
+      selectedPages = Array.isArray(publishResult.selectedPages) ? publishResult.selectedPages : selectedPages;
 
-        log(`${jobLabel} partially failed across Facebook pages: ${message}`);
+      if (!publishResult.ok) {
         return {
           foundJob: true,
           last_loop_result: "job_failed",
           last_job_id: toInt(job.id),
-          last_job_status: "partial_failure",
-          last_error: message,
+          last_job_status: publishResult.status || "failed",
+          last_error: publishResult.error || "",
         };
       }
-
-      await completeJob(job.id, {
-        status: "completed",
-        facebook_post_id: facebookPostId,
-        facebook_comment_id: facebookCommentId,
-        facebook_caption: facebookCaption,
-        group_share_kit: groupShareKit,
-        generated_payload: generated,
-      });
-
-      log(`completed ${jobLabel}; distributed to ${selectedPages.length} Facebook page(s)`);
       return completedHeartbeatState(job.id, "completed");
     } catch (error) {
       const message = formatError(error);
@@ -317,7 +264,7 @@ export function createJobOrchestrator(deps) {
         group_share_kit: groupShareKit,
         generated_payload: generated,
         error_message: message,
-      });
+      }, job);
 
       log(`${jobLabel} failed: ${message}`);
       return {

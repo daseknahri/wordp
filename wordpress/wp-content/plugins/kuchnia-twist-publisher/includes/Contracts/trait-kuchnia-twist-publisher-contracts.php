@@ -237,10 +237,10 @@ trait Kuchnia_Twist_Publisher_Contracts_Trait
             $content_pages
         ), static fn ($page): bool => $page !== ''));
         if (empty($content_pages) && $content_html !== '') {
-            $content_pages = array_values(array_filter(preg_split('/\s*<!--nextpage-->\s*/i', $content_html) ?: []));
+            $content_pages = $this->split_content_html_by_site_policy($content_html);
         }
         if ($content_html === '' && !empty($content_pages)) {
-            $content_html = implode("\n<!--nextpage-->\n", $content_pages);
+            $content_html = $this->join_content_pages_by_site_policy($content_pages);
         }
         $content_html = $this->sanitize_post_content_with_page_breaks($content_html);
 

@@ -9,8 +9,10 @@ export function resolveContentPreset(settings, contentType) {
 
 export function createPromptBuilders(deps) {
   const {
+    buildInternalLinkMarkup,
     resolveTypedGuidance,
     internalLinkTargetsForJob,
+    resolveContentSitePolicy,
     buildArticleSocialSignals,
     cleanText,
     cleanMultilineText,
@@ -21,11 +23,12 @@ export function createPromptBuilders(deps) {
     config,
   } = deps;
 
-  const buildPublicationInvariantLines = (settings) => {
+  const buildPublicationInvariantLines = (settings, sitePolicy = null) => {
     const profile = resolvePublicationProfile(settings);
+    const resolvedSitePolicy = sitePolicy || resolveContentSitePolicy(settings);
 
     return [
-      `Publication profile: ${profile.name || settings.siteName}`,
+      `Publication profile: ${profile.name || resolvedSitePolicy.publicationName || settings.siteName}`,
       `Publication role: ${profile.role || "You are the lead editorial writer for the publication."}`,
       `Voice brief: ${profile.voice_brief || settings.brandVoice}`,
       `Hard guardrails: ${profile.guardrails || "No fake personal stories, no filler SEO intros, no spammy clickbait, no generic opening filler, and no unsupported health or nutrition claims."}`,
@@ -76,11 +79,13 @@ export function createPromptBuilders(deps) {
 
   const buildCoreArticlePrompt = (job, settings, repairNote = "") => {
     const preset = resolveContentPreset(settings, job.content_type);
+    const sitePolicy = resolveContentSitePolicy(settings, job);
     const articleGuidance = resolveTypedGuidance(settings, "article", job.content_type, preset.guidance || "");
     const presetGuidance = cleanMultilineText(preset.guidance || "");
     const normalizedArticleGuidance = cleanMultilineText(articleGuidance || "");
-    const internalLinkLibrary = internalLinkTargetsForJob(job)
-      .map((item) => `- ${item.label}: [kuchnia_twist_link slug="${item.slug}"]${item.label}[/kuchnia_twist_link]`)
+    const internalLinkMinimum = Math.max(0, Number(sitePolicy.internalLinks.minimumCount || 0));
+    const internalLinkLibrary = internalLinkTargetsForJob(job, sitePolicy)
+      .map((item) => `- ${item.label}: ${buildInternalLinkMarkup(item, sitePolicy)}`)
       .join("\n");
 
     const contentTypeNotes = {
@@ -109,7 +114,7 @@ export function createPromptBuilders(deps) {
     };
 
     return [
-      ...buildPublicationInvariantLines(settings),
+      ...buildPublicationInvariantLines(settings, sitePolicy),
       `Topic: ${job.topic}`,
       `Content type: ${job.content_type}`,
       presetGuidance ? `Content standard: ${presetGuidance}` : "",
@@ -127,7 +132,7 @@ export function createPromptBuilders(deps) {
       "- Strong titles and openings can use honest contrast: common assumption versus useful truth, effort versus payoff, or mistake versus fix. Keep that contrast concrete, not sensational.",
       "- Front-load the useful words. In the first few words of the title, excerpt, SEO description, and opening paragraph, name the concrete problem, payoff, shortcut, question, or outcome whenever possible.",
       "- Title, excerpt, SEO description, and the opening paragraph must each do a different job instead of repeating each other.",
-      "- Each page must be clean WordPress-ready HTML using paragraphs, h2 headings, lists, and blockquotes only.",
+      "- Each page must be clean publish-ready HTML using paragraphs, h2 headings, lists, and blockquotes only.",
       "- The opening page must begin with a concrete introduction paragraph.",
       "- The opening paragraph must be concrete and specific, not generic throat-clearing.",
       "- Page 1 should cash the promise of the title quickly instead of delaying the real payoff.",
@@ -136,13 +141,13 @@ export function createPromptBuilders(deps) {
       "- seo_description should sound like a natural search snippet that adds one clear concrete reason to click. Front-load that reason instead of burying it.",
       "- seo_description should stay under 155 characters.",
       "- Return image_prompt and image_alt for the article hero image even if real images are already uploaded.",
-      "- Include at least three internal kuchniatwist links across content_pages.",
-      "- Make internal links feel like real next reads for the same reader journey. Prefer Recipes, Food Facts, and closely related kitchen explainers or companion posts over policy or contact pages.",
-      "- Place at least one internal link before the end of page 1 when it fits naturally, then use later links to deepen the reader's path instead of clustering them all at the end.",
+      internalLinkMinimum > 0 ? `- Include at least ${internalLinkMinimum} internal ${sitePolicy.publicationName} links across content_pages.` : "",
+      internalLinkMinimum > 0 ? "- Make internal links feel like real next reads for the same reader journey. Prefer closely related kitchen explainers, companion posts, or the most relevant live archive paths over policy or contact pages." : "",
+      internalLinkMinimum > 0 ? "- Place at least one internal link before the end of page 1 when it fits naturally, then use later links to deepen the reader's path instead of clustering them all at the end." : "",
       "- Avoid copy like 'when it comes to', 'in today's world', 'this article explores', or other generic filler openings.",
       "Pagination rules:",
       "- Return 2 or 3 article pages in content_pages. Use 2 pages for tighter topics and 3 only when every page earns its place.",
-      "- Keep the pages in natural reading order. Do not include <!--nextpage--> markers yourself.",
+      `- Keep the pages in natural reading order. Do not include ${sitePolicy.pageBreakMarker} markers yourself.`,
       "- Every page must have one dominant job and one clear takeaway. Do not create a filler bridge page.",
       "- Prefer natural H2-led breakpoints that can survive same-post pagination cleanly.",
       "- When pages 2 or 3 open with H2 headings, make those headings short, specific, and strong enough to work as page labels.",
@@ -154,7 +159,7 @@ export function createPromptBuilders(deps) {
       "- page_flow labels should read like editorial chapter names, not generic copy like 'Page 2', 'Continue', or 'Next page'.",
       "- page_flow summaries should preview concrete value or curiosity from the page instead of restating the label.",
       ...(contentTypeNotes[job.content_type] || contentTypeNotes.recipe),
-      "Preferred internal link library:",
+      internalLinkLibrary ? "Preferred internal link library:" : "",
       internalLinkLibrary,
       repairNote ? `Previous attempt failed validation: ${repairNote}` : "",
       "JSON contract:",
@@ -183,13 +188,14 @@ export function createPromptBuilders(deps) {
 
   const buildSocialCandidatePrompt = (job, settings, article, selectedPages, preferredAngle = "", repairNote = "") => {
     const preset = resolveContentPreset(settings, job.content_type);
+    const sitePolicy = resolveContentSitePolicy(settings, job);
     const socialGuidance = resolveTypedGuidance(settings, "facebook_caption", job.content_type, "");
     const anglePlan = buildPageAnglePlan(selectedPages, job.content_type || "recipe", preferredAngle);
     const candidateCount = Math.max(8, Math.min(12, Math.max(selectedPages.length * 2, 8)));
     const socialBrief = buildSocialCreativeBrief(article, job.content_type || "recipe");
 
     return [
-      ...buildPublicationInvariantLines(settings),
+      ...buildPublicationInvariantLines(settings, sitePolicy),
       `Content type: ${job.content_type}`,
       `Content standard: ${preset.guidance || ""}`,
       `Facebook caption guidance: ${socialGuidance}`,

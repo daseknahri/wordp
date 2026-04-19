@@ -1,3 +1,5 @@
+import { buildPlatformRestPath, resolvePlatformPolicy } from "../runtime/platform-policy.mjs";
+
 export function createWordPressJobClient(deps) {
   const {
     WORKER_VERSION,
@@ -14,8 +16,10 @@ export function createWordPressJobClient(deps) {
   } = deps;
 
   async function claimNextJob() {
-    const claimed = await wpRequest("/wp-json/kuchnia-twist/v1/jobs/claim", {
+    const platformPolicy = resolvePlatformPolicy({}, null, config);
+    const claimed = await wpRequest(buildPlatformRestPath(platformPolicy, "claim"), {
       method: "POST",
+      secretHeaderName: platformPolicy.auth.secretHeader,
     });
 
     if (!claimed?.job) {
@@ -26,6 +30,7 @@ export function createWordPressJobClient(deps) {
   }
 
   async function publishBlogPost(jobId, job, generated, featuredImageId, facebookImageId) {
+    const platformPolicy = resolvePlatformPolicy({}, job, config);
     const contentPackage = resolveCanonicalContentPackage(generated, job);
     const { facebookPostTeaserCta } = resolveFacebookDefaultCtas(generated, job);
     const facebookCaption = deriveLegacyFacebookCaptionMirror(
@@ -34,8 +39,9 @@ export function createWordPressJobClient(deps) {
       facebookPostTeaserCta,
     );
     const groupShareKit = deriveLegacyGroupShareKitMirror(generated);
-    return wpRequest(`/wp-json/kuchnia-twist/v1/jobs/${jobId}/publish-blog`, {
+    return wpRequest(buildPlatformRestPath(platformPolicy, "publish_blog", { id: jobId }), {
       method: "POST",
+      secretHeaderName: platformPolicy.auth.secretHeader,
       body: {
         content_type: contentPackage.content_type || job.content_type,
         title: contentPackage.title,
@@ -52,17 +58,21 @@ export function createWordPressJobClient(deps) {
     });
   }
 
-  async function completeJob(jobId, payload) {
-    await wpRequest(`/wp-json/kuchnia-twist/v1/jobs/${jobId}/complete`, {
+  async function completeJob(jobId, payload, job = null) {
+    const platformPolicy = resolvePlatformPolicy({}, job, config);
+    await wpRequest(buildPlatformRestPath(platformPolicy, "complete", { id: jobId }), {
       method: "POST",
+      secretHeaderName: platformPolicy.auth.secretHeader,
       body: payload,
     });
   }
 
-  async function safeFailJob(jobId, payload) {
+  async function safeFailJob(jobId, payload, job = null) {
+    const platformPolicy = resolvePlatformPolicy({}, job, config);
     try {
-      await wpRequest(`/wp-json/kuchnia-twist/v1/jobs/${jobId}/fail`, {
+      await wpRequest(buildPlatformRestPath(platformPolicy, "fail", { id: jobId }), {
         method: "POST",
+        secretHeaderName: platformPolicy.auth.secretHeader,
         body: payload,
       });
     } catch (error) {
@@ -70,9 +80,11 @@ export function createWordPressJobClient(deps) {
     }
   }
 
-  async function updateJobProgress(jobId, payload) {
-    return wpRequest(`/wp-json/kuchnia-twist/v1/jobs/${jobId}/progress`, {
+  async function updateJobProgress(jobId, payload, job = null) {
+    const platformPolicy = resolvePlatformPolicy({}, job, config);
+    return wpRequest(buildPlatformRestPath(platformPolicy, "progress", { id: jobId }), {
       method: "POST",
+      secretHeaderName: platformPolicy.auth.secretHeader,
       body: payload,
     });
   }
@@ -83,8 +95,10 @@ export function createWordPressJobClient(deps) {
     }
 
     try {
-      await wpRequest("/wp-json/kuchnia-twist/v1/worker/heartbeat", {
+      const platformPolicy = resolvePlatformPolicy({}, null, config);
+      await wpRequest(buildPlatformRestPath(platformPolicy, "heartbeat"), {
         method: "POST",
+        secretHeaderName: platformPolicy.auth.secretHeader,
         body: {
           worker_version: WORKER_VERSION,
           enabled: config.enabled,

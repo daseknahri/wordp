@@ -20,6 +20,22 @@ export function createGeneratedPayloadHelpers(deps) {
     trimText,
   } = deps;
 
+  function resolveJobPublicationName(job) {
+    const requestPayload = isPlainObject(job?.request_payload) ? job.request_payload : {};
+    const contentMachine = isPlainObject(requestPayload.content_machine) ? requestPayload.content_machine : {};
+    const sitePolicy = isPlainObject(contentMachine.site_policy)
+      ? contentMachine.site_policy
+      : (isPlainObject(contentMachine.sitePolicy) ? contentMachine.sitePolicy : {});
+
+    return cleanText(
+      sitePolicy.publication_name ||
+        sitePolicy.publicationName ||
+        requestPayload.site_name ||
+        job?.site_name ||
+        "",
+    );
+  }
+
   function coerceGeneratedPayload(value, depth = 0) {
     if (depth > 4) {
       return {};
@@ -224,11 +240,12 @@ export function createGeneratedPayloadHelpers(deps) {
     const channelsSource = readGeneratedObject(source, ["channels", "channel_outputs", "channelOutputs"]) || {};
     const facebookSource = isPlainObject(channelsSource?.facebook) ? channelsSource.facebook : {};
     const titleOverride = cleanText(job?.title_override || "");
+    const publicationName = resolveJobPublicationName(job) || "this publication";
     const title =
       titleOverride ||
       cleanText(readGeneratedString(source, ["title", "headline", "post_title", "postTitle", "name"])) ||
       cleanText(job?.topic) ||
-      "Fresh from kuchniatwist";
+      `Fresh from ${publicationName}`;
     const slug = normalizeSlug(readGeneratedString(source, ["slug", "post_slug", "postSlug"]) || title);
     let contentPages = resolveGeneratedContentPages(source, job);
     const sourceContentHtml = resolveGeneratedContentHtml(source, job);
@@ -241,13 +258,13 @@ export function createGeneratedPayloadHelpers(deps) {
       readGeneratedArray(source, ["page_flow", "pageFlow", "content_page_flow", "contentPageFlow"]),
       contentPages,
     );
-    const contentHtml = contentPages.length ? mergeContentPagesIntoHtml(contentPages) : ensureInternalLinks(sourceContentHtml, job);
+    const contentHtml = contentPages.length ? mergeContentPagesIntoHtml(contentPages, null, job) : ensureInternalLinks(sourceContentHtml, job, null);
     const sourceContentText = cleanText(String(contentHtml || "").replace(/<[^>]+>/g, " "));
     const fallbackExcerpt = trimText(sourceContentText.split(/(?<=[.!?])\s+/)[0] || sourceContentText, 220);
     const excerpt =
       trimText(cleanText(readGeneratedString(source, ["excerpt", "summary", "dek", "standfirst", "description"])), 220) ||
       fallbackExcerpt ||
-      `${title} on kuchniatwist.`;
+      `${title} on ${publicationName}.`;
     const seoDescription =
       trimText(cleanText(readGeneratedString(source, ["seo_description", "seoDescription", "meta_description", "metaDescription", "search_description", "searchDescription"])), 155) ||
       trimText(excerpt, 155);

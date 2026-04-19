@@ -11,17 +11,16 @@ trait Kuchnia_Twist_Publisher_Publishing_Trait
             return '';
         }
 
-        $pages = preg_split('/\s*<!--nextpage-->\s*/i', $content_html) ?: [];
         $pages = array_values(array_filter(array_map(
             static fn (string $page): string => trim(wp_kses_post($page)),
-            $pages
+            $this->split_content_html_by_site_policy($content_html)
         ), static fn (string $page): bool => $page !== ''));
 
         if (empty($pages)) {
             return '';
         }
 
-        return implode("\n<!--nextpage-->\n", $pages);
+        return $this->join_content_pages_by_site_policy($pages);
     }
 
     private function resolved_publish_payload(array $params, array $generated, array $job): array
@@ -96,7 +95,8 @@ trait Kuchnia_Twist_Publisher_Publishing_Trait
 
     private function count_internal_links(string $content_html): int
     {
-        $shortcodes = preg_match_all('/\[kuchnia_twist_link\s+slug=/i', $content_html);
+        $shortcode_tag = preg_quote($this->content_machine_internal_link_shortcode_tag(), '/');
+        $shortcodes = preg_match_all('/\[' . $shortcode_tag . '\s+slug=/i', $content_html);
         $anchors    = preg_match_all('/<a\s+[^>]*href=/i', $content_html);
 
         return (int) $shortcodes + (int) $anchors;

@@ -162,6 +162,8 @@ trait Kuchnia_Twist_Publisher_Job_Payloads_Trait
             'prompt_version'      => sanitize_text_field((string) ($machine['prompt_version'] ?? self::CONTENT_MACHINE_VERSION)),
             'publication_profile' => sanitize_text_field((string) ($machine['publication_profile'] ?? '')),
             'content_preset'      => sanitize_key((string) ($machine['content_preset'] ?? $content_type)),
+            'site_policy'         => is_array($machine['site_policy'] ?? null) ? $machine['site_policy'] : [],
+            'platform_policy'     => is_array($machine['platform_policy'] ?? null) ? $machine['platform_policy'] : [],
             'default_ctas'        => [
                 'facebook_post_teaser' => $facebook_post_teaser_cta,
                 'facebook_comment_link' => $facebook_comment_link_cta,
@@ -170,6 +172,12 @@ trait Kuchnia_Twist_Publisher_Job_Payloads_Trait
         ];
         if ($normalized_machine['publication_profile'] === '') {
             unset($normalized_machine['publication_profile']);
+        }
+        if (empty($normalized_machine['site_policy'])) {
+            unset($normalized_machine['site_policy']);
+        }
+        if (empty($normalized_machine['platform_policy'])) {
+            unset($normalized_machine['platform_policy']);
         }
 
         $payload['content_machine'] = $normalized_machine;

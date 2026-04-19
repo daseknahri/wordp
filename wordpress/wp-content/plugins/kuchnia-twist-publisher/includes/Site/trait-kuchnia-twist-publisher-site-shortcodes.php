@@ -6,13 +6,19 @@ trait Kuchnia_Twist_Publisher_Site_Shortcodes_Trait
 {
     public function register_shortcodes(): void
     {
+        $settings = $this->get_settings();
+        $internal_link_shortcode = $this->content_machine_internal_link_shortcode_tag($settings);
+
         add_shortcode('kuchnia_twist_editor_name', [$this, 'shortcode_editor_name']);
         add_shortcode('kuchnia_twist_editor_role', [$this, 'shortcode_editor_role']);
         add_shortcode('kuchnia_twist_site_public_email', [$this, 'shortcode_site_public_email']);
         add_shortcode('kuchnia_twist_editor_email', [$this, 'shortcode_editor_email']);
         add_shortcode('kuchnia_twist_editor_public_email', [$this, 'shortcode_editor_public_email']);
         add_shortcode('kuchnia_twist_editor_business_email', [$this, 'shortcode_editor_business_email']);
-        add_shortcode('kuchnia_twist_link', [$this, 'shortcode_internal_link']);
+        add_shortcode($internal_link_shortcode, [$this, 'shortcode_internal_link']);
+        if ($internal_link_shortcode !== 'kuchnia_twist_link') {
+            add_shortcode('kuchnia_twist_link', [$this, 'shortcode_internal_link']);
+        }
     }
 
     public function shortcode_editor_name(): string
@@ -74,7 +80,7 @@ trait Kuchnia_Twist_Publisher_Site_Shortcodes_Trait
     {
         $atts = shortcode_atts([
             'slug' => '',
-        ], $atts, 'kuchnia_twist_link');
+        ], $atts);
 
         $slug = sanitize_title((string) $atts['slug']);
         $label = trim((string) $content);

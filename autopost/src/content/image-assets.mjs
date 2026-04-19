@@ -1,3 +1,5 @@
+import { buildPlatformRestPath, resolvePlatformPolicy } from "../runtime/platform-policy.mjs";
+
 export function createImageAssetHelpers(deps) {
   const {
     buildImagePrompt,
@@ -10,6 +12,7 @@ export function createImageAssetHelpers(deps) {
   } = deps;
 
   async function generateAndUploadImage(jobId, settings, generated, options) {
+    const platformPolicy = resolvePlatformPolicy(settings);
     const contentPackage = resolveCanonicalContentPackage(generated);
     const base64Data = await generateImageBase64(
       settings,
@@ -21,8 +24,9 @@ export function createImageAssetHelpers(deps) {
       options.size,
     );
 
-    return wpRequest(`/wp-json/kuchnia-twist/v1/jobs/${jobId}/media`, {
+    return wpRequest(buildPlatformRestPath(platformPolicy, "media", { id: jobId }), {
       method: "POST",
+      secretHeaderName: platformPolicy.auth.secretHeader,
       body: {
         slot: options.slot,
         filename: options.filename,

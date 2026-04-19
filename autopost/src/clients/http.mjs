@@ -2,8 +2,9 @@ import { config } from "../runtime/config.mjs";
 
 export async function wpRequest(path, options = {}) {
   const url = `${config.internalWordPressUrl}${path}`;
+  const secretHeaderName = String(options.secretHeaderName || config.defaultWorkerSecretHeader || "x-kuchnia-worker-secret");
   const headers = {
-    "x-kuchnia-worker-secret": config.sharedSecret,
+    [secretHeaderName]: config.sharedSecret,
     ...(options.body ? { "Content-Type": "application/json" } : {}),
     ...(options.headers || {}),
   };

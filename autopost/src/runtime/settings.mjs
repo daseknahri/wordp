@@ -23,6 +23,12 @@ export function createSettingsHelpers(deps) {
     const cadence = isPlainObject(provided.cadence) ? provided.cadence : {};
     const models = isPlainObject(provided.models) ? provided.models : {};
     const contracts = isPlainObject(provided.contracts) ? provided.contracts : {};
+    const sitePolicy = isPlainObject(provided.site_policy)
+      ? provided.site_policy
+      : (isPlainObject(provided.sitePolicy) ? provided.sitePolicy : {});
+    const platformPolicy = isPlainObject(provided.platform_policy)
+      ? provided.platform_policy
+      : (isPlainObject(provided.platformPolicy) ? provided.platformPolicy : {});
     const defaultCtas = isPlainObject(provided.default_ctas) ? provided.default_ctas : {};
     const facebookPostTeaserCta = cleanText(
       defaultCtas.facebook_post_teaser ||
@@ -47,7 +53,7 @@ export function createSettingsHelpers(deps) {
         role: cleanMultilineText(
           publicationProfile.role ||
             raw.publication_role ||
-            "You are the lead editorial writer for kuchniatwist, producing recipe articles and food explainers that are sharp enough to win the click, useful enough to justify it, and strong enough to earn the next visit.",
+            `You are the lead editorial writer for ${String(publicationProfile.name || raw.site_name || config.fallbackSiteName)}, producing recipe articles and food explainers that are sharp enough to win the click, useful enough to justify it, and strong enough to earn the next visit.`,
         ),
         voice_brief: cleanText(publicationProfile.voice_brief || raw.brand_voice || config.fallbackBrandVoice),
         guardrails: cleanMultilineText(
@@ -126,6 +132,8 @@ export function createSettingsHelpers(deps) {
       contracts: {
         strict_contract_mode: Boolean(contracts.strict_contract_mode ?? raw.strict_contract_mode ?? config.strictContractMode),
       },
+      sitePolicy,
+      platformPolicy,
       defaultCtas: {
         facebook_post_teaser: facebookPostTeaserCta,
         facebook_comment_link: facebookCommentLinkCta,
@@ -138,6 +146,8 @@ export function createSettingsHelpers(deps) {
 
   function mergeSettings(raw) {
     const contentMachine = resolveContentMachine(raw);
+    const platformDelivery = isPlainObject(contentMachine.platformPolicy?.delivery) ? contentMachine.platformPolicy.delivery : {};
+    const siteDelivery = isPlainObject(contentMachine.sitePolicy?.delivery) ? contentMachine.sitePolicy.delivery : {};
     const facebookPostTeaserCta =
       raw.facebook_post_teaser_cta ||
       contentMachine.facebookPostTeaserCta ||
@@ -166,8 +176,8 @@ export function createSettingsHelpers(deps) {
       openaiImageModel: contentMachine.models.image_model || raw.openai_image_model || "gpt-image-1.5",
       openaiApiKey: raw.openai_api_key || config.fallbackOpenAiKey,
       openaiBaseUrl: trimTrailingSlash(raw.openai_base_url || config.fallbackOpenAiBaseUrl),
-      utmSource: raw.utm_source || "facebook",
-      utmCampaignPrefix: raw.utm_campaign_prefix || "kuchnia-twist",
+      utmSource: raw.utm_source || platformDelivery.utm_source || siteDelivery.utm_source || config.fallbackUtmSource,
+      utmCampaignPrefix: raw.utm_campaign_prefix || platformDelivery.utm_campaign_prefix || siteDelivery.utm_campaign_prefix || config.fallbackUtmCampaignPrefix,
       contentMachine,
     };
   }

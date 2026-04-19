@@ -6,47 +6,30 @@ trait Kuchnia_Twist_Publisher_Rest_Worker_Trait
 {
     public function register_rest_routes(): void
     {
-        register_rest_route('kuchnia-twist/v1', '/jobs/claim', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_claim_job'],
-            'permission_callback' => '__return_true',
-        ]);
+        $namespace = $this->worker_rest_namespace();
+        $routes = $this->worker_route_templates();
+        $callbacks = [
+            'claim'        => 'rest_claim_job',
+            'media'        => 'rest_upload_media',
+            'publish_blog' => 'rest_publish_blog',
+            'progress'     => 'rest_progress_job',
+            'complete'     => 'rest_complete_job',
+            'fail'         => 'rest_fail_job',
+            'heartbeat'    => 'rest_worker_heartbeat',
+        ];
 
-        register_rest_route('kuchnia-twist/v1', '/jobs/(?P<id>\d+)/media', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_upload_media'],
-            'permission_callback' => '__return_true',
-        ]);
+        foreach ($callbacks as $key => $method) {
+            $route = isset($routes[$key]) ? '/' . ltrim((string) $routes[$key], '/') : '';
+            if ($route === '/') {
+                continue;
+            }
 
-        register_rest_route('kuchnia-twist/v1', '/jobs/(?P<id>\d+)/publish-blog', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_publish_blog'],
-            'permission_callback' => '__return_true',
-        ]);
-
-        register_rest_route('kuchnia-twist/v1', '/jobs/(?P<id>\d+)/progress', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_progress_job'],
-            'permission_callback' => '__return_true',
-        ]);
-
-        register_rest_route('kuchnia-twist/v1', '/jobs/(?P<id>\d+)/complete', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_complete_job'],
-            'permission_callback' => '__return_true',
-        ]);
-
-        register_rest_route('kuchnia-twist/v1', '/jobs/(?P<id>\d+)/fail', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_fail_job'],
-            'permission_callback' => '__return_true',
-        ]);
-
-        register_rest_route('kuchnia-twist/v1', '/worker/heartbeat', [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => [$this, 'rest_worker_heartbeat'],
-            'permission_callback' => '__return_true',
-        ]);
+            register_rest_route($namespace, $route, [
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => [$this, $method],
+                'permission_callback' => '__return_true',
+            ]);
+        }
     }
 
     public function rest_claim_job(WP_REST_Request $request)
@@ -145,28 +128,7 @@ trait Kuchnia_Twist_Publisher_Rest_Worker_Trait
         return rest_ensure_response([
             'claim_mode' => $claim_mode,
             'job'      => $this->get_job((int) $job['id']),
-            'settings' => [
-                'site_name'                  => get_bloginfo('name'),
-                'site_url'                   => home_url('/'),
-                'brand_voice'                => $settings['brand_voice'],
-                'article_prompt'             => $settings['article_prompt'],
-                'facebook_post_teaser_cta'   => $settings['facebook_post_teaser_cta'],
-                'facebook_comment_link_cta'  => $settings['facebook_comment_link_cta'],
-                'default_cta'                => $settings['facebook_comment_link_cta'],
-                'image_style'                => $settings['image_style'],
-                'image_generation_mode'      => $settings['image_generation_mode'],
-                'facebook_graph_version'     => $settings['facebook_graph_version'],
-                'facebook_page_id'           => $settings['facebook_page_id'],
-                'facebook_page_access_token' => $settings['facebook_page_access_token'],
-                'facebook_pages'             => $this->facebook_pages($settings, false, false),
-                'openai_model'               => $settings['openai_model'],
-                'openai_image_model'         => $settings['openai_image_model'],
-                'openai_api_key'             => getenv('OPENAI_API_KEY') ?: $settings['openai_api_key'],
-                'openai_base_url'            => getenv('OPENAI_BASE_URL') ?: 'https://api.openai.com/v1',
-                'utm_source'                 => $settings['utm_source'],
-                'utm_campaign_prefix'        => $settings['utm_campaign_prefix'],
-                'content_machine'            => $this->content_machine_settings($settings),
-            ],
+            'settings' => $this->worker_runtime_settings_payload($settings),
         ]);
     }
 

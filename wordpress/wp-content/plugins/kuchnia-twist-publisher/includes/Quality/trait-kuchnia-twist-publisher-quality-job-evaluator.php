@@ -42,7 +42,7 @@ trait Kuchnia_Twist_Publisher_Quality_Job_Evaluator_Trait
             ? array_values(array_filter($contract_checks['warning_checks'], static fn (string $check): bool => str_ends_with($check, '_contract_drift')))
             : [];
         if (empty($content_pages) && $content_html !== '') {
-            $content_pages = array_values(array_filter(preg_split('/\s*<!--nextpage-->\s*/i', $content_html) ?: []));
+            $content_pages = $this->split_content_html_by_site_policy($content_html, $settings);
         }
         $page_flow = $this->normalize_generated_page_flow(
             is_array($content_package['page_flow'] ?? null) ? $content_package['page_flow'] : [],
@@ -257,7 +257,7 @@ trait Kuchnia_Twist_Publisher_Quality_Job_Evaluator_Trait
         if ($h2_count < 2) {
             $warning_checks[] = 'weak_structure';
         }
-        if ($internal_links < 3) {
+        if ($internal_links < $this->content_machine_internal_link_minimum_count($settings)) {
             $warning_checks[] = 'missing_internal_links';
         }
         if ($social_variants < max(1, $target_pages)) {

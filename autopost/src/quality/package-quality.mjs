@@ -334,10 +334,12 @@ export function buildQualitySummary({
   const selectedSocialSummary = deps.summarizeSelectedSocialPack(socialPack, contentPackage, contentType);
   const signalTargets = deps.desiredSocialSignalTargets(selectedPages.length);
   const recipe = deps.isPlainObject(contentPackage.recipe) ? contentPackage.recipe : {};
+  const sitePolicy = typeof deps.resolveContentSitePolicy === "function" ? deps.resolveContentSitePolicy(settings, job) : null;
+  const internalLinkMinimum = Math.max(0, Number(sitePolicy?.internalLinks?.minimumCount || 0));
   const wordCount = deps.cleanText(contentHtml.replace(/<[^>]+>/g, " ")).split(/\s+/).filter(Boolean).length;
   const minimumWords = Number(contentType === "recipe" ? 1200 : 1100);
   const h2Count = (contentHtml.match(/<h2\b/gi) || []).length;
-  const internalLinks = deps.countInternalLinks(contentHtml);
+  const internalLinks = deps.countInternalLinks(contentHtml, sitePolicy || {});
   const excerptWords = deps.cleanText(contentPackage.excerpt || "").split(/\s+/).filter(Boolean).length;
   const seoWords = deps.cleanText(contentPackage.seo_description || "").split(/\s+/).filter(Boolean).length;
   const openingParagraph = deps.extractOpeningParagraphText(contentPackage, deps);
@@ -442,7 +444,7 @@ export function buildQualitySummary({
   if (h2Count < 2) {
     warningChecks.push("weak_structure");
   }
-  if (internalLinks < 3) {
+  if (internalLinkMinimum > 0 && internalLinks < internalLinkMinimum) {
     warningChecks.push("missing_internal_links");
   }
   if (socialPack.length < Math.max(1, selectedPages.length)) {
@@ -710,6 +712,7 @@ export function buildQualitySummary({
       opening_front_load_score: openingFrontLoadScore,
       h2_count: h2Count,
       internal_links: internalLinks,
+      internal_link_minimum: internalLinkMinimum,
       excerpt_words: excerptWords,
       excerpt_signal_score: excerptSignalScore,
       excerpt_front_load_score: excerptFrontLoadScore,

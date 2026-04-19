@@ -22,9 +22,9 @@ trait Kuchnia_Twist_Publisher_Quality_Review_Trait
         $content_pages = is_array($content_package['content_pages'] ?? null) ? $content_package['content_pages'] : [];
         $page_count = !empty($content_pages)
             ? count(array_filter($content_pages, static fn ($page): bool => trim((string) $page) !== ''))
-            : max(1, count(array_filter(preg_split('/\s*<!--nextpage-->\s*/i', $content_html) ?: [])));
+            : max(1, count($this->split_content_html_by_site_policy($content_html)));
         if (empty($content_pages) && $content_html !== '') {
-            $content_pages = array_values(array_filter(preg_split('/\s*<!--nextpage-->\s*/i', $content_html) ?: []));
+            $content_pages = $this->split_content_html_by_site_policy($content_html);
         }
         $page_flow = $this->normalize_generated_page_flow(
             is_array($content_package['page_flow'] ?? null) ? $content_package['page_flow'] : [],

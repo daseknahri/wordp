@@ -2,11 +2,15 @@ export function createArticleRepairHelpers(deps) {
   const {
     cleanText,
     isPlainObject,
+    resolveContentSitePolicy,
   } = deps;
 
-  function buildArticleStageRepairNote(summary, job) {
+  function buildArticleStageRepairNote(summary, job, settings = {}) {
     const checks = Array.isArray(summary?.checks) ? summary.checks : [];
     const metrics = isPlainObject(summary?.metrics) ? summary.metrics : {};
+    const sitePolicy = resolveContentSitePolicy(settings, job);
+    const publicationName = sitePolicy.publicationName || "this publication";
+    const internalLinkMinimum = Math.max(0, Number(sitePolicy.internalLinks.minimumCount || 0));
     const fixes = [];
 
     if (checks.includes("missing_core_fields")) {
@@ -55,7 +59,7 @@ export function createArticleRepairHelpers(deps) {
       fixes.push("Add clearer H2 structure so the article scans naturally.");
     }
     if (checks.includes("missing_internal_links")) {
-      fixes.push("Include at least three natural internal kuchniatwist links across the article pages.");
+      fixes.push(`Include at least ${internalLinkMinimum} natural internal ${publicationName} links across the article pages.`);
     }
     if ((job?.content_type || "") === "food_fact") {
       fixes.push("Stay in editorial explainer territory and avoid recipe-style metadata.");

@@ -4,10 +4,23 @@ defined('ABSPATH') || exit;
 
 trait Kuchnia_Twist_Publisher_Shared_Runtime_Trait
 {
+    private function runtime_table_name(string $key): string
+    {
+        global $wpdb;
+
+        $suffixes = $this->runtime_table_suffixes();
+        $suffix = (string) ($suffixes[$key] ?? '');
+        if ($suffix === '') {
+            return $wpdb->prefix;
+        }
+
+        return $wpdb->prefix . $suffix;
+    }
+
     private function authorize_worker(WP_REST_Request $request)
     {
         $secret = $this->get_worker_secret();
-        $sent   = (string) $request->get_header('x-kuchnia-worker-secret');
+        $sent   = (string) $request->get_header($this->worker_secret_header_name());
 
         if ($secret === '') {
             return new WP_Error('worker_secret_missing', __('Worker secret is not configured.', 'kuchnia-twist'), ['status' => 500]);
@@ -27,13 +40,11 @@ trait Kuchnia_Twist_Publisher_Shared_Runtime_Trait
 
     private function table_name(): string
     {
-        global $wpdb;
-        return $wpdb->prefix . 'kuchnia_twist_jobs';
+        return $this->runtime_table_name('jobs');
     }
 
     private function events_table_name(): string
     {
-        global $wpdb;
-        return $wpdb->prefix . 'kuchnia_twist_job_events';
+        return $this->runtime_table_name('job_events');
     }
 }

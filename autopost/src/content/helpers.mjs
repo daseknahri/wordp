@@ -19,6 +19,7 @@ export function createContentHelpers(deps) {
     buildFallbackCaption,
     buildContentTypeProfile,
     buildFacebookPostMessage,
+    buildInternalLinkMarkup,
     buildPageAnglePlan,
     cleanMultilineText,
     cleanText,
@@ -48,6 +49,7 @@ export function createContentHelpers(deps) {
     readGeneratedString,
     requestOpenAiChat,
     resolveCanonicalContentPackage,
+    resolveContentSitePolicy,
     resolveFacebookChannelAdapter,
     resolveSelectedFacebookPages,
     resolveTypedGuidance,
@@ -129,9 +131,11 @@ export function createContentHelpers(deps) {
   });
 
   const pageContentHelpers = createPageContentHelpers({
+    buildInternalLinkMarkup,
     countInternalLinks,
     internalLinkTargetsForJob,
     normalizeHtml,
+    resolveContentSitePolicy,
   });
 
   const pageSplittingHelpers = createPageSplittingHelpers({
@@ -192,8 +196,10 @@ export function createContentHelpers(deps) {
   });
 
   const promptBuilders = createPromptBuilders({
+    buildInternalLinkMarkup,
     resolveTypedGuidance,
     internalLinkTargetsForJob,
+    resolveContentSitePolicy,
     buildArticleSocialSignals: socialSignalHelpers.buildArticleSocialSignals,
     cleanText,
     cleanMultilineText,
@@ -250,6 +256,7 @@ export function createContentHelpers(deps) {
       pageFlowSummaryLooksStrong: contentQualityUtils.pageFlowSummaryLooksStrong,
       pageStartsWithExpectedLead: contentQualityUtils.pageStartsWithExpectedLead,
       resolveCanonicalContentPackage,
+      resolveContentSitePolicy,
       resolveFacebookChannelAdapter,
       resolveSelectedFacebookPages,
       seoDescriptionSignalScore: contentQualityUtils.seoDescriptionSignalScore,
@@ -321,6 +328,7 @@ export function createContentHelpers(deps) {
       pageFlowSummaryLooksStrong: contentQualityUtils.pageFlowSummaryLooksStrong,
       pageStartsWithExpectedLead: contentQualityUtils.pageStartsWithExpectedLead,
       resolveCanonicalContentPackage,
+      resolveContentSitePolicy,
       seoDescriptionSignalScore: contentQualityUtils.seoDescriptionSignalScore,
       splitHtmlIntoPages: pageSplittingHelpers.splitHtmlIntoPages,
       titleLooksStrong: contentQualityUtils.titleLooksStrong,

@@ -1,6 +1,7 @@
 import { createFacebookPhaseHelpers } from "./facebook-phase.mjs";
 import { createJobOrchestrator } from "./orchestrator.mjs";
 import { createPackageGenerator } from "./package-generator.mjs";
+import { createPostingMachine } from "./posting-machine.mjs";
 import { createWordPressJobClient } from "./wordpress-jobs.mjs";
 
 export function createJobsHelpers(deps) {
@@ -105,17 +106,30 @@ export function createJobsHelpers(deps) {
     syncGeneratedContractContainers,
   });
 
-  const jobOrchestrator = createJobOrchestrator({
+  const postingMachine = createPostingMachine({
     assertFacebookConfigured,
+    completeJob: (...args) => wordPressJobClient.completeJob(...args),
+    finalizeFacebookPhaseState: (...args) => facebookPhaseHelpers.finalizeFacebookPhaseState(...args),
+    formatError,
+    log,
+    publishBlogPost: (...args) => wordPressJobClient.publishBlogPost(...args),
+    publishFacebookDistribution,
+    resolveSelectedFacebookPages,
+    safeFailJob: (...args) => wordPressJobClient.safeFailJob(...args),
+    seedLegacyFacebookDistribution,
+    summarizeFacebookFailures,
+    toInt,
+    updateJobProgress: (...args) => wordPressJobClient.updateJobProgress(...args),
+  });
+
+  const jobOrchestrator = createJobOrchestrator({
     assertQualityGate,
     assertRecipeDistributionTargets,
     buildQualitySummary,
     claimNextJob: (...args) => wordPressJobClient.claimNextJob(...args),
-    completeJob: (...args) => wordPressJobClient.completeJob(...args),
     ensureJobImages,
     ensureOpenAiConfigured,
     ensureSocialPackCoverage,
-    finalizeFacebookPhaseState: (...args) => facebookPhaseHelpers.finalizeFacebookPhaseState(...args),
     firstAttachment,
     formatError,
     generatePackage: (...args) => packageGenerator.generatePackage(...args),
@@ -126,14 +140,10 @@ export function createJobsHelpers(deps) {
     mergeSettings,
     mergeValidatorSummary,
     normalizeGeneratedPayload,
-    publishBlogPost: (...args) => wordPressJobClient.publishBlogPost(...args),
-    publishFacebookDistribution,
+    postingMachine,
     refreshFacebookPhaseState: (...args) => facebookPhaseHelpers.refreshFacebookPhaseState(...args),
     resolveCanonicalContentPackage,
-    resolveSelectedFacebookPages,
     safeFailJob: (...args) => wordPressJobClient.safeFailJob(...args),
-    seedLegacyFacebookDistribution,
-    summarizeFacebookFailures,
     toInt,
     updateJobProgress: (...args) => wordPressJobClient.updateJobProgress(...args),
   });
@@ -141,6 +151,7 @@ export function createJobsHelpers(deps) {
   return {
     jobOrchestrator,
     packageGenerator,
+    postingMachine,
     wordPressJobClient,
   };
 }

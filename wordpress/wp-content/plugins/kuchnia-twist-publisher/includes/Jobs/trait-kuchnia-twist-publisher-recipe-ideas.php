@@ -284,7 +284,6 @@ trait Kuchnia_Twist_Publisher_Recipe_Ideas_Trait
 
     private function ideas_table_name(): string
     {
-        global $wpdb;
-        return $wpdb->prefix . 'kuchnia_twist_recipe_ideas';
+        return $this->runtime_table_name('recipe_ideas');
     }
 }

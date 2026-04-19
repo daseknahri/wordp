@@ -1,8 +1,10 @@
 export function createPageContentHelpers(deps) {
   const {
+    buildInternalLinkMarkup,
     countInternalLinks,
     internalLinkTargetsForJob,
     normalizeHtml,
+    resolveContentSitePolicy,
   } = deps;
 
   function normalizeContentPageItem(item) {
@@ -17,41 +19,47 @@ export function createPageContentHelpers(deps) {
     return "";
   }
 
-  function mergeContentPagesIntoHtml(pages) {
+  function mergeContentPagesIntoHtml(pages, sitePolicy = null, job = null) {
+    const policy = resolveContentSitePolicy(sitePolicy, job);
     return pages
       .map((page) => normalizeHtml(page))
       .filter(Boolean)
-      .join("\n<!--nextpage-->\n");
+      .join(`\n${policy.pageBreakMarker}\n`);
   }
 
-  function ensureInternalLinks(contentHtml, job) {
-    if (!contentHtml || countInternalLinks(contentHtml) >= 3) {
+  function ensureInternalLinks(contentHtml, job, sitePolicy = null) {
+    const policy = resolveContentSitePolicy(sitePolicy, job);
+    const minimumCount = Math.max(0, Number(policy.internalLinks.minimumCount || 0));
+    if (!contentHtml || countInternalLinks(contentHtml, policy) >= minimumCount) {
       return contentHtml;
     }
 
-    const selections = internalLinkTargetsForJob(job).slice(0, 3);
+    const needed = Math.max(1, minimumCount - countInternalLinks(contentHtml, policy));
+    const selections = internalLinkTargetsForJob(job, policy).slice(0, needed);
     if (!selections.length) {
       return contentHtml;
     }
 
     const links = selections
-      .map((item) => `[kuchnia_twist_link slug="${item.slug}"]${item.label}[/kuchnia_twist_link]`)
+      .map((item) => buildInternalLinkMarkup(item, policy))
       .join(", ");
 
-    return `${contentHtml}\n<p>Keep reading across the journal: ${links}.</p>`;
+    return `${contentHtml}\n<p>${policy.journalLabel}: ${links}.</p>`;
   }
 
-  function ensureInternalLinksOnPages(contentPages, job) {
+  function ensureInternalLinksOnPages(contentPages, job, sitePolicy = null) {
+    const policy = resolveContentSitePolicy(sitePolicy, job);
+    const minimumCount = Math.max(0, Number(policy.internalLinks.minimumCount || 0));
     const pages = Array.isArray(contentPages)
       ? contentPages.map((page) => String(page || "").trim()).filter(Boolean)
       : [];
 
-    if (!pages.length || countInternalLinks(mergeContentPagesIntoHtml(pages)) >= 3) {
+    if (!pages.length || countInternalLinks(mergeContentPagesIntoHtml(pages, policy, job), policy) >= minimumCount) {
       return pages;
     }
 
-    const needed = Math.max(1, 3 - countInternalLinks(mergeContentPagesIntoHtml(pages)));
-    const selections = internalLinkTargetsForJob(job).slice(0, needed);
+    const needed = Math.max(1, minimumCount - countInternalLinks(mergeContentPagesIntoHtml(pages, policy, job), policy));
+    const selections = internalLinkTargetsForJob(job, policy).slice(0, needed);
     if (!selections.length) {
       return pages;
     }
@@ -68,10 +76,10 @@ export function createPageContentHelpers(deps) {
       }
 
       const links = bucket
-        .map((item) => `[kuchnia_twist_link slug="${item.slug}"]${item.label}[/kuchnia_twist_link]`)
+        .map((item) => buildInternalLinkMarkup(item, policy))
         .join(", ");
 
-      return `${page}\n<p>Keep reading across the journal: ${links}.</p>`;
+      return `${page}\n<p>${policy.journalLabel}: ${links}.</p>`;
     });
   }
 

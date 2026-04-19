@@ -1,3 +1,5 @@
+import { resolveContentSitePolicy } from "./site-policy.mjs";
+
 export async function generateCoreArticlePackage({
   job,
   settings,
@@ -13,8 +15,8 @@ export async function generateCoreArticlePackage({
   const repairAttemptsAllowed = models.repair_enabled ? Math.max(0, Number(models.repair_attempts || 0)) : 0;
   const contentType = job.content_type || "recipe";
   const articleContract = contentType === "recipe"
-    ? "The JSON must contain: title, slug, excerpt, seo_description, content_pages, page_flow, image_prompt, image_alt, and recipe. content_pages must be an array of 2 or 3 clean HTML strings for WordPress using paragraphs, headings, lists, and blockquotes only. page_flow must be an array with one item per page containing label and summary. Labels must be short, specific, and non-generic. Summaries must preview the payoff of the page instead of repeating the label."
-    : "The JSON must contain: title, slug, excerpt, seo_description, content_pages, page_flow, image_prompt, and image_alt. Do not include recipe-only metadata for non-recipe content. content_pages must be an array of 2 or 3 clean HTML strings for WordPress using paragraphs, headings, lists, and blockquotes only. page_flow must be an array with one item per page containing label and summary. Labels must be short, specific, and non-generic. Summaries must preview the payoff of the page instead of repeating the label.";
+    ? "The JSON must contain: title, slug, excerpt, seo_description, content_pages, page_flow, image_prompt, image_alt, and recipe. content_pages must be an array of 2 or 3 clean publish-ready HTML strings using paragraphs, headings, lists, and blockquotes only. page_flow must be an array with one item per page containing label and summary. Labels must be short, specific, and non-generic. Summaries must preview the payoff of the page instead of repeating the label."
+    : "The JSON must contain: title, slug, excerpt, seo_description, content_pages, page_flow, image_prompt, and image_alt. Do not include recipe-only metadata for non-recipe content. content_pages must be an array of 2 or 3 clean publish-ready HTML strings using paragraphs, headings, lists, and blockquotes only. page_flow must be an array with one item per page containing label and summary. Labels must be short, specific, and non-generic. Summaries must preview the payoff of the page instead of repeating the label.";
   let lastErrorMessage = "";
   let lastValidationError = "";
 
@@ -48,7 +50,7 @@ export async function generateCoreArticlePackage({
           };
         }
 
-        lastValidationError = buildArticleStageRepairNote(articleStageSummary, job);
+        lastValidationError = buildArticleStageRepairNote(articleStageSummary, job, settings);
         continue;
       }
 
@@ -105,9 +107,12 @@ function buildArticleValidatorSummary(articleStageSummary, attempt, warned, last
   };
 }
 
-function buildArticleStageRepairNote(summary, job) {
+function buildArticleStageRepairNote(summary, job, settings = {}) {
   const checks = Array.isArray(summary?.checks) ? summary.checks : [];
   const metrics = summary?.metrics && typeof summary.metrics === "object" ? summary.metrics : {};
+  const sitePolicy = resolveContentSitePolicy(settings, job);
+  const publicationName = sitePolicy.publicationName || "this publication";
+  const internalLinkMinimum = Math.max(0, Number(sitePolicy.internalLinks.minimumCount || 0));
   const fixes = [];
 
   if (checks.includes("missing_core_fields")) {
@@ -153,13 +158,13 @@ function buildArticleStageRepairNote(summary, job) {
     fixes.push("Make page summaries preview concrete payoff instead of thin restatements.");
   }
   if (checks.includes("weak_reader_path")) {
-    fixes.push("Include at least one natural internal kuchniatwist link on page 1 so a social visitor has a clear next read beyond the current story.");
+    fixes.push(`Include at least one natural internal ${publicationName} link on page 1 so a social visitor has a clear next read beyond the current story.`);
   }
   if (checks.includes("weak_structure")) {
     fixes.push("Add clearer H2 structure so the article scans naturally.");
   }
   if (checks.includes("missing_internal_links")) {
-    fixes.push("Include at least three natural internal kuchniatwist links across the article pages.");
+    fixes.push(`Include at least ${internalLinkMinimum} natural internal ${publicationName} links across the article pages.`);
   }
   if ((job?.content_type || "") === "food_fact") {
     fixes.push("Stay in editorial explainer territory and avoid recipe-style metadata.");

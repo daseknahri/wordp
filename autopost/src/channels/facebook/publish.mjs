@@ -22,7 +22,7 @@ export function createFacebookPublishHelpers(deps) {
     url.searchParams.set("utm_medium", "social");
     url.searchParams.set(
       "utm_campaign",
-      trimText(`${settings.utmCampaignPrefix || "kuchnia-twist"}-${normalizeSlug(contentPackage.slug || contentPackage.title || "article")}`, 80),
+      trimText(`${settings.utmCampaignPrefix || "publication"}-${normalizeSlug(contentPackage.slug || contentPackage.title || "article")}`, 80),
     );
     url.searchParams.set("utm_content", contentLabel);
     return url.toString();

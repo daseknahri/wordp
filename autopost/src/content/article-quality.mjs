@@ -22,12 +22,15 @@ export function summarizeArticleStage({
     pageFlowSummaryLooksStrong,
     pageStartsWithExpectedLead,
     resolveCanonicalContentPackage,
+    resolveContentSitePolicy,
     seoDescriptionSignalScore,
     splitHtmlIntoPages,
     titleLooksStrong,
   } = deps;
   const contentPackage = resolveCanonicalContentPackage(generated, job);
   const contentType = contentPackage.content_type || job.content_type || "recipe";
+  const sitePolicy = typeof resolveContentSitePolicy === "function" ? resolveContentSitePolicy({}, job) : null;
+  const internalLinkMinimum = Math.max(0, Number(sitePolicy?.internalLinks?.minimumCount || 0));
   const contentHtml = String(contentPackage.content_html || "");
   const contentPages = Array.isArray(contentPackage.content_pages) && contentPackage.content_pages.length
     ? contentPackage.content_pages.map((page) => String(page || "")).filter((page) => cleanText(page.replace(/<[^>]+>/g, " ")) !== "")
@@ -35,7 +38,7 @@ export function summarizeArticleStage({
   const pageFlow = normalizeGeneratedPageFlow(Array.isArray(contentPackage.page_flow) ? contentPackage.page_flow : [], contentPages);
   const pageWordCounts = contentPages.map((page) => countWords(page.replace(/<[^>]+>/g, " ")));
   const pageCount = contentPages.length || 1;
-  const pageOneInternalLinks = countInternalLinks(contentPages[0] || "");
+  const pageOneInternalLinks = countInternalLinks(contentPages[0] || "", sitePolicy || {});
   const shortestPageWords = pageWordCounts.length ? Math.min(...pageWordCounts) : 0;
   const strongPageOpenings = contentPages.filter((page, index) => pageStartsWithExpectedLead(page, index)).length;
   const uniquePageLabels = new Set(pageFlow.map((page) => normalizePageFlowLabelFingerprint(page?.label || "")).filter(Boolean));
@@ -45,7 +48,7 @@ export function summarizeArticleStage({
   const wordCount = countWords(contentHtml.replace(/<[^>]+>/g, " "));
   const minimumWords = Number(contentType === "recipe" ? 1200 : 1100);
   const h2Count = (contentHtml.match(/<h2\b/gi) || []).length;
-  const internalLinks = countInternalLinks(contentHtml);
+  const internalLinks = countInternalLinks(contentHtml, sitePolicy || {});
   const excerptWords = countWords(contentPackage.excerpt || "");
   const seoWords = countWords(contentPackage.seo_description || "");
   const openingParagraph = extractOpeningParagraphText(contentPackage, deps);
@@ -77,9 +80,9 @@ export function summarizeArticleStage({
   if (pageCount > 1 && strongPageLabels < pageCount) checks.push("weak_page_labels");
   if (pageCount > 1 && uniquePageLabels.size < pageCount) checks.push("repetitive_page_labels");
   if (pageCount > 1 && strongPageSummaries < pageCount) checks.push("weak_page_summaries");
-  if (pageCount > 1 && pageOneInternalLinks < 1) checks.push("weak_reader_path");
+  if (internalLinkMinimum > 0 && pageCount > 1 && pageOneInternalLinks < 1) checks.push("weak_reader_path");
   if (h2Count < 2) checks.push("weak_structure");
-  if (internalLinks < 3) checks.push("missing_internal_links");
+  if (internalLinkMinimum > 0 && internalLinks < internalLinkMinimum) checks.push("missing_internal_links");
 
   return {
     checks: Array.from(new Set(checks)),
@@ -108,6 +111,7 @@ export function summarizeArticleStage({
       page_one_internal_links: pageOneInternalLinks,
       h2_count: h2Count,
       internal_links: internalLinks,
+      internal_link_minimum: internalLinkMinimum,
       recipe_complete: recipeComplete,
     },
   };
