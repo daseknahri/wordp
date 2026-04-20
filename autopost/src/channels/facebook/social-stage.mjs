@@ -2,7 +2,7 @@ export async function generateSocialCandidatePool({
   job,
   settings,
   article,
-  selectedPages,
+  socialTargets,
   preferredAngle = "",
   requestOpenAiChat,
   parseJsonObject,
@@ -14,7 +14,11 @@ export async function generateSocialCandidatePool({
   const normalizedSettings = settings && typeof settings === "object" ? settings : {};
   const models = normalizedSettings.contentMachine?.models || {};
   const repairAttemptsAllowed = models.repair_enabled ? Math.max(0, Math.min(1, Number(models.repair_attempts || 0))) : 0;
-  const desiredCount = Math.max(1, Array.isArray(selectedPages) ? selectedPages.length : 0);
+  const desiredCount = Math.max(
+    1,
+    Number(socialTargets?.count || 0)
+      || (Array.isArray(socialTargets) ? socialTargets.length : 0),
+  );
   let lastValidationError = "";
 
   for (let attempt = 0; attempt <= repairAttemptsAllowed; attempt += 1) {
@@ -26,7 +30,7 @@ export async function generateSocialCandidatePool({
       },
       {
         role: "user",
-        content: buildSocialCandidatePrompt(job, normalizedSettings, article, selectedPages, preferredAngle, lastValidationError),
+        content: buildSocialCandidatePrompt(job, normalizedSettings, article, socialTargets, preferredAngle, lastValidationError),
       },
     ]);
 

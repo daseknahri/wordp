@@ -29,12 +29,12 @@ export function createGenerationRunner(deps) {
     });
   }
 
-  async function generateSocialCandidatePool(job, settings, article, selectedPages, preferredAngle = "") {
+  async function generateSocialCandidatePool(job, settings, article, socialTargets, preferredAngle = "") {
     return runGenerateSocialCandidatePool({
       job,
       settings,
       article,
-      selectedPages,
+      socialTargets,
       preferredAngle,
       requestOpenAiChat,
       parseJsonObject,

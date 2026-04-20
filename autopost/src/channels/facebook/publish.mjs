@@ -15,6 +15,16 @@ export function createFacebookPublishHelpers(deps) {
     trimText,
   } = deps;
 
+  function summarizeFacebookFailures(failedPages) {
+    if (!Array.isArray(failedPages) || failedPages.length === 0) {
+      return "";
+    }
+
+    return failedPages
+      .map((page) => `${page.label || page.page_id}: ${page.error}`)
+      .join(" | ");
+  }
+
   function buildTrackedUrl(permalink, settings, generated, contentLabel) {
     const contentPackage = resolveCanonicalContentPackage(generated);
     const url = new URL(permalink);
@@ -97,6 +107,7 @@ export function createFacebookPublishHelpers(deps) {
     return {
       distribution: nextDistribution,
       failedPages,
+      partialFailureMessage: summarizeFacebookFailures(failedPages),
     };
   }
 

@@ -5,16 +5,6 @@ export function createJobUtils(deps) {
     toInt,
   } = deps;
 
-  function summarizeFacebookFailures(failedPages) {
-    if (!Array.isArray(failedPages) || failedPages.length === 0) {
-      return "";
-    }
-
-    return failedPages
-      .map((page) => `${page.label || page.page_id}: ${page.error}`)
-      .join(" | ");
-  }
-
   function firstAttachment(...items) {
     return items.find((item) => item && item.id && item.url) || null;
   }
@@ -51,6 +41,5 @@ export function createJobUtils(deps) {
     assertRecipeDistributionTargets,
     firstAttachment,
     firstSuccessfulDistributionResult,
-    summarizeFacebookFailures,
   };
 }

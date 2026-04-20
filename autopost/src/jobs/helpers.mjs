@@ -1,7 +1,9 @@
 import { createFacebookPhaseHelpers } from "./facebook-phase.mjs";
 import { createJobOrchestrator } from "./orchestrator.mjs";
 import { createPackageGenerator } from "./package-generator.mjs";
+import { createPostingExecutors } from "./posting-executors.mjs";
 import { createPostingMachine } from "./posting-machine.mjs";
+import { createPostingTargetResolver } from "./posting-targets.mjs";
 import { createWordPressJobClient } from "./wordpress-jobs.mjs";
 
 export function createJobsHelpers(deps) {
@@ -30,41 +32,35 @@ export function createJobsHelpers(deps) {
     isPlainObject,
     normalizeFacebookDistribution,
     normalizeGeneratedPayload,
+    resolveFacebookDistributionContext,
+    resolveFacebookDistributionResult,
+    resolveFacebookTargets,
     resolvePreferredAngle,
     resolvePublicationProfile,
-    resolveSelectedFacebookPages,
     resolveTypedGuidance,
     summarizeSelectedSocialPack,
     syncGeneratedContractContainers,
     assertFacebookConfigured,
     assertQualityGate,
     assertRecipeDistributionTargets,
-    buildFallbackFacebookCaption,
     buildQualitySummary,
     ensureJobImages,
     ensureOpenAiConfigured,
     firstAttachment,
-    firstSuccessfulDistributionResult,
     hydrateStoredGeneratedPayload,
     isFutureUtcTimestamp,
     mergeSettings,
     mergeValidatorSummary,
     publishFacebookDistribution,
-    seedLegacyFacebookDistribution,
-    summarizeFacebookFailures,
   } = deps;
 
   const facebookPhaseHelpers = createFacebookPhaseHelpers({
     assertRecipeDistributionTargets,
-    buildFallbackFacebookCaption,
     deriveLegacyFacebookCaptionMirror,
     deriveLegacyGroupShareKitMirror,
-    firstSuccessfulDistributionResult,
+    resolveFacebookDistributionContext,
     resolveFacebookChannelAdapter,
     resolvePreferredAngle,
-    resolveSelectedFacebookPages,
-    seedLegacyFacebookDistribution,
-    syncGeneratedContractContainers,
   });
 
   const wordPressJobClient = createWordPressJobClient({
@@ -98,33 +94,38 @@ export function createJobsHelpers(deps) {
     normalizeFacebookDistribution,
     normalizeGeneratedPayload,
     resolveCanonicalContentPackage,
+    resolveFacebookTargets,
     resolvePreferredAngle,
     resolvePublicationProfile,
-    resolveSelectedFacebookPages,
     resolveTypedGuidance,
     summarizeSelectedSocialPack,
     syncGeneratedContractContainers,
   });
 
+  const postingTargetResolver = createPostingTargetResolver({
+    resolveFacebookTargets,
+  });
+
   const postingMachine = createPostingMachine({
-    assertFacebookConfigured,
     completeJob: (...args) => wordPressJobClient.completeJob(...args),
-    finalizeFacebookPhaseState: (...args) => facebookPhaseHelpers.finalizeFacebookPhaseState(...args),
+    executors: createPostingExecutors({
+      assertFacebookConfigured,
+      log,
+      publishBlogPost: (...args) => wordPressJobClient.publishBlogPost(...args),
+      publishFacebookDistribution,
+      resolveFacebookDistributionContext,
+      resolveFacebookDistributionResult,
+      toInt,
+    }),
     formatError,
     log,
-    publishBlogPost: (...args) => wordPressJobClient.publishBlogPost(...args),
-    publishFacebookDistribution,
-    resolveSelectedFacebookPages,
+    resolvePostingTargetCounts: (...args) => postingTargetResolver.resolvePostingTargetCounts(...args),
     safeFailJob: (...args) => wordPressJobClient.safeFailJob(...args),
-    seedLegacyFacebookDistribution,
-    summarizeFacebookFailures,
-    toInt,
     updateJobProgress: (...args) => wordPressJobClient.updateJobProgress(...args),
   });
 
   const jobOrchestrator = createJobOrchestrator({
     assertQualityGate,
-    assertRecipeDistributionTargets,
     buildQualitySummary,
     claimNextJob: (...args) => wordPressJobClient.claimNextJob(...args),
     ensureJobImages,

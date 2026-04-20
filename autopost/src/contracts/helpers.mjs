@@ -80,6 +80,7 @@ export function createContractsHelpers(deps) {
     normalizeGeneratedPageFlow,
     normalizeSlug,
     normalizeSocialPack,
+    resolveLegacyChannelMirrors: channelAdapterHelpers.resolveLegacyChannelMirrors,
     resolveGeneratedContentHtml,
     resolveGeneratedContentPages,
     splitHtmlIntoPages,

@@ -1,11 +1,14 @@
 export function createFacebookStateHelpers(deps) {
   const {
+    buildFallbackFacebookCaption,
     buildFacebookCommentUrl,
     buildFacebookPostUrl,
     cleanMultilineText,
     cleanText,
+    firstSuccessfulDistributionResult,
     formatError,
     normalizeAngleKey,
+    syncGeneratedContractContainers,
   } = deps;
 
   function resolveFacebookPublishCtas(settings) {
@@ -53,9 +56,44 @@ export function createFacebookStateHelpers(deps) {
     };
   }
 
+  function resolveFacebookDistributionResult({
+    job,
+    settings,
+    generated,
+    distribution,
+    socialPack,
+    facebookPostTeaserCta = "",
+  }) {
+    const firstSuccess = firstSuccessfulDistributionResult(distribution, job.content_type || "recipe");
+    const facebookPostId = firstSuccess?.post_id || "";
+    const facebookCommentId = firstSuccess?.comment_id || "";
+    const facebookCaption = firstSuccess?.caption || socialPack[0]?.caption || buildFallbackFacebookCaption(generated);
+    const syncedGenerated = syncGeneratedContractContainers({
+      ...generated,
+      facebook_post_teaser_cta: facebookPostTeaserCta,
+      facebook_comment_link_cta: settings.facebookCommentLinkCta,
+      social_pack: socialPack,
+      facebook_distribution: distribution,
+      facebook_urls: {
+        ...(generated.facebook_urls || {}),
+        facebook_comment: firstSuccess?.comment_url || "",
+        facebook_post: firstSuccess?.post_url || "",
+      },
+    }, job);
+
+    return {
+      facebookCaption,
+      facebookCommentId,
+      facebookPostId,
+      firstSuccess,
+      generated: syncedGenerated,
+    };
+  }
+
   return {
     buildFacebookPublishPageState,
     markFacebookPublishFailure,
+    resolveFacebookDistributionResult,
     resolveFacebookPublishCtas,
   };
 }

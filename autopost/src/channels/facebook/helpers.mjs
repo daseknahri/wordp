@@ -44,12 +44,15 @@ export function createFacebookHelpers(deps) {
   });
 
   const stateHelpers = createFacebookStateHelpers({
+    buildFallbackFacebookCaption: adapterHelpers.buildFallbackFacebookCaption,
     buildFacebookCommentUrl: adapterHelpers.buildFacebookCommentUrl,
     buildFacebookPostUrl: adapterHelpers.buildFacebookPostUrl,
     cleanMultilineText,
     cleanText,
+    firstSuccessfulDistributionResult: adapterHelpers.firstSuccessfulDistributionResult,
     formatError,
     normalizeAngleKey,
+    syncGeneratedContractContainers: deps.syncGeneratedContractContainers,
   });
 
   const apiHelpers = createFacebookApiHelpers({
@@ -84,8 +87,10 @@ export function createFacebookHelpers(deps) {
     normalizeCaptionOpeningFingerprint: fingerprintHelpers.normalizeCaptionOpeningFingerprint,
     normalizeHookFingerprint: fingerprintHelpers.normalizeHookFingerprint,
     normalizeSocialFingerprint: fingerprintHelpers.normalizeSocialFingerprint,
+    resolveFacebookDistributionContext: distributionHelpers.resolveFacebookDistributionContext,
+    resolveFacebookDistributionResult: stateHelpers.resolveFacebookDistributionResult,
+    resolveFacebookTargets: distributionHelpers.resolveFacebookTargets,
     resolveSelectedFacebookPages: distributionHelpers.resolveSelectedFacebookPages,
-    seedLegacyFacebookDistribution: distributionHelpers.seedLegacyFacebookDistribution,
     publishFacebookDistribution: publishHelpers.publishFacebookDistribution,
   };
 }

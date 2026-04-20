@@ -12,6 +12,7 @@ export function createGeneratedPayloadHelpers(deps) {
     normalizeGeneratedPageFlow,
     normalizeSlug,
     normalizeSocialPack,
+    resolveLegacyChannelMirrors,
     resolveGeneratedContentHtml,
     resolveGeneratedContentPages,
     splitHtmlIntoPages,
@@ -268,28 +269,37 @@ export function createGeneratedPayloadHelpers(deps) {
     const seoDescription =
       trimText(cleanText(readGeneratedString(source, ["seo_description", "seoDescription", "meta_description", "metaDescription", "search_description", "searchDescription"])), 155) ||
       trimText(excerpt, 155);
-    const legacyFacebookCaption = cleanMultilineText(readGeneratedString(source, ["facebook_caption", "facebookCaption"]));
-    const groupShareKit = cleanMultilineText(readGeneratedString(source, ["group_share_kit", "groupShareKit"]));
+    const legacyChannelMirrors = resolveLegacyChannelMirrors({
+      content_type: job?.content_type || "recipe",
+      legacy_channel_mirrors: readGeneratedObject(source, ["legacy_channel_mirrors", "legacyChannelMirrors"]) || {},
+      facebook_caption: cleanMultilineText(readGeneratedString(source, ["facebook_caption", "facebookCaption"])),
+      group_share_kit: cleanMultilineText(readGeneratedString(source, ["group_share_kit", "groupShareKit"])),
+    });
     const imagePrompt =
       cleanMultilineText(readGeneratedString(source, ["image_prompt", "imagePrompt", "hero_image_prompt", "heroImagePrompt"])) ||
       `Editorial food photography of ${title}, premium magazine lighting, appetizing detail, natural styling, no text overlay.`;
     const imageAlt = cleanText(readGeneratedString(source, ["image_alt", "imageAlt", "hero_image_alt", "heroImageAlt", "alt_text", "altText"])) || title;
     const recipe = normalizeRecipe(readGeneratedObject(source, ["recipe", "recipe_card", "recipeCard"]) || {}, job?.content_type || "recipe");
-    const socialPack = normalizeSocialPack(
+    const parsedSocialPack = normalizeSocialPack(
       Array.isArray(facebookSource.selected) ? facebookSource.selected
         : (Array.isArray(facebookSource.social_pack) ? facebookSource.social_pack : readGeneratedArray(source, ["social_pack", "socialPack", "facebook_variants", "facebookVariants"])),
       job?.content_type || "recipe",
     );
-    const socialCandidates = normalizeSocialPack(
+    const parsedSocialCandidates = normalizeSocialPack(
       Array.isArray(facebookSource.candidates) ? facebookSource.candidates
         : (Array.isArray(facebookSource.social_candidates) ? facebookSource.social_candidates : readGeneratedArray(source, ["social_candidates", "socialCandidates"])),
       job?.content_type || "recipe",
     );
-    const facebookDistribution = normalizeFacebookDistribution(
+    const parsedFacebookDistribution = normalizeFacebookDistribution(
       isPlainObject(facebookSource.distribution) ? facebookSource.distribution
         : (isPlainObject(facebookSource.facebook_distribution) ? facebookSource.facebook_distribution : (readGeneratedObject(source, ["facebook_distribution", "facebookDistribution"]) || {})),
       job?.content_type || "recipe",
     );
+    const socialPack = legacyChannelMirrors.hasSocialPack ? legacyChannelMirrors.socialPack : parsedSocialPack;
+    const socialCandidates = legacyChannelMirrors.hasSocialCandidates ? legacyChannelMirrors.socialCandidates : parsedSocialCandidates;
+    const facebookDistribution = legacyChannelMirrors.hasFacebookDistribution
+      ? legacyChannelMirrors.facebookDistribution
+      : parsedFacebookDistribution;
 
     if (!contentHtml) {
       throw new Error(
@@ -311,14 +321,16 @@ export function createGeneratedPayloadHelpers(deps) {
       content_pages: contentPages.length ? contentPages : ensureInternalLinksOnPages(splitHtmlIntoPages(contentHtml, job?.content_type || "recipe").slice(0, 3), job),
       page_flow: pageFlow,
       content_html: contentHtml,
-      facebook_caption: legacyFacebookCaption,
-      group_share_kit: groupShareKit,
+      legacy_channel_mirrors: {
+        facebook_caption: legacyChannelMirrors.facebookCaption,
+        group_share_kit: legacyChannelMirrors.groupShareKit,
+        social_pack: socialPack,
+        social_candidates: socialCandidates,
+        facebook_distribution: facebookDistribution,
+      },
       image_prompt: imagePrompt,
       image_alt: imageAlt,
       recipe,
-      social_pack: socialPack,
-      social_candidates: socialCandidates,
-      facebook_distribution: facebookDistribution,
       assets: readGeneratedObject(source, ["assets"]) || {},
       facebook_urls: readGeneratedObject(source, ["facebook_urls", "facebookUrls"]) || {},
       content_machine: readGeneratedObject(source, ["content_machine", "contentMachine"]) || {},
@@ -336,14 +348,10 @@ export function createGeneratedPayloadHelpers(deps) {
       content_pages: [],
       page_flow: [],
       content_html: "",
-      facebook_caption: "",
-      group_share_kit: "",
+      legacy_channel_mirrors: {},
       image_prompt: "",
       image_alt: title,
       recipe: normalizeRecipe({}, job?.content_type || "recipe"),
-      social_pack: [],
-      social_candidates: [],
-      facebook_distribution: normalizeFacebookDistribution({}, job?.content_type || "recipe"),
       assets: {},
       facebook_urls: {},
       content_machine: {},

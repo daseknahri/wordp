@@ -15,6 +15,56 @@ export function createWordPressJobClient(deps) {
     wpRequest,
   } = deps;
 
+  function isPlainObject(value) {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  }
+
+  function normalizeWorkerCallbackPayload(payload = {}) {
+    const source = isPlainObject(payload) ? payload : {};
+    const publication = isPlainObject(source.publication) ? source.publication : {};
+    const deliveries = isPlainObject(source.deliveries) ? source.deliveries : {};
+    const facebook = isPlainObject(deliveries.facebook) ? deliveries.facebook : {};
+    const facebookGroups = isPlainObject(deliveries.facebook_groups) ? deliveries.facebook_groups : {};
+
+    return {
+      ...source,
+      publication: {
+        ...publication,
+        id: toInt(publication.id ?? publication.postId ?? source.post_id ?? source.postId ?? 0),
+        permalink: String(publication.permalink || source.permalink || ""),
+      },
+      deliveries: {
+        ...deliveries,
+        facebook: {
+          ...facebook,
+          postId: String(facebook.postId || source.facebook_post_id || source.facebookPostId || ""),
+          commentId: String(facebook.commentId || source.facebook_comment_id || source.facebookCommentId || ""),
+          caption: String(facebook.caption || source.facebook_caption || source.facebookCaption || ""),
+        },
+        facebook_groups: {
+          ...facebookGroups,
+          draft: String(
+            facebookGroups.draft
+            || facebookGroups.shareKit
+            || source.group_share_kit
+            || source.groupShareKit
+            || "",
+          ),
+        },
+      },
+      facebook_post_id: String(facebook.postId || source.facebook_post_id || source.facebookPostId || ""),
+      facebook_comment_id: String(facebook.commentId || source.facebook_comment_id || source.facebookCommentId || ""),
+      facebook_caption: String(facebook.caption || source.facebook_caption || source.facebookCaption || ""),
+      group_share_kit: String(
+        facebookGroups.draft
+        || facebookGroups.shareKit
+        || source.group_share_kit
+        || source.groupShareKit
+        || ""
+      ),
+    };
+  }
+
   async function claimNextJob() {
     const platformPolicy = resolvePlatformPolicy({}, null, config);
     const claimed = await wpRequest(buildPlatformRestPath(platformPolicy, "claim"), {
@@ -51,6 +101,14 @@ export function createWordPressJobClient(deps) {
         content_html: contentPackage.content_html,
         featured_image_id: featuredImageId,
         facebook_image_id: facebookImageId,
+        deliveries: {
+          facebook: {
+            caption: facebookCaption,
+          },
+          facebook_groups: {
+            draft: groupShareKit,
+          },
+        },
         facebook_caption: facebookCaption,
         group_share_kit: groupShareKit,
         generated_payload: generated,
@@ -60,20 +118,22 @@ export function createWordPressJobClient(deps) {
 
   async function completeJob(jobId, payload, job = null) {
     const platformPolicy = resolvePlatformPolicy({}, job, config);
+    const normalizedPayload = normalizeWorkerCallbackPayload(payload);
     await wpRequest(buildPlatformRestPath(platformPolicy, "complete", { id: jobId }), {
       method: "POST",
       secretHeaderName: platformPolicy.auth.secretHeader,
-      body: payload,
+      body: normalizedPayload,
     });
   }
 
   async function safeFailJob(jobId, payload, job = null) {
     const platformPolicy = resolvePlatformPolicy({}, job, config);
+    const normalizedPayload = normalizeWorkerCallbackPayload(payload);
     try {
       await wpRequest(buildPlatformRestPath(platformPolicy, "fail", { id: jobId }), {
         method: "POST",
         secretHeaderName: platformPolicy.auth.secretHeader,
-        body: payload,
+        body: normalizedPayload,
       });
     } catch (error) {
       log(`unable to report failure for job #${jobId}: ${formatError(error)}`);
@@ -82,10 +142,11 @@ export function createWordPressJobClient(deps) {
 
   async function updateJobProgress(jobId, payload, job = null) {
     const platformPolicy = resolvePlatformPolicy({}, job, config);
+    const normalizedPayload = normalizeWorkerCallbackPayload(payload);
     return wpRequest(buildPlatformRestPath(platformPolicy, "progress", { id: jobId }), {
       method: "POST",
       secretHeaderName: platformPolicy.auth.secretHeader,
-      body: payload,
+      body: normalizedPayload,
     });
   }
 

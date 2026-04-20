@@ -322,7 +322,20 @@ export function buildQualitySummary({
   const uniquePageLabels = new Set(pageFlow.map((page) => deps.normalizePageFlowLabelFingerprint(page?.label || "")).filter(Boolean));
   const strongPageLabels = pageFlow.filter((page, index) => deps.pageFlowLabelLooksStrong(page?.label || "", index)).length;
   const strongPageSummaries = pageFlow.filter((page) => deps.pageFlowSummaryLooksStrong(page?.summary || "", page?.label || "")).length;
-  const selectedPages = Array.isArray(options.selectedPages) ? options.selectedPages : deps.resolveSelectedFacebookPages(job, settings);
+  const optionSelectedPages = Array.isArray(options.selectedPages) ? options.selectedPages : [];
+  const facebookTargets = typeof deps.resolveFacebookTargets === "function"
+    ? deps.resolveFacebookTargets(job, settings)
+    : { count: optionSelectedPages.length, pages: optionSelectedPages };
+  const targetCount = Math.max(
+    0,
+    Number(
+      options.targetPages
+      ?? options.targetCount
+      ?? facebookTargets?.count
+      ?? optionSelectedPages.length
+      ?? 0,
+    ),
+  );
   const socialPack = Array.isArray(facebookChannel.selected) ? facebookChannel.selected : [];
   const fingerprints = socialPack.map((variant) => deps.normalizeSocialFingerprint(variant)).filter(Boolean);
   const uniqueFingerprints = new Set(fingerprints);
@@ -332,7 +345,7 @@ export function buildQualitySummary({
   const uniqueHookForms = new Set(socialPack.map((variant) => deps.classifySocialHookForm(variant)).filter(Boolean));
   const strongSocialVariants = socialPack.filter((variant) => !deps.socialVariantLooksWeak(variant, contentPackage.title || "", contentType, articleSignals)).length;
   const selectedSocialSummary = deps.summarizeSelectedSocialPack(socialPack, contentPackage, contentType);
-  const signalTargets = deps.desiredSocialSignalTargets(selectedPages.length);
+  const signalTargets = deps.desiredSocialSignalTargets(targetCount);
   const recipe = deps.isPlainObject(contentPackage.recipe) ? contentPackage.recipe : {};
   const sitePolicy = typeof deps.resolveContentSitePolicy === "function" ? deps.resolveContentSitePolicy(settings, job) : null;
   const internalLinkMinimum = Math.max(0, Number(sitePolicy?.internalLinks?.minimumCount || 0));
@@ -380,7 +393,7 @@ export function buildQualitySummary({
   const contractChecks = collectCanonicalContractChecks({
     generated,
     job,
-    targetPages: selectedPages.length,
+    targetPages: targetCount,
     deps,
   });
   const contractBlockingChecks = (strictContractMode && contractMeta.typed_contract_job)
@@ -402,7 +415,7 @@ export function buildQualitySummary({
   if (duplicateRisk) {
     blockingChecks.push("duplicate_conflict");
   }
-  if (selectedPages.length < 1) {
+  if (targetCount < 1) {
     blockingChecks.push("missing_target_pages");
   }
   if (wordCount < minimumWords) {
@@ -447,29 +460,29 @@ export function buildQualitySummary({
   if (internalLinkMinimum > 0 && internalLinks < internalLinkMinimum) {
     warningChecks.push("missing_internal_links");
   }
-  if (socialPack.length < Math.max(1, selectedPages.length)) {
+  if (socialPack.length < Math.max(1, targetCount)) {
     warningChecks.push("social_pack_incomplete");
   }
-  if (socialPack.length > 0 && uniqueFingerprints.size < Math.min(socialPack.length, Math.max(1, selectedPages.length))) {
+  if (socialPack.length > 0 && uniqueFingerprints.size < Math.min(socialPack.length, Math.max(1, targetCount))) {
     warningChecks.push("social_pack_repetitive");
   }
-  if (socialPack.length > 1 && uniqueHookFingerprints.size < Math.min(socialPack.length, Math.max(1, selectedPages.length))) {
+  if (socialPack.length > 1 && uniqueHookFingerprints.size < Math.min(socialPack.length, Math.max(1, targetCount))) {
     warningChecks.push("social_hooks_repetitive");
   }
-  if (socialPack.length > 1 && uniqueCaptionOpenings.size < Math.min(socialPack.length, Math.max(1, selectedPages.length))) {
+  if (socialPack.length > 1 && uniqueCaptionOpenings.size < Math.min(socialPack.length, Math.max(1, targetCount))) {
     warningChecks.push("social_openings_repetitive");
   }
-  if (selectedPages.length > 1 && uniqueAngleKeys.size < Math.min(selectedPages.length, deps.angleDefinitionsForType(contentType).length)) {
+  if (targetCount > 1 && uniqueAngleKeys.size < Math.min(targetCount, deps.angleDefinitionsForType(contentType).length)) {
     warningChecks.push("social_angles_repetitive");
   }
-  if (selectedPages.length > 1 && uniqueHookForms.size < Math.max(2, Math.min(3, selectedPages.length))) {
+  if (targetCount > 1 && uniqueHookForms.size < Math.max(2, Math.min(3, targetCount))) {
     warningChecks.push("social_hook_forms_thin");
   }
-  if (strongSocialVariants < Math.max(1, selectedPages.length)) {
+  if (strongSocialVariants < Math.max(1, targetCount)) {
     warningChecks.push("weak_social_copy");
   }
   if (
-    selectedPages.length > 0
+    targetCount > 0
     && (
       selectedSocialSummary.lead_social_score < 16
       || !selectedSocialSummary.lead_social_specific
@@ -495,73 +508,73 @@ export function buildQualitySummary({
   ) {
     warningChecks.push("weak_social_lead");
   }
-  if (selectedSocialSummary.specific_social_variants < Math.max(1, Math.min(selectedPages.length || 1, 2))) {
+  if (selectedSocialSummary.specific_social_variants < Math.max(1, Math.min(targetCount || 1, 2))) {
     warningChecks.push("social_specificity_thin");
   }
-  if (selectedPages.length > 0 && selectedSocialSummary.anchored_variants < Math.max(1, Math.min(selectedPages.length || 1, 2))) {
+  if (targetCount > 0 && selectedSocialSummary.anchored_variants < Math.max(1, Math.min(targetCount || 1, 2))) {
     warningChecks.push("social_anchor_thin");
   }
-  if (selectedPages.length > 0 && selectedSocialSummary.novelty_variants < Math.max(1, Math.min(selectedPages.length || 1, 2))) {
+  if (targetCount > 0 && selectedSocialSummary.novelty_variants < Math.max(1, Math.min(targetCount || 1, 2))) {
     warningChecks.push("social_novelty_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.relatable_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.relatable_variants < 1) {
     warningChecks.push("social_relatability_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.recognition_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.recognition_variants < 1) {
     warningChecks.push("social_recognition_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.conversation_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.conversation_variants < 1) {
     warningChecks.push("social_conversation_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.savvy_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.savvy_variants < 1) {
     warningChecks.push("social_savvy_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.identity_shift_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.identity_shift_variants < 1) {
     warningChecks.push("social_identity_shift_thin");
   }
-  if (selectedPages.length > 0 && selectedSocialSummary.front_loaded_social_variants < Math.max(1, Math.min(selectedPages.length || 1, 2))) {
+  if (targetCount > 0 && selectedSocialSummary.front_loaded_social_variants < Math.max(1, Math.min(targetCount || 1, 2))) {
     warningChecks.push("social_front_load_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.curiosity_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.curiosity_variants < 1) {
     warningChecks.push("social_curiosity_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.resolution_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.resolution_variants < 1) {
     warningChecks.push("social_resolution_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.contrast_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.contrast_variants < 1) {
     warningChecks.push("social_contrast_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.pain_point_variants < signalTargets.painPointMin) {
+  if (targetCount > 1 && selectedSocialSummary.pain_point_variants < signalTargets.painPointMin) {
     warningChecks.push("social_pain_points_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.payoff_variants < signalTargets.payoffMin) {
+  if (targetCount > 1 && selectedSocialSummary.payoff_variants < signalTargets.payoffMin) {
     warningChecks.push("social_payoffs_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.proof_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.proof_variants < 1) {
     warningChecks.push("social_proof_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.actionable_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.actionable_variants < 1) {
     warningChecks.push("social_actionability_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.immediacy_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.immediacy_variants < 1) {
     warningChecks.push("social_immediacy_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.consequence_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.consequence_variants < 1) {
     warningChecks.push("social_consequence_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.habit_shift_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.habit_shift_variants < 1) {
     warningChecks.push("social_habit_shift_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.focused_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.focused_variants < 1) {
     warningChecks.push("social_focus_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.promise_sync_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.promise_sync_variants < 1) {
     warningChecks.push("social_promise_sync_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.scannable_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.scannable_variants < 1) {
     warningChecks.push("social_scannability_thin");
   }
-  if (selectedPages.length > 1 && selectedSocialSummary.two_step_variants < 1) {
+  if (targetCount > 1 && selectedSocialSummary.two_step_variants < 1) {
     warningChecks.push("social_two_step_thin");
   }
   if (!imageReady) {
@@ -645,7 +658,7 @@ export function buildQualitySummary({
     pageCount,
     strongPageOpenings,
     strongPageSummaries,
-    targetPages: selectedPages.length,
+    targetPages: targetCount,
     strongSocialVariants,
     leadSocialScore: selectedSocialSummary.lead_social_score,
     leadSocialSpecific: selectedSocialSummary.lead_social_specific,
@@ -732,7 +745,7 @@ export function buildQualitySummary({
       typed_contract_job: contractMeta.typed_contract_job,
       legacy_contract_job: contractMeta.legacy_job,
       strict_contract_mode: strictContractMode,
-      target_pages: selectedPages.length,
+      target_pages: targetCount,
       social_variants: socialPack.length,
       unique_social_variants: uniqueFingerprints.size,
       unique_social_hooks: uniqueHookFingerprints.size,

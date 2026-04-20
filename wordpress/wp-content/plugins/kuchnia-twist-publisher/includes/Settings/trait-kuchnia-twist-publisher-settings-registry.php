@@ -319,6 +319,38 @@ trait Kuchnia_Twist_Publisher_Settings_Registry_Trait
         ];
     }
 
+    private function content_machine_posting_policy(array $settings): array
+    {
+        return [
+            'primary' => [
+                'action'   => 'publish_blog',
+                'executor' => 'wordpress_publish',
+                'stage'    => 'publishing_blog',
+            ],
+            'channel_order' => ['facebook', 'facebook_groups', 'pinterest'],
+            'channels' => [
+                'facebook' => [
+                    'enabled'          => true,
+                    'executor'         => 'facebook_distribution',
+                    'stage'            => 'publishing_facebook',
+                    'requires_targets' => true,
+                ],
+                'facebook_groups' => [
+                    'enabled'          => false,
+                    'executor'         => 'facebook_groups_draft',
+                    'stage'            => 'preparing_facebook_groups',
+                    'requires_targets' => false,
+                ],
+                'pinterest' => [
+                    'enabled'          => false,
+                    'executor'         => 'pinterest_draft',
+                    'stage'            => 'preparing_pinterest',
+                    'requires_targets' => false,
+                ],
+            ],
+        ];
+    }
+
     private function content_machine_settings(array $settings): array
     {
         return [
@@ -334,6 +366,7 @@ trait Kuchnia_Twist_Publisher_Settings_Registry_Trait
             'contracts' => $this->content_machine_contracts($settings),
             'site_policy' => $this->content_machine_site_policy($settings),
             'platform_policy' => $this->content_machine_platform_policy($settings),
+            'posting_policy' => $this->content_machine_posting_policy($settings),
             'default_ctas' => $this->content_machine_default_ctas($settings),
             'default_cta' => $settings['facebook_comment_link_cta'],
         ];
@@ -415,6 +448,7 @@ trait Kuchnia_Twist_Publisher_Settings_Registry_Trait
             'content_preset'      => $content_type,
             'site_policy'         => is_array($machine['site_policy'] ?? null) ? $machine['site_policy'] : [],
             'platform_policy'     => is_array($machine['platform_policy'] ?? null) ? $machine['platform_policy'] : [],
+            'posting_policy'      => is_array($machine['posting_policy'] ?? null) ? $machine['posting_policy'] : [],
             'default_ctas'        => is_array($machine['default_ctas'] ?? null) ? $machine['default_ctas'] : [],
             'default_cta'         => (string) ($machine['default_cta'] ?? $this->default_facebook_comment_link_cta()),
         ];

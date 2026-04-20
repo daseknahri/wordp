@@ -699,9 +699,21 @@ export function buildFallbackSocialPack({
     }),
   };
   const templates = contentType === "recipe" ? recipeTemplates : factTemplates;
+  const resolvedPages = Array.isArray(pages)
+    ? pages
+    : (Array.isArray(pages?.pages) ? pages.pages : []);
+  const pageLabels = Array.isArray(pages?.labels) ? pages.labels : [];
+  const count = Math.max(
+    1,
+    resolvedPages.length
+      || Number(pages?.count || 0)
+      || pageLabels.length
+      || 0,
+  );
 
   return Array.from({ length: count }, (_, index) => {
-    const page = pages[index] || null;
+    const page = resolvedPages[index] || null;
+    const pageLabel = cleanText(pageLabels[index] || page?.label || "");
     const angleKey = angles[index] || definitions[index % definitions.length].key;
     const variant = (templates[angleKey] || Object.values(templates)[0])(article.title, index, signals);
     const angleLabel = angleDefinition(angleKey, contentType)?.label || angleKey.replace(/_/g, " ");
@@ -710,7 +722,7 @@ export function buildFallbackSocialPack({
       angle_key: angleKey,
       hook: variant.hook,
       caption: variant.caption,
-      cta_hint: page?.label ? `${angleLabel} angle on ${page.label}` : `General ${contentType} post`,
+      cta_hint: pageLabel ? `${angleLabel} angle on ${pageLabel}` : `General ${contentType} post`,
     };
     if (
       signals.detail_line &&
@@ -771,9 +783,30 @@ export function ensureSocialPackCoverage({
     socialVariantSelfRecognitionSignal,
     socialVariantTwoStepSignal,
   } = deps;
-  const desiredCount = Math.max(1, Array.isArray(pages) ? pages.length : 0);
+  const resolvedPages = Array.isArray(pages)
+    ? pages
+    : (Array.isArray(pages?.pages) ? pages.pages : []);
+  const pageLabels = Array.isArray(pages?.labels) ? pages.labels : [];
+  const desiredCount = Math.max(
+    1,
+    resolvedPages.length
+      || Number(pages?.count || 0)
+      || pageLabels.length
+      || 0,
+  );
   const normalized = normalizeSocialPack(value, contentType);
-  const fallback = buildFallbackSocialPack({ article, pages, settings, contentType, preferredAngle, deps });
+  const fallback = buildFallbackSocialPack({
+    article,
+    pages: {
+      pages: resolvedPages,
+      labels: pageLabels,
+      count: desiredCount,
+    },
+    settings,
+    contentType,
+    preferredAngle,
+    deps,
+  });
   const articleSignals = buildArticleSocialSignals(article, contentType);
   const angleSequence = buildAngleSequence(desiredCount, contentType, preferredAngle);
   const signalTargets = desiredSocialSignalTargets(desiredCount);
@@ -852,7 +885,8 @@ export function ensureSocialPackCoverage({
     });
     const selectedCandidate = bestCandidateIndex >= 0 ? unusedCandidates.splice(bestCandidateIndex, 1)[0] : null;
     const base = selectedCandidate || fallback[index] || fallback[fallback.length - 1];
-    let variant = buildCanonicalVariant(base, desiredAngle, pages[index]?.label || "", `variant-${index + 1}`);
+    const pageLabel = cleanText(pageLabels[index] || resolvedPages[index]?.label || "");
+    let variant = buildCanonicalVariant(base, desiredAngle, pageLabel, `variant-${index + 1}`);
 
     const fingerprint = normalizeSocialFingerprint(variant);
     const hookFingerprint = normalizeHookFingerprint(variant);
@@ -867,7 +901,7 @@ export function ensureSocialPackCoverage({
       variant = buildCanonicalVariant(
         fallback[index] || fallback[fallback.length - 1],
         angleSequence[index],
-        pages[index]?.label || "",
+        pageLabel,
         `variant-${index + 1}`,
       );
     }

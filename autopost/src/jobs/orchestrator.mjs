@@ -1,7 +1,6 @@
 export function createJobOrchestrator(deps) {
   const {
     assertQualityGate,
-    assertRecipeDistributionTargets,
     buildQualitySummary,
     claimNextJob,
     ensureJobImages,
@@ -49,6 +48,95 @@ export function createJobOrchestrator(deps) {
     };
   }
 
+  function resolveFacebookTargetCount(facebookTargets) {
+    return Math.max(0, Number(facebookTargets?.count || 0));
+  }
+
+  function isPlainObject(value) {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  }
+
+  function resolvePublishResultPublication(result, toIntValue, fallbackPermalink = "") {
+    const publication = isPlainObject(result?.publication) ? result.publication : {};
+
+    return {
+      postId: toInt(publication.id ?? publication.postId ?? toIntValue),
+      permalink: String(publication.permalink || result?.permalink || fallbackPermalink || ""),
+    };
+  }
+
+  function resolvePublishResultFacebookDelivery(
+    result,
+    fallbackDistribution,
+    fallbackPostId = "",
+    fallbackCommentId = "",
+    fallbackCaption = "",
+  ) {
+    const deliveries = isPlainObject(result?.deliveries) ? result.deliveries : {};
+    const facebook = isPlainObject(deliveries.facebook) ? deliveries.facebook : {};
+
+    return {
+      distribution: facebook.distribution || result?.distribution || fallbackDistribution,
+      postId: String(facebook.postId || result?.facebookPostId || fallbackPostId || ""),
+      commentId: String(facebook.commentId || result?.facebookCommentId || fallbackCommentId || ""),
+      caption: String(facebook.caption || result?.facebookCaption || fallbackCaption || ""),
+    };
+  }
+
+  function resolvePublishResultFacebookGroupsDelivery(result, fallbackDraft = "") {
+    const deliveries = isPlainObject(result?.deliveries) ? result.deliveries : {};
+    const facebookGroups = isPlainObject(deliveries.facebook_groups) ? deliveries.facebook_groups : {};
+
+    return {
+      draft: String(
+        facebookGroups.draft
+        || facebookGroups.shareKit
+        || result?.groupShareKit
+        || fallbackDraft
+        || "",
+      ),
+    };
+  }
+
+  function buildPublicationState(postId, permalink) {
+    return {
+      id: toInt(postId),
+      permalink: String(permalink || ""),
+    };
+  }
+
+  function buildDeliveriesState(distribution, facebookPostId, facebookCommentId, facebookCaption, groupShareKit) {
+    return {
+      facebook: {
+        distribution,
+        postId: String(facebookPostId || ""),
+        commentId: String(facebookCommentId || ""),
+        caption: String(facebookCaption || ""),
+      },
+      facebook_groups: {
+        draft: String(groupShareKit || ""),
+      },
+    };
+  }
+
+  function buildTargetsState(facebookTargets) {
+    return {
+      facebook: Array.isArray(facebookTargets?.pages) ? facebookTargets.pages : [],
+    };
+  }
+
+  function resolvePublishResultTargets(result, fallbackTargets = {}) {
+    const targets = isPlainObject(result?.targets) ? result.targets : {};
+
+    return {
+      ...fallbackTargets,
+      ...targets,
+      facebook: Array.isArray(targets.facebook)
+        ? targets.facebook
+        : (Array.isArray(result?.selectedPages) ? result.selectedPages : (Array.isArray(fallbackTargets.facebook) ? fallbackTargets.facebook : [])),
+    };
+  }
+
   async function processNextJob() {
     const claimed = await claimNextJob();
     if (!claimed?.job) {
@@ -76,9 +164,9 @@ export function createJobOrchestrator(deps) {
     let {
       distribution,
       facebookCaption,
+      facebookTargets,
       groupShareKit,
       preferredAngle,
-      selectedPages,
       socialPack,
     } = refreshFacebookPhaseState({
       job,
@@ -90,17 +178,24 @@ export function createJobOrchestrator(deps) {
     });
     let featuredImage = firstAttachment(job.featured_image, job.blog_image);
     let facebookImage = firstAttachment(job.facebook_image_result, job.facebook_image, featuredImage);
+    let publicationState = buildPublicationState(postId, permalink);
+    let deliveriesState = buildDeliveriesState(
+      distribution,
+      facebookPostId,
+      facebookCommentId,
+      facebookCaption,
+      groupShareKit,
+    );
+    let targetsState = buildTargetsState(facebookTargets);
 
     log(`processing ${jobLabel}`);
 
     try {
-      assertRecipeDistributionTargets(job, selectedPages);
-
       if (claimMode === "generate") {
         ensureOpenAiConfigured(settings);
         generated = await generatePackage(job, settings);
         contentPackage = resolveCanonicalContentPackage(generated, job);
-        ({ distribution, facebookCaption, groupShareKit, preferredAngle, selectedPages, socialPack } = refreshFacebookPhaseState({
+        ({ distribution, facebookCaption, facebookTargets, groupShareKit, preferredAngle, socialPack } = refreshFacebookPhaseState({
           job,
           settings,
           generated,
@@ -112,36 +207,46 @@ export function createJobOrchestrator(deps) {
           facebookImage,
         }));
 
-        socialPack = ensureSocialPackCoverage(socialPack, selectedPages, generated, settings, job.content_type || "recipe", preferredAngle);
+        const facebookTargetCount = resolveFacebookTargetCount(facebookTargets);
+        socialPack = ensureSocialPackCoverage(socialPack, facebookTargets, generated, settings, job.content_type || "recipe", preferredAngle);
         const qualitySummary = buildQualitySummary(job, { ...generated, social_pack: socialPack }, settings, {
-          selectedPages,
           featuredImage,
           facebookImage,
+          targetPages: facebookTargetCount,
         });
         generated = mergeValidatorSummary(
           {
             ...generated,
             social_pack: socialPack,
           },
-        {
-          ...qualitySummary,
-          target_pages: qualitySummary.quality_checks?.target_pages || selectedPages.length,
-          social_variants: qualitySummary.quality_checks?.social_variants || socialPack.length,
-        },
-      );
+          {
+            ...qualitySummary,
+            target_pages: qualitySummary.quality_checks?.target_pages || facebookTargetCount,
+            social_variants: qualitySummary.quality_checks?.social_variants || socialPack.length,
+          },
+        );
         ({ facebookCaption, groupShareKit } = refreshFacebookPhaseState({
           job,
           settings,
           generated,
           facebookPostTeaserCta,
         }));
+        deliveriesState = buildDeliveriesState(
+          distribution,
+          facebookPostId,
+          facebookCommentId,
+          facebookCaption,
+          groupShareKit,
+        );
+        targetsState = buildTargetsState(facebookTargets);
 
         const scheduled = await updateJobProgress(job.id, {
           status: "scheduled",
           stage: "scheduled",
+          publication: publicationState,
+          deliveries: deliveriesState,
+          targets: targetsState,
           generated_payload: generated,
-          facebook_caption: facebookCaption,
-          group_share_kit: groupShareKit,
           featured_image_id: featuredImage?.id || 0,
           facebook_image_result_id: facebookImage?.id || featuredImage?.id || 0,
         }, job);
@@ -155,7 +260,7 @@ export function createJobOrchestrator(deps) {
         job = scheduled?.job || job;
         generated = normalizeGeneratedPayload(job.generated_payload || generated, job);
         contentPackage = resolveCanonicalContentPackage(generated, job);
-        ({ distribution, facebookCaption, groupShareKit, preferredAngle, selectedPages, socialPack } = refreshFacebookPhaseState({
+        ({ distribution, facebookCaption, facebookTargets, groupShareKit, preferredAngle, socialPack } = refreshFacebookPhaseState({
           job,
           settings,
           generated,
@@ -165,6 +270,14 @@ export function createJobOrchestrator(deps) {
         }));
         featuredImage = firstAttachment(job.featured_image, job.blog_image, featuredImage);
         facebookImage = firstAttachment(job.facebook_image_result, job.facebook_image, featuredImage, facebookImage);
+        deliveriesState = buildDeliveriesState(
+          distribution,
+          facebookPostId,
+          facebookCommentId,
+          facebookCaption,
+          groupShareKit,
+        );
+        targetsState = buildTargetsState(facebookTargets);
         log(`generated ${jobLabel} and continuing directly to publish`);
       }
 
@@ -172,7 +285,7 @@ export function createJobOrchestrator(deps) {
         ensureOpenAiConfigured(settings);
         generated = await generatePackage(job, settings);
         contentPackage = resolveCanonicalContentPackage(generated, job);
-        ({ distribution, facebookCaption, groupShareKit, preferredAngle, selectedPages, socialPack } = refreshFacebookPhaseState({
+        ({ distribution, facebookCaption, facebookTargets, groupShareKit, preferredAngle, socialPack } = refreshFacebookPhaseState({
           job,
           settings,
           generated,
@@ -185,11 +298,12 @@ export function createJobOrchestrator(deps) {
         facebookImage,
       }));
 
-      socialPack = ensureSocialPackCoverage(socialPack, selectedPages, generated, settings, job.content_type || "recipe", preferredAngle);
+      const facebookTargetCount = resolveFacebookTargetCount(facebookTargets);
+      socialPack = ensureSocialPackCoverage(socialPack, facebookTargets, generated, settings, job.content_type || "recipe", preferredAngle);
       const qualitySummary = buildQualitySummary(job, { ...generated, social_pack: socialPack }, settings, {
-        selectedPages,
         featuredImage,
         facebookImage,
+        targetPages: facebookTargetCount,
       });
       generated = mergeValidatorSummary(
         {
@@ -198,23 +312,35 @@ export function createJobOrchestrator(deps) {
         },
         {
           ...qualitySummary,
-          target_pages: qualitySummary.quality_checks?.target_pages || selectedPages.length,
+          target_pages: qualitySummary.quality_checks?.target_pages || facebookTargetCount,
           social_variants: qualitySummary.quality_checks?.social_variants || socialPack.length,
         },
       );
-      ({ distribution, facebookCaption, groupShareKit, preferredAngle, selectedPages, socialPack } = refreshFacebookPhaseState({
+      ({ distribution, facebookCaption, facebookTargets, groupShareKit, preferredAngle, socialPack } = refreshFacebookPhaseState({
         job,
         settings,
         generated,
         facebookPostTeaserCta,
       }));
       contentPackage = resolveCanonicalContentPackage(generated, job);
+      publicationState = buildPublicationState(postId, permalink);
+      deliveriesState = buildDeliveriesState(
+        distribution,
+        facebookPostId,
+        facebookCommentId,
+        facebookCaption,
+        groupShareKit,
+      );
+      targetsState = buildTargetsState(facebookTargets);
       assertQualityGate(qualitySummary);
 
       const publishResult = await postingMachine.runPublishingFlow({
         job,
         settings,
         generated,
+        publication: publicationState,
+        deliveries: deliveriesState,
+        targets: targetsState,
         distribution,
         facebookCaption,
         groupShareKit,
@@ -231,15 +357,36 @@ export function createJobOrchestrator(deps) {
       });
 
       stage = publishResult.stage || stage;
-      distribution = publishResult.distribution || distribution;
       generated = publishResult.generated || generated;
-      facebookCaption = publishResult.facebookCaption || facebookCaption;
       groupShareKit = publishResult.groupShareKit || groupShareKit;
-      facebookPostId = publishResult.facebookPostId || facebookPostId;
-      facebookCommentId = publishResult.facebookCommentId || facebookCommentId;
-      postId = toInt(publishResult.postId || postId);
-      permalink = publishResult.permalink || permalink;
-      selectedPages = Array.isArray(publishResult.selectedPages) ? publishResult.selectedPages : selectedPages;
+      const publicationResult = resolvePublishResultPublication(publishResult, postId, permalink);
+      const facebookDeliveryResult = resolvePublishResultFacebookDelivery(
+        publishResult,
+        distribution,
+        facebookPostId,
+        facebookCommentId,
+        facebookCaption,
+      );
+      const facebookGroupsDeliveryResult = resolvePublishResultFacebookGroupsDelivery(
+        publishResult,
+        groupShareKit,
+      );
+      distribution = facebookDeliveryResult.distribution;
+      facebookCaption = facebookDeliveryResult.caption;
+      facebookPostId = facebookDeliveryResult.postId;
+      facebookCommentId = facebookDeliveryResult.commentId;
+      groupShareKit = facebookGroupsDeliveryResult.draft;
+      postId = publicationResult.postId;
+      permalink = publicationResult.permalink;
+      publicationState = buildPublicationState(postId, permalink);
+      deliveriesState = buildDeliveriesState(
+        distribution,
+        facebookPostId,
+        facebookCommentId,
+        facebookCaption,
+        groupShareKit,
+      );
+      targetsState = resolvePublishResultTargets(publishResult, targetsState);
 
       if (!publishResult.ok) {
         return {
@@ -258,10 +405,9 @@ export function createJobOrchestrator(deps) {
       await safeFailJob(job.id, {
         status,
         stage,
-        facebook_post_id: facebookPostId,
-        facebook_comment_id: facebookCommentId,
-        facebook_caption: facebookCaption,
-        group_share_kit: groupShareKit,
+        publication: publicationState,
+        deliveries: deliveriesState,
+        targets: targetsState,
         generated_payload: generated,
         error_message: message,
       }, job);

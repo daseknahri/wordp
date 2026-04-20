@@ -33,8 +33,19 @@ export function angleDefinition(angleKey, contentType = "") {
   return definitions.find((angle) => angle.key === normalized) || null;
 }
 
-export function buildPageAnglePlan(pages, contentType = "recipe", preferredAngle = "") {
-  const count = Math.max(1, Array.isArray(pages) ? pages.length : 0);
+export function buildPageAnglePlan(targets, contentType = "recipe", preferredAngle = "") {
+  const pages = Array.isArray(targets)
+    ? targets
+    : (Array.isArray(targets?.pages) ? targets.pages : []);
+  const labels = Array.isArray(targets?.labels)
+    ? targets.labels
+    : [];
+  const count = Math.max(
+    1,
+    Array.isArray(pages) && pages.length
+      ? pages.length
+      : (Number(targets?.count || 0) || labels.length || 0),
+  );
   const angles = buildAngleSequence(count, contentType, preferredAngle);
   const definitions = angleDefinitionsForType(contentType);
 
@@ -42,11 +53,12 @@ export function buildPageAnglePlan(pages, contentType = "recipe", preferredAngle
     const angleKey = angles[index] || definitions[index % definitions.length].key;
     const angle = angleDefinition(angleKey, contentType);
     const page = Array.isArray(pages) ? pages[index] || null : null;
+    const label = cleanText(labels[index] || page?.label || `Page ${index + 1}`);
 
     return {
       index,
       angle_key: angleKey,
-      page_label: cleanText(page?.label || `Page ${index + 1}`),
+      page_label: label,
       instruction: angle?.instruction || "",
     };
   });

@@ -53,6 +53,39 @@ export function createFacebookDistributionHelpers(deps) {
       .filter(Boolean);
   }
 
+  function resolveFacebookTargets(job, settings) {
+    const pages = resolveSelectedFacebookPages(job, settings);
+
+    return {
+      pages,
+      labels: Array.isArray(pages)
+        ? pages.map((page) => cleanText(page?.label || "")).filter(Boolean)
+        : [],
+      count: Array.isArray(pages) ? pages.length : 0,
+    };
+  }
+
+  function resolveFacebookDistributionContext({
+    job,
+    settings,
+    distribution,
+    facebookCaption = "",
+  }) {
+    const facebookTargets = resolveFacebookTargets(job, settings);
+    const selectedPages = Array.isArray(facebookTargets?.pages) ? facebookTargets.pages : [];
+
+    return {
+      facebookTargets,
+      selectedPages,
+      distribution: seedLegacyFacebookDistribution(
+        distribution,
+        selectedPages,
+        job,
+        facebookCaption,
+      ),
+    };
+  }
+
   function seedLegacyFacebookDistribution(distribution, pages, job, facebookCaption) {
     const normalized = normalizeFacebookDistribution(distribution, job?.content_type || "recipe");
     if (Object.keys(normalized.pages).length > 0) {
@@ -91,6 +124,8 @@ export function createFacebookDistributionHelpers(deps) {
   }
 
   return {
+    resolveFacebookDistributionContext,
+    resolveFacebookTargets,
     resolveSelectedFacebookPages,
     seedLegacyFacebookDistribution,
   };

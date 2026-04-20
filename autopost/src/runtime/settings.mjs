@@ -30,6 +30,9 @@ export function createSettingsHelpers(deps) {
     const platformPolicy = isPlainObject(provided.platform_policy)
       ? provided.platform_policy
       : (isPlainObject(provided.platformPolicy) ? provided.platformPolicy : {});
+    const postingPolicy = isPlainObject(provided.posting_policy)
+      ? provided.posting_policy
+      : (isPlainObject(provided.postingPolicy) ? provided.postingPolicy : {});
     const defaultCtas = isPlainObject(provided.default_ctas) ? provided.default_ctas : {};
     const facebookPostTeaserCta = cleanText(
       defaultCtas.facebook_post_teaser ||
@@ -135,6 +138,7 @@ export function createSettingsHelpers(deps) {
       },
       sitePolicy,
       platformPolicy,
+      postingPolicy,
       defaultCtas: {
         facebook_post_teaser: facebookPostTeaserCta,
         facebook_comment_link: facebookCommentLinkCta,

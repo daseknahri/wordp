@@ -25,6 +25,55 @@ export function createChannelAdapterHelpers(deps) {
     trimText,
   } = deps;
 
+  function resolveLegacyChannelMirrors(generated) {
+    const legacyMirrors = isPlainObject(generated?.legacy_channel_mirrors)
+      ? generated.legacy_channel_mirrors
+      : (isPlainObject(generated?.legacyChannelMirrors) ? generated.legacyChannelMirrors : {});
+    const rawFacebookCaption =
+      legacyMirrors.facebook_caption
+      || legacyMirrors.facebookCaption
+      || generated?.facebook_caption
+      || generated?.facebookCaption
+      || "";
+    const rawGroupShareKit =
+      legacyMirrors.group_share_kit
+      || legacyMirrors.groupShareKit
+      || generated?.group_share_kit
+      || generated?.groupShareKit
+      || "";
+    const rawSocialPack = Array.isArray(legacyMirrors.social_pack)
+      ? legacyMirrors.social_pack
+      : (Array.isArray(legacyMirrors.socialPack) ? legacyMirrors.socialPack : generated?.social_pack);
+    const rawSocialCandidates = Array.isArray(legacyMirrors.social_candidates)
+      ? legacyMirrors.social_candidates
+      : (Array.isArray(legacyMirrors.socialCandidates) ? legacyMirrors.socialCandidates : generated?.social_candidates);
+    const rawFacebookDistribution = isPlainObject(legacyMirrors.facebook_distribution)
+      ? legacyMirrors.facebook_distribution
+      : (isPlainObject(legacyMirrors.facebookDistribution) ? legacyMirrors.facebookDistribution : generated?.facebook_distribution);
+
+    return {
+      facebookCaption: cleanMultilineText(rawFacebookCaption),
+      groupShareKit: cleanMultilineText(rawGroupShareKit),
+      socialPack: normalizeSocialPack(
+        rawSocialPack,
+        cleanText(generated?.content_type || "recipe") || "recipe",
+      ),
+      socialCandidates: normalizeSocialPack(
+        rawSocialCandidates,
+        cleanText(generated?.content_type || "recipe") || "recipe",
+      ),
+      facebookDistribution: normalizeFacebookDistribution(
+        rawFacebookDistribution,
+        cleanText(generated?.content_type || "recipe") || "recipe",
+      ),
+      hasFacebookCaption: cleanText(rawFacebookCaption) !== "",
+      hasGroupShareKit: cleanText(rawGroupShareKit) !== "",
+      hasSocialPack: Array.isArray(rawSocialPack),
+      hasSocialCandidates: Array.isArray(rawSocialCandidates),
+      hasFacebookDistribution: isPlainObject(rawFacebookDistribution),
+    };
+  }
+
   function resolveFacebookDefaultCtas(generated, job = null) {
     const generatedContentMachine = isPlainObject(generated?.content_machine) ? generated.content_machine : {};
     const requestPayload = isPlainObject(job?.request_payload) ? job.request_payload : {};
@@ -118,19 +167,20 @@ export function createChannelAdapterHelpers(deps) {
     const existingChannels = isPlainObject(generated?.channels) ? generated.channels : {};
     const existingChannel = isPlainObject(existingChannels.facebook) ? existingChannels.facebook : {};
     const contentType = cleanText(generated?.content_type || job?.content_type || "recipe") || "recipe";
+    const legacyMirrors = resolveLegacyChannelMirrors({ ...generated, content_type: contentType });
     const candidates = normalizeSocialPack(
       Array.isArray(existingChannel.candidates) ? existingChannel.candidates
-        : (Array.isArray(existingChannel.social_candidates) ? existingChannel.social_candidates : generated?.social_candidates),
+        : (Array.isArray(existingChannel.social_candidates) ? existingChannel.social_candidates : legacyMirrors.socialCandidates),
       contentType,
     );
     const selected = normalizeSocialPack(
       Array.isArray(existingChannel.selected) ? existingChannel.selected
-        : (Array.isArray(existingChannel.social_pack) ? existingChannel.social_pack : generated?.social_pack),
+        : (Array.isArray(existingChannel.social_pack) ? existingChannel.social_pack : legacyMirrors.socialPack),
       contentType,
     );
     const distribution = normalizeFacebookDistribution(
       isPlainObject(existingChannel.distribution) ? existingChannel.distribution
-        : (isPlainObject(existingChannel.facebook_distribution) ? existingChannel.facebook_distribution : generated?.facebook_distribution),
+        : (isPlainObject(existingChannel.facebook_distribution) ? existingChannel.facebook_distribution : legacyMirrors.facebookDistribution),
       contentType,
     );
 
@@ -183,6 +233,7 @@ export function createChannelAdapterHelpers(deps) {
     const existingChannels = isPlainObject(generated?.channels) ? generated.channels : {};
     const existingChannel = isPlainObject(existingChannels.facebook_groups) ? existingChannels.facebook_groups : {};
     const contentPackage = resolveCanonicalContentPackage(generated, job);
+    const legacyMirrors = resolveLegacyChannelMirrors(generated);
 
     return {
       channel: "facebook_groups",
@@ -195,7 +246,7 @@ export function createChannelAdapterHelpers(deps) {
       draft: buildFacebookGroupsDraft(
         contentPackage,
         isPlainObject(existingChannel.draft) ? existingChannel.draft : {},
-        cleanMultilineText(generated?.group_share_kit || ""),
+        legacyMirrors.groupShareKit,
       ),
       quality_summary: {
         ...(isPlainObject(existingChannel.quality_summary) ? existingChannel.quality_summary : {}),
@@ -224,7 +275,7 @@ export function createChannelAdapterHelpers(deps) {
 
   function deriveLegacyGroupShareKitMirror(generated, job = null) {
     const groupChannel = resolveFacebookGroupsChannelAdapter(generated, job);
-    return cleanMultilineText(groupChannel?.draft?.share_blurb || generated?.group_share_kit || "");
+    return cleanMultilineText(groupChannel?.draft?.share_blurb || resolveLegacyChannelMirrors(generated).groupShareKit || "");
   }
 
   function syncGeneratedContractContainers(generated, job = null) {
@@ -254,9 +305,10 @@ export function createChannelAdapterHelpers(deps) {
     const pinterestChannel = resolvePinterestChannelAdapter({ ...generated, content_package: contentPackage }, job);
     const facebookGroupsChannel = resolveFacebookGroupsChannelAdapter({ ...generated, content_package: contentPackage }, job);
     const defaultCtas = resolveFacebookDefaultCtas(generated, job);
+    const legacyMirrors = resolveLegacyChannelMirrors({ ...generated, content_type: contentPackage.content_type });
     const legacyFacebookCaption = deriveLegacyFacebookCaptionMirror(
       facebookChannel,
-      cleanMultilineText(generated?.facebook_caption || ""),
+      legacyMirrors.facebookCaption,
       defaultCtas.facebookPostTeaserCta,
     );
     const topLevelRecipe = contentPackage.content_type === "recipe"
@@ -282,6 +334,13 @@ export function createChannelAdapterHelpers(deps) {
       facebook_distribution: facebookChannel.distribution,
       facebook_caption: legacyFacebookCaption,
       group_share_kit: deriveLegacyGroupShareKitMirror({ ...generated, channels: { ...(isPlainObject(generated?.channels) ? generated.channels : {}), facebook_groups: facebookGroupsChannel } }, job),
+      legacy_channel_mirrors: {
+        facebook_caption: legacyFacebookCaption,
+        group_share_kit: deriveLegacyGroupShareKitMirror({ ...generated, channels: { ...(isPlainObject(generated?.channels) ? generated.channels : {}), facebook_groups: facebookGroupsChannel } }, job),
+        social_candidates: facebookChannel.candidates,
+        social_pack: facebookChannel.selected,
+        facebook_distribution: facebookChannel.distribution,
+      },
       content_machine: {
         ...contentMachine,
         default_ctas: {
@@ -312,6 +371,7 @@ export function createChannelAdapterHelpers(deps) {
     resolveFacebookDefaultCtas,
     resolveFacebookChannelAdapter,
     resolveFacebookGroupsChannelAdapter,
+    resolveLegacyChannelMirrors,
     resolvePinterestChannelAdapter,
     syncGeneratedContractContainers,
   };

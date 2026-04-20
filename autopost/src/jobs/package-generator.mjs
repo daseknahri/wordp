@@ -17,8 +17,8 @@ export function createPackageGenerator(deps) {
     normalizeGeneratedPayload,
     resolveCanonicalContentPackage,
     resolvePreferredAngle,
+    resolveFacebookTargets,
     resolvePublicationProfile,
-    resolveSelectedFacebookPages,
     resolveTypedGuidance,
     summarizeSelectedSocialPack,
     syncGeneratedContractContainers,
@@ -63,7 +63,8 @@ export function createPackageGenerator(deps) {
       ),
       job,
     );
-    const selectedPages = resolveSelectedFacebookPages(job, settings);
+    const facebookTargets = resolveFacebookTargets(job, settings);
+    const targetCount = Math.max(0, Number(facebookTargets?.count || 0));
     const preferredAngle = resolvePreferredAngle(job);
     let socialCandidates = [];
     let socialValidatorSummary = {
@@ -93,7 +94,7 @@ export function createPackageGenerator(deps) {
     let distributionSource = "model_pool";
 
     try {
-      const socialResult = await generateSocialCandidatePool(job, settings, contentPackage, selectedPages, preferredAngle);
+      const socialResult = await generateSocialCandidatePool(job, settings, contentPackage, facebookTargets, preferredAngle);
       socialCandidates = Array.isArray(socialResult?.candidates) ? socialResult.candidates : [];
       socialValidatorSummary = isPlainObject(socialResult?.validatorSummary)
         ? { ...socialValidatorSummary, ...socialResult.validatorSummary }
@@ -106,14 +107,14 @@ export function createPackageGenerator(deps) {
 
     const socialPack = ensureSocialPackCoverage(
       socialCandidates,
-      selectedPages,
+      facebookTargets,
       contentPackage,
       settings,
       job.content_type || "recipe",
       preferredAngle,
     );
     const selectedSocialSummary = summarizeSelectedSocialPack(socialPack, contentPackage, job.content_type || "recipe");
-    if (distributionSource !== "local_fallback" && socialCandidates.length < Math.max(1, selectedPages.length)) {
+    if (distributionSource !== "local_fallback" && socialCandidates.length < Math.max(1, targetCount)) {
       distributionSource = "partial_fallback";
     }
 
@@ -273,7 +274,7 @@ export function createPackageGenerator(deps) {
             lead_social_pain_point: selectedSocialSummary.lead_social_pain_point,
             lead_social_payoff: selectedSocialSummary.lead_social_payoff,
             distribution_source: distributionSource,
-            target_pages: Math.max(1, selectedPages.length),
+            target_pages: targetCount,
             social_variants: socialPack.length,
           },
         },

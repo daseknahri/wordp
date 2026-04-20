@@ -158,8 +158,9 @@ trait Kuchnia_Twist_Publisher_Rest_Worker_Trait
         $featured_image_id = !empty($params['featured_image_id']) ? (int) $params['featured_image_id'] : (int) ($job['featured_image_id'] ?? 0);
         $facebook_image_id = !empty($params['facebook_image_result_id']) ? (int) $params['facebook_image_result_id'] : (int) ($job['facebook_image_result_id'] ?? 0);
         $publish_on        = !empty($params['publish_on']) ? (string) $params['publish_on'] : (string) ($job['publish_on'] ?? '');
-        $facebook_caption  = isset($params['facebook_caption']) ? (string) $params['facebook_caption'] : $this->derive_legacy_facebook_caption($generated_payload, $job);
-        $group_share_kit   = isset($params['group_share_kit']) ? (string) $params['group_share_kit'] : $this->derive_legacy_group_share_kit($generated_payload);
+        $callback_state = $this->resolve_worker_callback_state($params, $generated_payload, $job);
+        $facebook_caption  = $callback_state['facebook_caption'];
+        $group_share_kit   = $callback_state['group_share_kit'];
         $validator_summary = is_array($generated_payload['content_machine']['validator_summary'] ?? null)
             ? $generated_payload['content_machine']['validator_summary']
             : [];

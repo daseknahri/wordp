@@ -190,13 +190,18 @@ export function createPromptBuilders(deps) {
       .join("\n");
   };
 
-  const buildSocialCandidatePrompt = (job, settings, article, selectedPages, preferredAngle = "", repairNote = "") => {
+  const buildSocialCandidatePrompt = (job, settings, article, socialTargets, preferredAngle = "", repairNote = "") => {
     const normalizedSettings = settings && typeof settings === "object" ? settings : {};
     const preset = resolveContentPreset(settings, job.content_type);
     const sitePolicy = resolveContentSitePolicy(normalizedSettings, job);
     const socialGuidance = resolveTypedGuidance(normalizedSettings, "facebook_caption", job.content_type, "");
-    const anglePlan = buildPageAnglePlan(selectedPages, job.content_type || "recipe", preferredAngle);
-    const candidateCount = Math.max(8, Math.min(12, Math.max(selectedPages.length * 2, 8)));
+    const targetCount = Math.max(
+      1,
+      Number(socialTargets?.count || 0)
+        || (Array.isArray(socialTargets) ? socialTargets.length : 0),
+    );
+    const anglePlan = buildPageAnglePlan(socialTargets, job.content_type || "recipe", preferredAngle);
+    const candidateCount = Math.max(8, Math.min(12, Math.max(targetCount * 2, 8)));
     const socialBrief = buildSocialCreativeBrief(article, job.content_type || "recipe");
 
     return [
